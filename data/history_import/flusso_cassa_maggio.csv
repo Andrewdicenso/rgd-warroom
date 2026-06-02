@@ -1,0 +1,5 @@
+ID_Fattura,Data,Soggetto,Descrizione_Asset,Importo,Stato_Qualita,Rischio_Logistico
+FAT-2026-001,2026-05-01,Fornitore Energia,Bolletta Maggio,1450.00,Pagato,1
+FAT-2026-002,2026-05-02,Agenzia Entrate,F24 IVA,4200.00,In Attesa,7
+FAT-2026-003,2026-05-03,Logistica Express,Spese Spedizione,850.00,Scaduto,9
+FAT-2026-004,2026-05-04,Consulente IT,Sviluppo Moduli,2100.00,In Revisione,4

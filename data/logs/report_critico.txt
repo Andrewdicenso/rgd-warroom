@@ -1,0 +1,36 @@
+
+--- REPORT CRITICO: 2026-04-30 18:13:43.040278 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 8.0.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 5.0.
+
+--- REPORT CRITICO: 2026-05-02 12:14:36.130090 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 5.2.
+
+--- REPORT CRITICO: 2026-05-02 12:39:49.046222 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-02 12:51:59.925082 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-05 17:08:39.753042 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-05 17:14:36.525302 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-05 17:17:10.549590 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-05 17:19:05.838661 ---
+ALLERTA: L'asset 'Trasporti Rapidi' presenta un rischio critico di 7.8.
+ALLERTA: L'asset 'Fornitore Acciaio' presenta un rischio critico di 6.8.
+
+--- REPORT CRITICO: 2026-05-07 11:40:05.263305 ---
+
+--- REPORT CRITICO: 2026-05-07 11:49:47.322487 ---
