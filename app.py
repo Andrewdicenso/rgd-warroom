@@ -20,11 +20,13 @@ from auth.auth import inizializza_sessione, login_utente, logout_utente
 # =========================
 load_dotenv()
 PROJECT_ROOT = Path(__file__).parent
-DATA_ROOT = PROJECT_ROOT / "data"
-UPLOAD_DIR = DATA_ROOT / "uploads"
 
-for folder in [UPLOAD_DIR]:
-    folder.mkdir(parents=True, exist_ok=True)
+# Se siamo su Render, usiamo la cartella temporanea (/tmp), altrimenti quella locale
+upload_path = os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "data" / "uploads"))
+UPLOAD_DIR = Path(upload_path)
+
+# Crea la cartella se non esiste
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="RGD-Alpha | War Room Strategica",
@@ -64,7 +66,12 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
             st.error("Email già registrata.")
             return
         
-        ruolo = "admin" if email.lower() == "andrewdicenso@libero.it" else "user"
+        # --- MODIFICA PER RENDER E VENDITA ---
+        # Leggiamo l'email dell'admin dalla "Cassaforte" (.env)
+        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
+        ruolo = "admin" if email.lower() == admin_email_env else "user"
+        # ------------------------------------
+
         user_id = db.crea_utente(email=email, password=password, ruolo=ruolo)
         if user_id:
             st.success("✅ Registrazione completata. Effettua il login.")

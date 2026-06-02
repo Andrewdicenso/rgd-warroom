@@ -1,22 +1,29 @@
-# --- CACHE & TEMPORANEI ---
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-.DS_Store
+# --- UPLOAD FILE TEMPORANEI ---
+data/uploads/
+uploads/
+tmp/
 
-# --- SICUREZZA (PASSWORD E CHIAVI) ---
-.env
-credentials.json
-token.pickle
-*.key
+# --- FILE TEMPORANEI DATABASE ---
+data/db/*.db-journal
+data/db/*.db-shm
+data/db/*.db-wal
 
-# --- DATI E LOG ---
-*.log
-data_test/
-# --- CONFIGURAZIONI STREAMLIT ---
-.streamlit/
-secrets.toml
-.venv/
-data/db/*.db
+# --- CONFIGURAZIONI IDE (opzionale ma consigliato) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- FILE DI SISTEMA WINDOWS ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- AMBIENTI VIRTUALI PYTHON ---
+venv/
+env/
+ENV/
+
+# --- FILE DI TEST E DEBUG ---
+test_*.py
+debug.log

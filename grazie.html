@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6TTVMQFNY6"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-6TTVMQFNY6');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocollo Attivato | RGandja Intelligence</title>
+    
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent-gold: #d4af37; --border: #1a2332; --bg-dark: #05070a; --term-green: #27c93f; }
+        body { background: var(--bg-dark); color: white; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        .confirmation-card {
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: rgba(10, 14, 20, 0.95);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            border-top: 4px solid var(--accent-gold);
+            margin: 20px;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        .status-terminal {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #63b3ed;
+            margin-top: 30px;
+            background: #0d1117;
+            padding: 30px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-gold);
+            text-align: left;
+            height: 200px;
+            overflow-y: auto;
+            line-height: 1.8;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.7);
+        }
+
+        .check-icon {
+            font-size: 4.5rem;
+            color: var(--accent-gold);
+            margin-bottom: 25px;
+            display: inline-block;
+            filter: drop-shadow(0 0 20px rgba(212,175,55,0.4));
+        }
+
+        .btn-home {
+            background: var(--accent-gold);
+            color: #000;
+            padding: 20px 50px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-block;
+        }
+
+        .btn-home:hover { transform: translateY(-4px); box-shadow: 0 15px 40px rgba(212,175,55,0.4); }
+
+        .promo-success {
+            background: rgba(39, 201, 63, 0.05);
+            border: 1px solid var(--term-green);
+            padding: 10px 30px;
+            border-radius: 50px;
+            color: var(--term-green);
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            display: inline-block;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <main style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 0;">
+        <div class="confirmation-card" style="max-width: 800px; width: 100%; padding: 60px; text-align: center;">
+            <div class="check-icon">🛡️</div>
+            
+            <h1 style="color: #fff; letter-spacing: -1.5px; font-size: 2.5rem; margin: 0 0 10px 0;">
+                Protocolo RGD-Alpha Attivato
+            </h1>
+
+            <div class="promo-success">
+                RICHIESTA PRESA IN CARICO
+            </div>
+            
+            <p style="color: #a0aec0; font-size: 1.2rem; line-height: 1.8; max-width: 600px; margin: 0 auto;">
+                I tuoi dati sono stati isolati nel <strong>Secure Vault</strong>.<br>
+                Inizializzazione dei moduli di analisi strategica in corso.
+            </p>
+
+            <div id="status-terminal" class="status-terminal">
+                <span style="color: var(--accent-gold)">[SYSTEM]:</span> COLLEGAMENTO NODI DI CALCOLO...
+            </div>
+
+            <div style="margin-top: 50px; display: flex; flex-direction: column; align-items: center; gap: 30px;">
+                <a href="index.html" class="btn-home">Torna alla Home Page</a>
+                
+                <div style="font-family: 'Fira Code', monospace; font-size: 0.7rem; color: #4a5568; letter-spacing: 1px;">
+                    SESSION_TOKEN: <span id="trans-id" style="color: var(--accent-gold);"></span> | AES-256_ACTIVE
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer container text-center" style="padding-bottom: 50px;">
+        <p style="color: rgba(255,255,255,0.4); font-weight: 700; letter-spacing: 2px; font-size: 0.8rem;">
+            © 2026 RGANDJA TECHNOLOGY HUB · ATHENS ALPHA NODE
+        </p>
+    </footer>
+
+    <script>
+        const id = Math.random().toString(36).substring(2, 10).toUpperCase();
+        document.getElementById('trans-id').innerText = `AUTH-RGD-${id}`;
+
+        const term = document.getElementById('status-terminal');
+        const logs = [
+            "Handshake stabilito con l'Universal Gateway...",
+            "Creazione istanza isolata nel Secure Vault...",
+            "Caricamento Motore EMA Trend Momentum...",
+            "Verifica integrità protocollo RGD-Alpha...",
+            "Inizializzazione Stress Test What-If...",
+            "Notifica inviata al supervisore tecnico.",
+            "PROCEDURA COMPLETATA. ACCESSO CONFIGURATO."
+        ];
+        
+        let line = 0;
+        function updateTerminal() {
+            if (line < logs.length) {
+                term.innerHTML += `<br><span style="color: var(--term-green);">></span> ${logs[line]}`;
+                term.scrollTop = term.scrollHeight;
+                line++;
+                setTimeout(updateTerminal, 600);
+            }
+        }
+        setTimeout(updateTerminal, 1000);
+    </script>
+</body>
+</html>
