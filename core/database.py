@@ -53,9 +53,10 @@ class DatabaseAziendale:
     def crea_tabelle(self):
         try:
             with self._get_conn() as conn:
+                # Tabella utenti (compatibile SQLite e PostgreSQL)
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS utenti (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id SERIAL PRIMARY KEY,
                         email TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         ruolo TEXT NOT NULL,
@@ -64,9 +65,10 @@ class DatabaseAziendale:
                     )
                 """))
                 
+                # Tabella asset_logs
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS asset_logs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id SERIAL PRIMARY KEY,
                         user_id INTEGER NOT NULL,
                         company_id TEXT NOT NULL,
                         nome TEXT NOT NULL,
@@ -74,22 +76,24 @@ class DatabaseAziendale:
                         rischio REAL NOT NULL,
                         momentum TEXT,
                         volatilita REAL,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
                 
+                # Tabella log_caricamenti
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS log_caricamenti (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                        user_id INTEGER, 
-                        azienda TEXT, 
-                        contesto TEXT, 
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER,
+                        azienda TEXT,
+                        contesto TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         nome_file TEXT
                     )
                 """))
                 
                 conn.commit()
+                logger.info("✅ Tabelle create con successo")
         except Exception as e:
             logger.error(f"❌ Errore creazione schema: {e}")
             raise
@@ -191,7 +195,7 @@ class DatabaseAziendale:
             with self._get_conn() as conn:
                 cursor = conn.execute(text("""
                     SELECT AVG(rischio) FROM asset_logs 
-                    WHERE user_id = ? AND timestamp >= datetime('now', '-1 hour')
+                    WHERE user_id = ? AND timestamp >= NOW() - INTERVAL '1 hour'
                 """), (user_id,))
                 rischio_medio = cursor.fetchone()[0]
             
