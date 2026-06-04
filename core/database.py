@@ -259,8 +259,7 @@ class DatabaseAziendale:
         # =========================
     #   ASSET / LOGICHE AZIENDALI CORRETTE (ADMIN READY)
     # =========================
-
-        def recupera_asset_per_utente(self, user_id: int):
+    def recupera_asset_per_utente(self, user_id: int):
         """
         LOGICA DI SUPERVISIONE RGD-ALPHA:
         - Se l'utente è ADMIN: estrae TUTTI i dati di TUTTI i clienti (per AI training e supporto).
@@ -268,6 +267,31 @@ class DatabaseAziendale:
         """
         try:
             utente = self.get_utente_by_id(user_id)
+            if not utente: return pd.DataFrame()
+            
+            ruolo = utente.get("ruolo")
+
+            with self._get_conn() as conn:
+                if ruolo == "admin":
+                    # TU VEDI TUTTO: Nessun filtro WHERE per la supervisione totale
+                    query = "SELECT * FROM asset_logs ORDER BY id DESC"
+                    params = ()
+                else:
+                    # IL CLIENTE È ISOLATO: Vede solo i suoi dati personali
+                    query = "SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC"
+                    params = (user_id,)
+
+                df = pd.read_sql_query(query, conn, params=params)
+
+            if not df.empty:
+                # Decriptazione dati per la tua supervisione e addestramento AI
+                df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
+                df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
+            
+            return df
+        except Exception as e:
+            logger.error(f"Errore supervisione asset: {e}")
+            return pd.DataFrame()
             if not utente: return pd.DataFrame()
             
             ruolo = utente.get("ruolo")
