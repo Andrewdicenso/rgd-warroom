@@ -442,7 +442,7 @@ elif scelta == "📊 War Room Strategica":
                 # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
                 if risultati_sim:
                     st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                    # AGGIUNTO giorni_proiezione=30 PER RISOLVERE IL TYPEERROR
+                    giorni_proiezione=30
                     fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiezione=30) 
                     st.plotly_chart(fig_pred, use_container_width=True)
 
