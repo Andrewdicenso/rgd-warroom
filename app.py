@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from core.ingestor import IngestoreDati
 from core.engine import DataGateway, salva_report_certificato
 from core.database import DatabaseAziendale
+from core.notifier import Sentinella  # <--- INSERISCI QUI QUESTA RIGA
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
