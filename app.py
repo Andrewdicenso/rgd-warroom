@@ -11,12 +11,12 @@ from dotenv import load_dotenv
 from core.ingestor import IngestoreDati
 from core.engine import DataGateway, salva_report_certificato
 from core.database import DatabaseAziendale
+from core.notifier import Sentinella  # <--- INSERISCI QUI QUESTA RIGA
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.simulator import SimulatoreRischio
 from core.visuals import genera_grafico_predittivo
-
 # =========================
 #   CONFIGURAZIONE BASE
 # =========================
@@ -349,15 +349,31 @@ elif scelta == "📊 War Room Strategica":
             
             if lista_asset:
                 engine = DataGateway()
-                db.registra_caricamento(user_id, "UNIVERSAL", uploaded_file.name)
+                db.registra_caricamento(st.session_state.user_id, "UNIVERSAL", uploaded_file.name)
+                
                 # Calcolo con Stress Test e Pesi EMA
                 report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                status.update(label="✅ Analisi Strategica Completata!", state="complete")
-                # --- NUOVO: ESECUZIONE SIMULAZIONE MONTE CARLO ---
+                kpi_reali = db.calcola_e_salva_kpi_correnti(st.session_state.user_id)
+                
+                # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
                 sim = SimulatoreRischio()
                 risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-                # ------------------------------------------------
+                
+                # --- ESECUZIONE SENTINELLA (Notifica Automatica) ---
+                sentinella = Sentinella()
+                asset_a_rischio = [(a.get('asset'), a.get('rischio')) for a in report_analisi if a.get('rischio', 0) > 7]
+                if asset_a_rischio:
+                    sentinella.genera_report(asset_a_rischio)
+                    st.warning("⚠️ Rilevate criticità: Report di allerta generato in `data/logs/report_critico.txt`")
+                
+                # --- GRAFICO PREDITTIVO INTEGRATO ---
+                if risultati_sim:
+                    st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
+                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'])
+                    st.plotly_chart(fig_pred, use_container_width=True)
+                
+                status.update(label="✅ Analisi e Stress Test completati!", state="complete")
+                
                 # AGGIORNA LE METRICHE IN ALTO
                 col1, col2, col3, col4 = st.columns(4)
                 
