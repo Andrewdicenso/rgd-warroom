@@ -443,8 +443,8 @@ elif scelta == "📊 War Room Strategica":
                 # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
                 if risultati_sim:
                     st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)                    st.plotly_chart(fig_pred, use_container_width=True)
-
+                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
+                    st.plotly_chart(fig_pred, use_container_width=True)
                 # --- GRAFICO MOMENTUM ---
                 st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
                 df_plot = pd.DataFrame(report_analisi)
