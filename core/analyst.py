@@ -9,7 +9,7 @@ logger = logging.getLogger("RGD-Alpha.Analyst")
 class AnalistaRischio:
     """
     Modulo di Intelligence Predittiva: implementa Regressione Lineare e 
-    analisi della Volatilità Storica per la prevenzione dei rischi.
+    analisi della Volatilità Storica applicata alle ore produttive reali H(prod).
     Lavora direttamente con DatabaseAziendale, che gestisce cifratura/decifratura.
     """
     def __init__(self, db: DatabaseAziendale):
@@ -20,7 +20,7 @@ class AnalistaRischio:
     def _calcola_proiezione_lineare(self, serie_rischio):
         """
         Utilizza i minimi quadrati per calcolare la pendenza (slope) del trend.
-        Permette di prevedere se il rischio salirà o scenderà nel lungo periodo.
+        Permette di prevedere se il rischio di inefficienza oraria salirà o scenderà.
         """
         n = len(serie_rischio)
         if n < 2:
@@ -32,12 +32,12 @@ class AnalistaRischio:
 
     def calcola_trend_predittivo(self, nome_asset, company_id) -> dict:
         """
-        Analisi Ingegneristica: Sincronizzata con schema 'asset_logs'.
-        Calcola Momentum, Volatilità e Proiezione Futura.
+        Analisi Ingegneristica: Sincronizzata con lo storico 'asset_logs' e i KPI orari.
+        Calcola Momentum, Volatilità e Proiezione Futura dell'efficienza della risorsa.
         Usa DatabaseAziendale per lavorare su dati già decifrati.
         """
         try:
-            # Recupera tutti gli asset per l'azienda (company_id già in chiaro)
+            # Recupera tutti gli asset per l'azienda (company_id gestito in chiaro dal DB)
             df_all = self.db.recupera_asset_per_azienda(company_id)
 
             if df_all.empty:
@@ -48,7 +48,7 @@ class AnalistaRischio:
                     "azione": "Nessun dato storico disponibile per questo asset."
                 }
 
-            # Filtra solo l'asset richiesto
+            # Filtra solo l'asset/reparto richiesto
             df = df_all[df_all['nome'] == nome_asset].copy()
             if df.empty:
                 return {
@@ -58,7 +58,7 @@ class AnalistaRischio:
                     "azione": "Nessun dato storico disponibile per questo asset."
                 }
 
-            # Ordine cronologico e limitazione agli ultimi 15 punti
+            # Ordine cronologico e limitazione agli ultimi 15 campionamenti
             df = df.sort_values('timestamp')
             df = df.tail(15)
 
@@ -76,20 +76,20 @@ class AnalistaRischio:
                     "status": "Inizializzazione",
                     "valore_attuale": float(rischi[-1]),
                     "valutazione_strategica": "RACCOLTA DATI",
-                    "azione": "Dati insufficienti per proiezione statistica."
+                    "azione": "Dati insufficienti per proiezione statistica oraria."
                 }
 
             ultimo = rischi[-1]
             precedente = rischi[-2]
 
-            # 1. Indicatori di Velocità
+            # 1. Indicatori di Velocità dello slittamento orario
             delta = ultimo - precedente
             pendenza = self._calcola_proiezione_lineare(rischi)
 
-            # 2. Analisi Volatilità (Deviazione Standard)
+            # 2. Analisi Volatilità delle ore produttive (Deviazione Standard)
             volatilita = np.std(rischi)
 
-            # 3. Momentum (Variazione percentuale)
+            # 3. Momentum (Variazione percentuale del posizionamento di rischio)
             momentum_perc = ((ultimo - rischi[0]) / rischi[0] * 100) if rischi[0] != 0 else 0
 
             predizione = {
@@ -102,27 +102,27 @@ class AnalistaRischio:
                 "alert_critico": float(ultimo) > self.soglia_critica
             }
 
-            # --- LOGICA DI INTELLIGENCE PREDITTIVA ---
+            # --- LOGICA DI INTELLIGENCE PREDITTIVA ALLINEATA AD H(prod) ---
             if pendenza > 0.3 or (ultimo > self.soglia_critica and delta > 0):
                 predizione["valutazione_strategica"] = "INSTABILITÀ ACCELERATA"
-                predizione["azione"] = "CRITICO: Trend in forte crescita. Richiesto intervento preventivo immediato."
+                predizione["azione"] = "CRITICO: Accumulo esponenziale di ore perse. Rischio blocco supply chain o scadenze."
             elif pendenza < -0.1 and ultimo < self.soglia_warning:
                 predizione["valutazione_strategica"] = "RECUPERO STRUTTURALE"
-                predizione["azione"] = "EFFICIENTE: L'asset sta riducendo il rischio in modo costante."
+                predizione["azione"] = "EFFICIENTE: Ottimizzazione dei tempi e stabilizzazione delle ore reali H(prod)."
             elif volatilita > 1.2:
                 predizione["valutazione_strategica"] = "VOLATILITÀ ELEVATA"
-                predizione["azione"] = "ATTENZIONE: Comportamento imprevedibile. Aumentare frequenza monitoraggio."
+                predizione["azione"] = "ATTENZIONE: Alternanza critica tra picchi produttivi e micropause anomale. Monitorare carichi."
             else:
                 predizione["valutazione_strategica"] = "STABILITÀ OPERATIVA"
-                predizione["azione"] = "MANTENIMENTO: Trend stabile e in linea con i target."
+                predizione["azione"] = "MANTENIMENTO: Andamento orario stabile e in linea con la pianificazione."
 
             return predizione
 
         except Exception as e:
-            logger.error(f"❌ Errore Analista su {nome_asset}: {e}")
+            logger.error(f"❌ Errore Analista predittivo su {nome_asset}: {e}")
             return {
                 "status": "Errore", 
                 "valore_attuale": 0.0, 
                 "valutazione_strategica": "FALLIMENTO CALCOLO",
-                "azione": "Verificare connessione database."
+                "azione": "Verificare consistenza dei dati e integrità del database."
             }

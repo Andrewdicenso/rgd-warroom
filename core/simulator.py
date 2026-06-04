@@ -32,7 +32,8 @@ class SimulatoreRischio:
             return {
                 "probabilita_crisi": round(prob_fallimento, 2),
                 "giorni_sopravvivenza_stimati": giorni_sopravvivenza,
-                "rischio_max_previsto": round(np.max(stato_finale), 2)
+                "rischio_max_previsto": round(np.max(stato_finale), 2),
+                "percorsi_raw": percorsi_rischio
             }
         except Exception as e:
             logger.error(f"Errore simulazione: {e}")

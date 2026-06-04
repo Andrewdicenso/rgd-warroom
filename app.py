@@ -14,6 +14,8 @@ from core.database import DatabaseAziendale
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
+from core.simulator import SimulatoreRischio
+from core.visuals import genera_grafico_predittivo
 
 # =========================
 #   CONFIGURAZIONE BASE
@@ -352,7 +354,10 @@ elif scelta == "📊 War Room Strategica":
                 report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
                 status.update(label="✅ Analisi Strategica Completata!", state="complete")
-
+                # --- NUOVO: ESECUZIONE SIMULAZIONE MONTE CARLO ---
+                sim = SimulatoreRischio()
+                risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
+                # ------------------------------------------------
                 # AGGIORNA LE METRICHE IN ALTO
                 col1, col2, col3, col4 = st.columns(4)
                 
@@ -416,6 +421,13 @@ elif scelta == "📊 War Room Strategica":
                 cols[3].metric("Efficienza Risorse", "84.2%")
                 res = max(round(100 - (f_stress * 10), 1), 0)
                 cols[4].metric("Resilience", f"{res}%")
+
+                # --- GRAFICO PREDITTIVO INTEGRATO ---
+                if risultati_sim:
+                    st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
+                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'])
+                    st.plotly_chart(fig_pred, use_container_width=True)
+
 
                 # --- GRAFICO MOMENTUM ---
                 st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")

@@ -1,0 +1,48 @@
+{
+  "nome_progetto": "Protocollo RGD-Alpha",
+  "versione_motore": "1.0.0",
+  "filosofia_operativa": "Growth OS AI - War Room Predittiva Olistica",
+  "configurazione_ai": {
+    "modalita_lettura": "DOCUMENTO_COMPLETO_STORICO",
+    "apprendimento_automatico_kpi": true,
+    "scansione_correlazioni_incrociate": true
+  },
+  "mappatura_4_pilastri": {
+    "CONTABILITÀ": {
+      "identificatori_documento": ["incassi", "flusso_cassa", "partite_aperte", "entrate", "bilancio"],
+      "tolleranza_flessione_ricavi": 0.85,
+      "reparti_da_interrogare_su_anomalia": ["MAGAZZINO", "FORNITORI"]
+    },
+    "MAGAZZINO": {
+      "identificatori_documento": ["quantita", "costo_unitario", "giorni_stoccaggio", "giacenze"],
+      "limite_giorni_giacenza_critica": 60,
+      "soglia_valore_sovraccarico_euro": 50000
+    },
+    "FORNITORI": {
+      "identificatori_documento": ["giorni_ritardo_consegna", "indice_prezzo_acquisto", "affidabilita"],
+      "tolleranza_massima_ritardo_giorni": 5,
+      "variazione_prezzo_massima_percentuale": 10
+    },
+    "VENDITE": {
+      "identificatori_documento": ["fatturato_canale", "target_periodo", "performance_commerciale"],
+      "frequenza_analisi_trend": "giornaliera_e_mensile"
+    }
+  },
+  "motore_prescrittivo_marketing": {
+    "generazione_strategie_smaltimento": true,
+    "canali_azione_veloce": [
+      "campagna_flash_sale_ecommerce",
+      "promozioni_bundle_cross_selling",
+      "remarketing_clienti_dormienti"
+    ],
+    "algoritmo_solidita": {
+      "tipo": "MEDIA_PONDERATA_REPARTI",
+      "pesi": {
+        "contabilita": 0.25,
+        "magazzino": 0.25,
+        "fornitori": 0.25,
+        "vendite": 0.25
+      }
+    }
+  }
+}
