@@ -256,252 +256,153 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f" Errore salvataggio asset {nome_asset}: {e}")
 
+        # =========================
+    #   ASSET / LOGICHE AZIENDALI CORRETTE (ADMIN READY)
+    # =========================
+
     def recupera_asset_per_utente(self, user_id: int):
+        """Recupera gli asset: se Admin vede tutta l'azienda, altrimenti solo i propri."""
         try:
+            utente = self.get_utente_by_id(user_id)
+            if not utente: return pd.DataFrame()
+            
+            ruolo, azienda = utente.get("ruolo"), utente.get("azienda")
+
             with self._get_conn() as conn:
-                df = pd.read_sql_query(
-                    "SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC",
-                    conn,
-                    params=(user_id,)
-                )
+                if ruolo == "admin" and azienda:
+                    azienda_enc = self.vault.encrypt_data(str(azienda))
+                    df = pd.read_sql_query("SELECT * FROM asset_logs WHERE company_id = ? ORDER BY id DESC", conn, params=(azienda_enc,))
+                else:
+                    df = pd.read_sql_query("SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC", conn, params=(user_id,))
 
-            if df.empty:
-                return df
-
-            df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
-            df['nome'] = df['nome'].apply(self.vault.decrypt_data)
+            if not df.empty:
+                df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
+                df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
             return df
         except Exception as e:
-            logger.error(f"Errore recupero asset per utente: {e}")
+            logger.error(f"Errore recupero asset: {e}")
             return pd.DataFrame()
 
     def recupera_asset_per_azienda(self, user_id: int):
         return self.recupera_asset_per_utente(user_id)
 
     def recupera_attivita_globale(self, solo_admin=False, user_id=None):
-        """
-        Recupera l'attività. Se solo_admin=True, estrae tutti i record
-        del sistema permettendo la supervisione incrociata di tutte le aziende.
-        """
         try:
             with self._get_conn() as conn:
                 if solo_admin:
-                    df = pd.read_sql_query(
-                        "SELECT id, user_id, company_id, nome, rischio, timestamp FROM asset_logs ORDER BY id DESC",
-                        conn
-                    )
+                    df = pd.read_sql_query("SELECT * FROM asset_logs ORDER BY id DESC", conn)
                 else:
-                    if user_id is None:
-                        return pd.DataFrame()
-                    df = pd.read_sql_query(
-                        "SELECT id, user_id, company_id, nome, rischio, timestamp FROM asset_logs WHERE user_id = ? ORDER BY id DESC",
-                        conn,
-                        params=(user_id,)
-                    )
+                    return self.recupera_asset_per_utente(user_id)
 
             if not df.empty:
-                df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
-                df['nome'] = df['nome'].apply(self.vault.decrypt_data)
-
+                df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
+                df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
             return df
         except Exception as e:
-            logger.error(f"Errore recupero log globali: {e}")
+            logger.error(f"Errore attivita globale: {e}")
             return pd.DataFrame()
 
     # ==========================================
-    #   CALCOLO MATEMATICO CENTRALIZZATO KPI
+    #   CALCOLO MATEMATICO KPI (FIXED FOR ADMIN)
     # ==========================================
 
     def calcola_e_salva_kpi_correnti(self, user_id: int):
-        """
-        Calcola istantaneamente i KPI strategici reali basandosi sugli ultimi log degli asset nel DB.
-        Sfrutta SQL per la massima efficienza e memorizza il risultato nello storico_kpi.
-        """
         try:
-            azienda = self.get_azienda_per_utente(user_id)
-            if not azienda:
-                return None
+            utente = self.get_utente_by_id(user_id)
+            if not utente: return None
+            
+            ruolo, azienda = utente.get("ruolo"), utente.get("azienda")
 
             with self._get_conn() as conn:
-                cursor = conn.cursor()
-                # Seleziona l'ultimo record inserito per ciascun asset unico dell'utente
-                cursor.execute("""
-                    SELECT rischio, volatilita FROM asset_logs 
-                    WHERE id IN (
-                        SELECT MAX(id) FROM asset_logs WHERE user_id = ? GROUP BY nome
-                    )
-                """, (user_id,))
-                rows = cursor.fetchall()
+                if ruolo == "admin" and azienda:
+                    azienda_enc = self.vault.encrypt_data(str(azienda))
+                    query = "SELECT rischio, volatilita FROM asset_logs WHERE company_id = ? AND id IN (SELECT MAX(id) FROM asset_logs GROUP BY nome)"
+                    params = (azienda_enc,)
+                else:
+                    query = "SELECT rischio, volatilita FROM asset_logs WHERE user_id = ? AND id IN (SELECT MAX(id) FROM asset_logs GROUP BY nome)"
+                    params = (user_id,)
+                
+                rows = conn.execute(query, params).fetchall()
 
-            if not rows:
-                return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0}
+            if not rows: return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0}
 
-            tot_rischio = sum(r[0] for r in rows)
-            tot_volatilità = sum(r[1] if r[1] else 0.0 for r in rows)
-            conteggio = len(rows)
-
-            # 1. Rischio Medio (Scala 1-10)
-            rischio_medio = round(tot_rischio / conteggio, 2)
-            
-            # 2. Solidità Operativa (Inversa del rischio, espressa in percentuale)
+            rischio_medio = round(sum(r[0] for r in rows) / len(rows), 2)
             solidita = round(max(0.0, min(100.0, 100.0 - (rischio_medio * 9.5))), 1)
-            
-            # 3. Impatto Proiettato a 30gg (Derivato da volatilità complessiva e rischio attuale)
-            impatto_30gg = round((tot_volatilità / conteggio) * rischio_medio * 1.5, 2)
+            impatto_30gg = round((sum(r[1] or 0.0 for r in rows) / len(rows)) * rischio_medio * 1.5, 2)
 
-            # Salvataggio persistente nella tabella storico_kpi per trend futuri
             self.salva_kpi(user_id, "Rischio Medio", rischio_medio)
             self.salva_kpi(user_id, "Solidità Operativa", solidita)
             self.salva_kpi(user_id, "Impatto 30gg", impatto_30gg)
 
-            return {
-                "rischio_medio": rischio_medio,
-                "solidita": solidita,
-                "impatto_30gg": impatto_30gg
-            }
+            return {"rischio_medio": rischio_medio, "solidita": solidita, "impatto_30gg": impatto_30gg}
         except Exception as e:
-            logger.error(f"❌ Errore nel calcolo centralizzato dei KPI: {e}")
+            logger.error(f"Errore KPI: {e}")
             return {"rischio_medio": 5.0, "solidita": 50.0, "impatto_30gg": 5.0}
-
-    # =========================
-    #   KPI HISTORIC ACTIONS
-    # =========================
 
     def salva_kpi(self, user_id: int, kpi_nome: str, valore: float):
         try:
             azienda = self.get_azienda_per_utente(user_id)
-            if azienda is None:
-                raise ValueError("Nessuna azienda associata all'utente.")
-
-            company_id_secure = self.vault.encrypt_data(str(azienda))
-
+            azienda_enc = self.vault.encrypt_data(str(azienda))
             with self._get_conn() as conn:
-                conn.execute("""
-                    INSERT INTO storico_kpi (user_id, company_id, kpi_nome, valore)
-                    VALUES (?, ?, ?, ?)
-                """, (user_id, company_id_secure, kpi_nome, valore))
-        except Exception as e:
-            logger.error(f"Errore salvataggio KPI {kpi_nome}: {e}")
+                conn.execute("INSERT INTO storico_kpi (user_id, company_id, kpi_nome, valore) VALUES (?, ?, ?, ?)", (user_id, azienda_enc, kpi_nome, valore))
+        except Exception as e: logger.error(f"Errore salva KPI: {e}")
 
     def recupera_kpi_per_utente(self, user_id: int):
         try:
+            utente = self.get_utente_by_id(user_id)
+            azienda_enc = self.vault.encrypt_data(str(utente["azienda"]))
             with self._get_conn() as conn:
-                df = pd.read_sql_query(
-                    "SELECT * FROM storico_kpi WHERE user_id = ? ORDER BY data_rilevazione DESC",
-                    conn,
-                    params=(user_id,)
-                )
-
-            if df.empty:
-                return df
-
-            df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
+                if utente["ruolo"] == "admin":
+                    df = pd.read_sql_query("SELECT * FROM storico_kpi WHERE company_id = ? ORDER BY data_rilevazione DESC", conn, params=(azienda_enc,))
+                else:
+                    df = pd.read_sql_query("SELECT * FROM storico_kpi WHERE user_id = ? ORDER BY data_rilevazione DESC", conn, params=(user_id,))
+            if not df.empty: df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
             return df
-        except Exception as e:
-            logger.error(f"Errore recupero KPI per utente: {e}")
-            return pd.DataFrame()
-
-    # ==========================================
-    #   SUPERVISIONE ADMIN (PANNELLO DI CONTROLLO)
-    # ==========================================
+        except Exception as e: return pd.DataFrame()
 
     def supervisione_admin_metriche_globali(self):
-        """
-        Funzione esclusiva ADMIN: estrae un riepilogo aggregato ad alte prestazioni
-        di tutte le aziende clienti registrate nel sistema per la dashboard di monitoraggio.
-        """
+        """Monitoraggio clienti per Admin."""
         try:
             with self._get_conn() as conn:
-                # Estraiamo l'elenco utenti escludendo l'admin stesso per monitorare i clienti
-                df_clienti = pd.read_sql_query("SELECT id, email, azienda, ruolo FROM utenti WHERE ruolo != 'admin'", conn)
-                df_logs = pd.read_sql_query("SELECT user_id, rischio, volatilita FROM asset_logs", conn)
-                df_uploads = pd.read_sql_query("SELECT user_id, COUNT(id) as totale_caricamenti FROM log_caricamenti GROUP BY user_id", conn)
+                df_clienti = pd.read_sql_query("SELECT id, email, azienda FROM utenti WHERE ruolo != 'admin'", conn)
+                df_logs = pd.read_sql_query("SELECT user_id, rischio FROM asset_logs", conn)
+            
+            if df_clienti.empty: return pd.DataFrame()
 
-            if df_clienti.empty:
-                return pd.DataFrame(columns=["User ID", "Email Cliente", "Azienda", "Asset Attivi", "Rischio Medio", "File Caricati"])
-
-            # Decifratura dei dati sensibili degli utenti per la visualizzazione dell'Admin autorizzato
             df_clienti["email"] = df_clienti["email"].apply(self.vault.decrypt_data)
             df_clienti["azienda"] = df_clienti["azienda"].apply(self.vault.decrypt_data)
 
-            Riepilogo = []
-            for _, row in df_clienti.iterrows():
-                u_id = row["id"]
-                logs_utente = df_logs[df_logs["user_id"] == u_id]
-                uploads_utente = df_uploads[df_uploads["user_id"] == u_id]
-                
-                asset_attivi = len(logs_utente)
-                rischio_medio = round(logs_utente["rischio"].mean(), 2) if asset_attivi > 0 else 0.0
-                file_caricati = int(uploads_utente["totale_caricamenti"].iloc[0]) if not uploads_utente.empty else 0
-
-                Riepilogo.append({
-                    "User ID": u_id,
-                    "Email Cliente": row["email"],
-                    "Azienda": row["azienda"],
-                    "Asset Attivi": asset_attivi,
-                    "Rischio Medio": rischio_medio,
-                    "File Caricati": file_caricati
+            res = []
+            for _, r in df_clienti.iterrows():
+                u_logs = df_logs[df_logs["user_id"] == r["id"]]
+                res.append({
+                    "Email": r["email"],
+                    "Azienda": r["azienda"],
+                    "Asset": len(u_logs),
+                    "Rischio": round(u_logs["rischio"].mean(), 2) if len(u_logs) > 0 else 0.0
                 })
-
-            return pd.DataFrame(Riepilogo)
-        except Exception as e:
-            logger.error(f" Errore durante la supervisione globale dell'Admin: {e}")
-            return pd.DataFrame()
-
-    # =========================
-    #   LOG CARICAMENTI
-    # =========================
+            return pd.DataFrame(res)
+        except Exception as e: return pd.DataFrame()
 
     def registra_caricamento(self, user_id: int, contesto: str, nome_file: str):
         try:
             azienda = self.get_azienda_per_utente(user_id)
-            if azienda is None:
-                raise ValueError("Nessuna azienda associata all'utente.")
-
-            azienda_sec = self.vault.encrypt_data(str(azienda))
-            file_sec = self.vault.encrypt_data(str(nome_file))
-
+            az_enc, f_enc = self.vault.encrypt_data(str(azienda)), self.vault.encrypt_data(str(nome_file))
             with self._get_conn() as conn:
-                conn.execute("""
-                    INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file)
-                    VALUES (?, ?, ?, ?)
-                """, (user_id, azienda_sec, contesto, file_sec))
-        except Exception as e:
-            logger.error(f"Errore log admin: {e}")
+                conn.execute("INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (?, ?, ?, ?)", (user_id, az_enc, contesto, f_enc))
+        except Exception as e: logger.error(f"Errore log: {e}")
 
     def recupera_log_caricamenti_per_utente(self, user_id: int):
         try:
+            utente = self.get_utente_by_id(user_id)
+            az_enc = self.vault.encrypt_data(str(utente["azienda"]))
             with self._get_conn() as conn:
-                df = pd.read_sql_query(
-                    "SELECT * FROM log_caricamenti WHERE user_id = ? ORDER BY timestamp DESC",
-                    conn,
-                    params=(user_id,)
-                )
-
-            if df.empty:
-                return df
-
-            df["azienda"] = df["azienda"].apply(self.vault.decrypt_data)
-            df["nome_file"] = df["nome_file"].apply(self.vault.decrypt_data)
+                if utente["ruolo"] == "admin":
+                    df = pd.read_sql_query("SELECT * FROM log_caricamenti WHERE azienda = ? ORDER BY timestamp DESC", conn, params=(az_enc,))
+                else:
+                    df = pd.read_sql_query("SELECT * FROM log_caricamenti WHERE user_id = ? ORDER BY timestamp DESC", conn, params=(user_id,))
+            if not df.empty:
+                df["azienda"] = df["azienda"].apply(self.vault.decrypt_data)
+                df["nome_file"] = df["nome_file"].apply(self.vault.decrypt_data)
             return df
-        except Exception as e:
-            logger.error(f"Errore recupero log caricamenti per utente: {e}")
-            return pd.DataFrame()
-
-    def recupera_log_caricamenti_admin(self):
-        try:
-            with self._get_conn() as conn:
-                df = pd.read_sql_query(
-                    "SELECT * FROM log_caricamenti ORDER BY timestamp DESC",
-                    conn
-                )
-
-            if df.empty:
-                return df
-
-            df["azienda"] = df["azienda"].apply(self.vault.decrypt_data)
-            df["nome_file"] = df["nome_file"].apply(self.vault.decrypt_data)
-            return df
-        except Exception as e:
-            logger.error(f"Errore recupero log caricamenti admin: {e}")
-            return pd.DataFrame()
+        except Exception as e: return pd.DataFrame()
