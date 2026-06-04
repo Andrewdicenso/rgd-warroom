@@ -260,27 +260,38 @@ class DatabaseAziendale:
     #   ASSET / LOGICHE AZIENDALI CORRETTE (ADMIN READY)
     # =========================
 
-    def recupera_asset_per_utente(self, user_id: int):
-        """Recupera gli asset: se Admin vede tutta l'azienda, altrimenti solo i propri."""
+        def recupera_asset_per_utente(self, user_id: int):
+        """
+        LOGICA DI SUPERVISIONE RGD-ALPHA:
+        - Se l'utente è ADMIN: estrae TUTTI i dati di TUTTI i clienti (per AI training e supporto).
+        - Se l'utente è CLIENTE: isolamento totale, vede solo i propri asset.
+        """
         try:
             utente = self.get_utente_by_id(user_id)
             if not utente: return pd.DataFrame()
             
-            ruolo, azienda = utente.get("ruolo"), utente.get("azienda")
+            ruolo = utente.get("ruolo")
 
             with self._get_conn() as conn:
-                if ruolo == "admin" and azienda:
-                    azienda_enc = self.vault.encrypt_data(str(azienda))
-                    df = pd.read_sql_query("SELECT * FROM asset_logs WHERE company_id = ? ORDER BY id DESC", conn, params=(azienda_enc,))
+                if ruolo == "admin":
+                    # TU VEDI TUTTO: Nessun filtro WHERE per la supervisione totale
+                    query = "SELECT * FROM asset_logs ORDER BY id DESC"
+                    params = ()
                 else:
-                    df = pd.read_sql_query("SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC", conn, params=(user_id,))
+                    # IL CLIENTE È ISOLATO: Vede solo i suoi dati personali
+                    query = "SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC"
+                    params = (user_id,)
+
+                df = pd.read_sql_query(query, conn, params=params)
 
             if not df.empty:
+                # Decriptazione dati per la tua supervisione e addestramento AI
                 df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
                 df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
+            
             return df
         except Exception as e:
-            logger.error(f"Errore recupero asset: {e}")
+            logger.error(f"Errore supervisione asset: {e}")
             return pd.DataFrame()
 
     def recupera_asset_per_azienda(self, user_id: int):
