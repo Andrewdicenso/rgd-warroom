@@ -349,11 +349,12 @@ elif scelta == "📊 War Room Strategica":
             
             if lista_asset:
                 engine = DataGateway()
-                db.registra_caricamento(st.session_state.user_id, "UNIVERSAL", uploaded_file.name)
+                # RIPRISTINATO: Uso di user_id come richiesto
+                db.registra_caricamento(user_id, "UNIVERSAL", uploaded_file.name)
                 
                 # Calcolo con Stress Test e Pesi EMA
                 report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
-                kpi_reali = db.calcola_e_salva_kpi_correnti(st.session_state.user_id)
+                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
                 
                 # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
                 sim = SimulatoreRischio()
