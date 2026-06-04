@@ -204,6 +204,60 @@ class DataGateway:
             
         return report
 
+            # --- NUOVO MODULO: INTELLIGENCE MAGAZZINO & MARKETING ---
+    def analizza_giacenze_e_proponi_marketing(self, df_asset):
+        """
+        Analizza la 'anzianità' della merce e genera proposte di marketing automatiche.
+        Utile per liberare liquidità bloccata in giacenze vecchie.
+        """
+        proposte = []
+        oggi = datetime.now()
+        
+        # Se non ci sono dati, restituiamo una lista vuota
+        if df_asset is None or df_asset.empty:
+            return proposte
+            
+        for index, row in df_asset.iterrows():
+            # Calcoliamo da quanto tempo l'asset è nel sistema
+            try:
+                data_inserimento = pd.to_datetime(row['timestamp'])
+                giorni_fermi = (oggi - data_inserimento).days
+            except:
+                giorni_fermi = 0
+            
+            # Se la merce è ferma da più di 30 giorni (Giacenza Warning)
+            if giorni_fermi > 30:
+                nome = row.get('nome', 'Prodotto Ignoto')
+                rischio = row.get('rischio', 0.0)
+                
+                # LOGICA DI MARKETING AI:
+                # Se il rischio è alto (>7), proponiamo uno sconto aggressivo per liberare spazio
+                # Se il rischio è medio, proponiamo una promozione bundle
+                if rischio > 7.0:
+                    sconto = "40%"
+                    tipo_offerta = "Liquidazione Totale"
+                    target = "35 pacchi"
+                else:
+                    sconto = "20%"
+                    tipo_offerta = "Promozione Bundle"
+                    target = "10 pacchi"
+                
+                messaggio = (
+                    f"🚨 RISCHIO ALTO: La giacenza di '{nome}' è ferma da {giorni_fermi} giorni. "
+                    f"Se continua così, l'asset graverà sul bilancio a lungo termine. "
+                    f"CONSIGLIO AI: Applica {tipo_offerta} con sconto del {sconto} "
+                    f"per ordini superiori a {target}."
+                )
+                
+                proposte.append({
+                    "asset": nome,
+                    "giorni_giacenza": giorni_fermi,
+                    "proposta_marketing": messaggio,
+                    "rischio_attuale": rischio
+                })
+                
+        return proposte
+
 # --- COLLEGAMENTO CRITTOGRAFICO SECURE VAULT ---
 def salva_report_certificato(azienda, dati_report, vault):
     """Genera un blob cifrato per la notarizzazione del report tramite SecureVault."""
