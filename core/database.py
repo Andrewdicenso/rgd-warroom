@@ -148,53 +148,31 @@ class DatabaseAziendale:
             raise
 
     def get_utente_by_email(self, email):
-        """Recupera un utente a partire dall'email in chiaro."""
+        """Recupera un utente decriptando le email nel database per il confronto."""
         try:
-            email_enc = self.vault.encrypt_data(email)
-
             with self._get_conn() as conn:
-                cursor = conn.execute("""
-                    SELECT id, email, password_hash, ruolo, azienda
-                    FROM utenti WHERE email = ?
-                """, (email_enc,))
-                row = cursor.fetchone()
+                # Prendiamo tutti gli utenti per confrontare l'email decriptata
+                cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti")
+                rows = cursor.fetchall()
 
-            if not row:
-                return None
+            for row in rows:
+                try:
+                    # Decriptiamo l'email salvata nel DB per vedere se coincide con quella inserita
+                    email_decriptata = self.vault.decrypt_data(row[1])
+                    if email_decriptata.lower() == email.lower():
+                        return {
+                            "id": row[0],
+                            "email": email_decriptata,
+                            "password_hash": row[2],
+                            "ruolo": row[3],
+                            "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
+                        }
+                except:
+                    continue # Se un'email non è criptata o è corrotta, passa alla successiva
 
-            return {
-                "id": row[0],
-                "email": self.vault.decrypt_data(row[1]),
-                "password_hash": row[2],
-                "ruolo": row[3],
-                "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
-            }
+            return None
         except Exception as e:
             logger.error(f"Errore recupero utente: {e}")
-            return None
-
-    def get_utente_by_id(self, user_id: int):
-        """Recupera un utente a partire dall'id."""
-        try:
-            with self._get_conn() as conn:
-                cursor = conn.execute("""
-                    SELECT id, email, password_hash, ruolo, azienda
-                    FROM utenti WHERE id = ?
-                """, (user_id,))
-                row = cursor.fetchone()
-
-            if not row:
-                return None
-
-            return {
-                "id": row[0],
-                "email": self.vault.decrypt_data(row[1]),
-                "password_hash": row[2],
-                "ruolo": row[3],
-                "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
-            }
-        except Exception as e:
-            logger.error(f"Errore recupero utente by id: {e}")
             return None
 
     def get_tutti_gli_utenti(self):
