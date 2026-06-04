@@ -418,4 +418,21 @@ class DatabaseAziendale:
                 df["azienda"] = df["azienda"].apply(self.vault.decrypt_data)
                 df["nome_file"] = df["nome_file"].apply(self.vault.decrypt_data)
             return df
-        except Exception as e: return pd.DataFrame()
+        except Exception as e:
+            return pd.DataFrame()
+
+    def recupera_log_caricamenti_admin(self):
+        """Funzione specifica per la visualizzazione globale Admin (richiesta dalla pagina Archivio)."""
+        try:
+            with self._get_conn() as conn:
+                # Recupera TUTTI i log di caricamento di tutte le aziende
+                df = pd.read_sql_query("SELECT * FROM log_caricamenti ORDER BY timestamp DESC", conn)
+
+            if not df.empty:
+                # Decriptiamo i nomi file e le aziende per la tua supervisione
+                df["azienda"] = df["azienda"].apply(lambda x: self.vault.decrypt_data(x) if x else "N/A")
+                df["nome_file"] = df["nome_file"].apply(lambda x: self.vault.decrypt_data(x) if x else "N/A")
+            return df
+        except Exception as e:
+            logger.error(f"Errore recupero log caricamenti admin: {e}")
+            return pd.DataFrame()
