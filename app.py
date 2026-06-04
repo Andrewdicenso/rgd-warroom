@@ -125,19 +125,20 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
         if esistente:
             st.error("Email già registrata.")
             return
+        
+        # --- MODIFICA PER RENDER E VENDITA ---
+        # Leggiamo l'email dell'admin dalla "Cassaforte" (.env)
+        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
+        ruolo = "admin" if email.lower() == admin_email_env else "user"
+        # ------------------------------------
+
+        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo)
+        if user_id:
+            st.success("✅ Registrazione completata. Effettua il login.")
+            st.balloons()
     except Exception as e:
-        st.error("Errore durante la registrazione.")
-        return
+        st.error(f"Errore registrazione: {e}")
 
-    # --- MODIFICA PER RENDER E VENDITA ---
-    # Forziamo direttamente l'accesso amministratore superando ogni controllo del database
-    st.session_state["autenticato"] = True
-    st.session_state["user_id"] = "andrewdicenso@libero.it"
-    st.session_state["ruolo"] = "admin"
-    is_admin = True
-    # ------------------------------------
-
-    # Il resto del codice può rimanere commentato o invariato, il deploy automatico leggerà lo stato admin
 # =========================
 #   SCHERMATA AUTH
 # =========================
