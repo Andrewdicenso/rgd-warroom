@@ -439,12 +439,12 @@ elif scelta == "📊 War Room Strategica":
                 res = max(round(100 - (f_stress * 10), 1), 0)
                 cols[4].metric("Resilience", f"{res}%")
 
-                # --- GRAFICO PREDITTIVO INTEGRATO ---
+                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
                 if risultati_sim:
                     st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'])
+                    # AGGIUNTO giorni_proiezione=30 PER RISOLVERE IL TYPEERROR
+                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiezione=30) 
                     st.plotly_chart(fig_pred, use_container_width=True)
-
 
                 # --- GRAFICO MOMENTUM ---
                 st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
