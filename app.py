@@ -227,7 +227,7 @@ if scelta == "🏠 Home":
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("---")
+        st.markdown("---")
     
     with col_a:
         st.markdown("### 📈 Analisi Predittiva")
