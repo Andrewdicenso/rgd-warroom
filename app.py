@@ -229,23 +229,21 @@ if scelta == "🏠 Home":
     
     st.markdown("---")
     
-    # Cosa ottieni
-    st.markdown("### 📊 Cosa Ottieni")
-    col_a, col_b, col_c, col_d = st.columns(4)
-    
-    with col_a:
-        st.metric("📈 Analisi Predittiva", "Scopri quali asset rischiano di diventare obsoleti")
-    
-    with col_b:
-        st.metric("🏭 Multi-Settore", "Supporto per alimentare, abbigliamento, e-commerce")
-    
-    with col_c:
-        st.metric("🔐 Sicurezza Enterprise", "Dati cifrati con AES-256")
-    
-    with col_d:
-        st.metric("📝 Audit Trail", "Ogni operazione è tracciata")
-    
-    st.markdown("---")
+  with col_a:
+    st.markdown("### 📈 Analisi Predittiva")
+    st.markdown("<p style='font-size: 20px;'>Scopri quali asset rischiano di diventare obsoleti</p>", unsafe_allow_html=True)
+
+with col_b:
+    st.markdown("### 🏭 Multi-Settore")
+    st.markdown("<p style='font-size: 20px;'>Supporto per alimentare, abbigliamento, e-commerce</p>", unsafe_allow_html=True)
+
+with col_c:
+    st.markdown("### 🔐 Sicurezza Enterprise")
+    st.markdown("<p style='font-size: 20px;'>Dati cifrati con AES-256</p>", unsafe_allow_html=True)
+
+with col_d:
+    st.markdown("### 📝 Audit Trail")
+    st.markdown("<p style='font-size: 20px;'>Ogni operazione è tracciata</p>", unsafe_allow_html=True)
     
     # Value proposition
     st.markdown("""
