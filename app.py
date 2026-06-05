@@ -346,7 +346,7 @@ elif scelta == "📊 War Room Strategica":
 
         with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
             ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_csv(str(path), azienda)
+            lista_asset = ingestor.elabora_file(str(path), azienda)
             
             if lista_asset:
                 engine = DataGateway()
