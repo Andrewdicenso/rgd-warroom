@@ -1,85 +1,72 @@
 import logging
 from datetime import datetime
 
-# Configurazione Logger per tracciabilità professionale
 logger = logging.getLogger("RGD-Alpha.Entities")
 
 class AssetStrategico:
     """
-    CLASSE UNIVERSALE RGD-ALPHA: 
-    Progettata per adattarsi a qualsiasi documento aziendale (Fatture, Bolle, Prima Nota).
-    Utilizza la logica dinamica per prevenire errori di 'unexpected arguments'.
+    CLASSE MASTER RGD-ALPHA v2.0
+    Cuore del sistema di analisi. Gestisce la persistenza e il calcolo dei KPI base.
     """
     def __init__(self, id=None, nome="Generico", rischio=0.0, company_id="GENERIC_CORP", **kwargs):
         self.id = id
         self.nome = nome
-        self.rischio = rischio
+        self.rischio = float(rischio)
         self.company_id = company_id
         self.data_rilevazione = kwargs.get('data', datetime.now().strftime("%Y-%m-%d"))
         
-        # --- MOTORE DINAMICO ---
-        # Salva automaticamente qualsiasi altra colonna trovata nel file (es. Pezzi, IBAN, Vettore)
+        # --- MOTORE EXTRA DATI ---
         self.dati_extra = kwargs 
-        
-        # Inizializziamo i campi per i 5 KPI Predittivi
+        self.volatilità_nativa = 0.15 # Volatilità di base
         self.analisi_predittiva = {}
 
     def genera_kpi_strategici(self):
-        """
-        Trasforma i dati grezzi in sentenze strategiche per l'imprenditore.
-        Analizza: Solidità, Salute Finanziaria, Rischio Fornitore, Efficienza, Sicurezza.
-        """
-        # Esempio di logica predittiva interna
-        voto_rischio = float(self.rischio)
-        
-        if voto_rischio > 7:
-            conclusione = "CRITICO: Richiede intervento immediato del management."
-            previsione = "Rischio di interruzione operativa entro 30 giorni."
-        elif voto_rischio < 3:
-            conclusione = "SICURO: Asset stabile."
-            previsione = "Continuità garantita a lungo termine."
+        voto = self.rischio
+        # Logica di prognosi potenziata
+        if voto > 8:
+            s, p = "COLLASSO", "Rischio immediato di interruzione attività."
+        elif voto > 6:
+            s, p = "CRITICO", "Peggioramento previsto entro 15 giorni."
+        elif voto > 4:
+            s, p = "ATTENZIONE", "Stabilità incerta, richiede monitoraggio."
         else:
-            conclusione = "MONITORAGGIO: Parametri nella norma."
-            previsione = "Stabilità prevista per il prossimo trimestre."
+            s, p = "OTTIMALE", "Asset in salute, crescita costante."
 
-        self.analisi_predittiva = {
-            "stato": conclusione,
-            "proiezione": previsione,
-            "kpi_id": self.id
-        }
+        self.analisi_predittiva = {"stato": s, "proiezione": p, "kpi_id": self.id}
         return self.analisi_predittiva
 
 class AssetDiMercato(AssetStrategico):
-    """
-    SETTORE LOGISTICA & MAGAZZINO (Bolle, Carico/Scarico, DDT)
-    Adattato per riconoscere i documenti di trasporto e registri movimenti.
-    """
+    """LOGISTICA, MAGAZZINO, FASHION"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Mapping Universale: cerca 'Quantita', 'Pezzi', o il nuovo 'Codice_SKU'
-        self.quantita = kwargs.get('quantita', kwargs.get('Quantita', kwargs.get('Pezzi', 0)))
-        self.sku = kwargs.get('Codice_SKU', kwargs.get('SKU', 'N/D'))
-        self.ubicazione = kwargs.get('Ubicazione', 'Magazzino Centrale')
+        self.quantita = kwargs.get('quantita', kwargs.get('Pezzi', 0))
+        self.valore_unitario = kwargs.get('valore', kwargs.get('prezzo', 0.0))
+        self.volatilità_nativa = 0.25 # Il mercato si muove velocemente
 
 class AssetDiValore(AssetStrategico):
-    """
-    SETTORE FINANCE & CONTABILITÀ (Fatture, Prima Nota, Bilancio)
-    Adattato per gestire flussi di cassa e pagamenti.
-    """
+    """FINANCE & CONTABILITÀ"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Mapping Universale: cerca 'Importo', 'Lordo', o 'Costo_Unitario'
-        self.prezzo = kwargs.get('prezzo', kwargs.get('Importo', kwargs.get('Costo_Unitario', 0.0)))
-        self.stato_pagamento = kwargs.get('stato', kwargs.get('Stato_Qualita', kwargs.get('Condizione', 'In attesa')))
-        self.valuta = kwargs.get('Valuta', 'EUR')
+        self.importo = kwargs.get('lordo', kwargs.get('prezzo', 0.0))
+        self.volatilità_nativa = 0.10 # La finanza è più stabile ma pesante
 
-class AssetDiRelazione(AssetStrategico):
-    """
-    SETTORE CRM & STAKEHOLDERS (Clienti, Fornitori, Contratti)
-    Adattato per valutare la solidità dei rapporti commerciali.
-    """
+class AssetDiRisorsa(AssetStrategico):
+    """DIPENDENTI E PRODUTTIVITÀ (H-PROD)"""
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Mapping Universale: identifica il partner commerciale
-        self.partner = kwargs.get('Fornitore_Origine', kwargs.get('Cliente', kwargs.get('Ragione_Sociale', 'Privato')))
-        self.livello_servizio = kwargs.get('rischio', 5.0)
+        # Campi per l'algoritmo delle ore produttive
+        self.ore_teoriche = 2080
+        self.inefficienze = {
+            'ferie': kwargs.get('ferie', 0),
+            'ritardi': kwargs.get('ritardi', 0),
+            'assenze': kwargs.get('assenze', 0)
+        }
+        self.volatilità_nativa = 0.05
+
+class AssetSettoreEdile(AssetStrategico):
+    """CANTIERE E COMMESSE"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cantiere = kwargs.get('cantiere', 'N/D')
+        self.penale_giornaliera = kwargs.get('penale', 0.0)
+        self.volatilità_nativa = 0.30 # L'edile ha rischi improvvisi alti
