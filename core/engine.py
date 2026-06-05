@@ -1,19 +1,17 @@
 import sys
 import logging
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import numpy as np
 
 # ==============================================================================
-# RISOLUZIONE DINAMICA DEL PATH PER STREAMLIT (PRESERVATO)
+# RISOLUZIONE DINAMICA DEL PATH
 # ==============================================================================
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# ==============================================================================
-# COLLEGAMENTI INTERNI RIGIDI (MANTENUTI E VERIFICATI)
-# ==============================================================================
 from core.secure_vault import SecureVault
 from core.database import DatabaseAziendale
 from core.experimental_modules.engine_settori import analizza_e_configura_motore
@@ -22,249 +20,114 @@ logger = logging.getLogger("RGD-Alpha.Gateway.Enterprise")
 
 class DataGateway:
     """
-    Gateway Enterprise: Sistema di analisi predittiva con protocollo EMA (Alpha).
-    Include What-If Analysis e calcolo dinamico del Momentum finanziario.
-    Integrazione nativa delle metriche quantitative H(prod) per l'efficienza aziendale.
+    ENGINE RGD-ALPHA ENTERPRISE v2.0
+    Sistema di analisi predittiva con protocollo EMA, What-If Analysis,
+    calcolo H(prod) e Modulo di Recupero Liquidità (Incoming Forecast).
     """
     def __init__(self):
         try:
-            # Mantenimento indirizzamento chiavi e database
             self.vault = SecureVault(key_path="core/security/vault.key")
             self.db = DatabaseAziendale()
         except Exception as e:
             logger.critical(f"Errore critico avvio componenti core: {e}")
             raise
         
-        # Costante algoritmica di base per il tempo pieno annuo
         self.ORE_TEORICHE_ANNUE = 2080
-        
-        # Configurazione pesi contesto originaria estesa per le risorse
         self.pesi_contesto = {
-            "Magazzino": 1.2,
-            "Fornitori": 1.5,
-            "Performance Vendite": 1.0,
-            "Produttività Risorse": 1.3,
-            "UNIVERSAL": 1.0
+            "Magazzino": 1.2, "Fornitori": 1.5, "Performance Vendite": 1.0,
+            "Produttività Risorse": 1.3, "EDILE": 1.4, "FASHION": 1.1, "UNIVERSAL": 1.0
         }
 
-    # --- SOTTO-MODULO INTEGRATO: ALGORITMO ORE PRODUTTIVE ---
-    def calcola_ore_produttive_individuali(self, ferie, festivita, assenze, permessi, ritardi, micropause):
-        """Calcola le ore effettive di un dipendente/reparto sottraendo le inefficienze."""
-        return self.ORE_TEORICHE_ANNUE - (ferie + festivita + assenze + permessi + ritardi + micropause)
+    # --- ALGORITMI PRODUTTIVITÀ ---
+    def calcola_ore_produttive_individuali(self, f, fest, a, p, r, m):
+        return self.ORE_TEORICHE_ANNUE - (f + fest + a + p + r + m)
 
-    def calcola_indice_produttivita(self, output_totale, ore_effettive_azienda):
-        """Calcola la produttività reale per ora effettiva."""
-        if ore_effettive_azienda <= 0: 
-            return 0.0
-        return round(output_totale / ore_effettive_azienda, 2)
+    def calcola_indice_produttivita(self, output, ore_effettive):
+        return round(output / ore_effettive, 2) if ore_effettive > 0 else 0.0
 
-    # --- COLLEGAMENTI DATABASE (PERSISTENZA ATOMICA) ---
-    def _archivia_asset(self, asset, rischio_pesato):
-        """Persistenza atomica sul database multi-tenant senza spezzare lo schema."""
-        try:
-            if isinstance(asset, dict):
-                user_id = asset.get("user_id", 1)
-                nome_asset = asset.get("nome", "Asset_Operativo")
-                tipo = asset.get("tipo", "EfficienzaRisorse")
-                momentum = asset.get("momentum", "Stabile")
-                volatilita = asset.get("volatilita", 0.0)
-            else:
-                user_id = getattr(asset, 'user_id', 1)
-                nome_asset = getattr(asset, 'nome', 'Asset_Operativo')
-                tipo = getattr(asset, 'tipo', 'EfficienzaRisorse')
-                momentum = getattr(asset, 'momentum', 'Stabile')
-                volatilita = getattr(asset, 'volatilita', 0.0)
-
-            # Esecuzione della chiamata al metodo nativo di core.database
-            self.db.salva_asset(
-                user_id=user_id,
-                nome_asset=nome_asset,
-                rischio=rischio_pesato,
-                tipo=tipo,
-                momentum=momentum,
-                volatilita=volatilita
-            )
-        except Exception as e:
-            logger.warning(f"Archiviazione fallita sul database aziendale: {e}")
-
-    # --- MATRICE MATEMATICA CORE ---
-    def _calcola_trend_momentum_alpha(self, rischio_oggi, rischio_storico, w1=0.7, w2=0.3, dt=1):
-        """
-        IMPLEMENTAZIONE FORMULA EMA (IMAGE 6):
-        M = ((Roggi * W1) - (Rstorico * W2)) / dt
-        """
+    # --- MATRICE MATEMATICA CORE (EMA PROTOCOL) ---
+    def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
         if dt <= 0: dt = 1
-        momentum_score = ((rischio_oggi * w1) - (rischio_storico * w2)) / dt
-        return round(momentum_score, 2)
+        return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
-    def _genera_consiglio_azione(self, rischio, settore, momentum_score=0):
-        """Genera un consiglio pratico basato su rischio, settore e accelerazione."""
-        alert_text = " ⚠️ ACCELERAZIONE CRITICA!" if momentum_score > 1.5 else ""
-
+    def _genera_consiglio_azione(self, rischio, settore, m_score=0):
+        alert = " ⚠️ ACCELERAZIONE CRITICA!" if m_score > 1.5 else ""
         if rischio > 8:
-            if settore == "LOGISTICS":
-                return f"🚨 CRITICO: Avviare liquidazione immediata per liberare spazio.{alert_text}"
-            if settore == "FINANCE":
-                return f"🚨 CRITICO: Rischio svalutazione totale asset. Revisione contratti.{alert_text}"
-            if settore == "PRODUCTION":
-                return f"🚨 CRITICO: Colli di bottiglia severi sulle ore lavorate. Riorganizzare i turni.{alert_text}"
-            return f"🚨 CRITICO: Azione d'emergenza richiesta entro 48 ore.{alert_text}"
-        
+            consigli = {
+                "PRIMARIO_ALIMENTARE": "🚨 BLOCCO LOTTI: Rischio sanitario/scadenza. Isolare stock.",
+                "EDILE_COSTRUZIONI": "🚨 FERMO CANTIERE: Rischio penali elevato. Verificare subappalti.",
+                "TERZIARIO_LOGISTICA": "🚨 LIQUIDAZIONE: Saturazione spazi. Liberare magazzino ora.",
+                "FASHION_RETAIL": "🚨 OUTLET IMMEDIATO: Merce fuori stagione. Recuperare capitale."
+            }
+            return consigli.get(settore, "🚨 EMERGENZA: Azione correttiva richiesta entro 24h.") + alert
         elif rischio > 5:
-            if settore == "LOGISTICS":
-                return f"⚠️ ATTENZIONE: Pianificare promozione 'Bundle' per aumentare rotazione.{alert_text}"
-            return f"⚠️ ATTENZIONE: Monitoraggio intensivo richiesto per i prossimi 7 giorni.{alert_text}"
-        
-        else:
-            return "✅ OTTIMALE: Parametri stabili. Proseguire con ordinaria amministrazione."
+            return f"⚠️ MONITORAGGIO: Settore {settore} in allerta. Revisione parametri settimanale." + alert
+        return "✅ NOMINALE: Proseguire secondo pianificazione."
 
-    # --- INTERFACCIA DI SCAN STRATEGICO INTEGRATA ---
+    # --- ANALISI STRATEGICA E WHAT-IF ---
     def esegui_scan_strategico(self, lista_asset, contesto, fattore_stress=1.0, weights=(0.7, 0.3)):
-        """
-        Analisi Avanzata RGD-ALPHA con WHAT-IF, TREND MOMENTUM e METRICHE ORARIE.
-        Accetta dizionari o oggetti asset mantenendo intatta la compatibilità dell'interfaccia.
-        """
         colonne = []
         if lista_asset:
-            primo_asset = lista_asset[0]
-            colonne = list(primo_asset.keys()) if isinstance(primo_asset, dict) else list(vars(primo_asset).keys())
+            colonne = list(lista_asset[0].keys()) if isinstance(lista_asset[0], dict) else list(vars(lista_asset[0]).keys())
         
-        # Collegamento dinamico a core.experimental_modules.engine_settori
         config_settore = analizza_e_configura_motore(colonne)
         settore_rilevato = config_settore.get("settore", "GENERAL")
-        soglia_critica = config_settore.get("soglia", 7.0)
+        soglia = config_settore.get("soglia", 7.0)
+        moltiplicatore = config_settore.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
         
-        moltiplicatore_finale = config_settore.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
-        
-        w1, w2 = weights
         report = []
-        
         for asset in lista_asset:
-            if isinstance(asset, dict):
-                nome_asset = asset.get("nome", "Prodotto")
-                rischio_base = asset.get("rischio", 0.0)
-                # Verifica presenza parametri quantitativi H(prod)
-                ferie = asset.get("ferie", 0)
-                festivita = asset.get("festivita", 0)
-                assenze = asset.get("assenze", 0)
-                permessi = asset.get("permessi", 0)
-                ritardi = asset.get("ritardi", 0)
-                micropause = asset.get("micropause", 0)
-                output_totale = asset.get("output_totale", 0)
-            else:
-                nome_asset = getattr(asset, 'nome', 'Prodotto')
-                rischio_base = getattr(asset, 'rischio', 0.0)
-                ferie = getattr(asset, 'ferie', 0)
-                festivita = getattr(asset, 'festivita', 0)
-                assenze = getattr(asset, 'assenze', 0)
-                permessi = getattr(asset, 'permessi', 0)
-                ritardi = getattr(asset, 'ritardi', 0)
-                micropause = getattr(asset, 'micropause', 0)
-                output_totale = getattr(asset, 'output_totale', 0)
-
-            # Se l'asset contiene dati temporali, ricalcola il rischio in base alle ore perse
-            if ore_perdute_totatli := (ferie + festivita + assenze + permessi + ritardi + micropause):
-                ore_effettive = self.calcola_ore_produttive_individuali(ferie, festivita, assenze, permessi, ritardi, micropause)
-                prod_reale = self.calcola_indice_produttivita(output_totale, ore_effettive)
-                # Normalizzazione dell'impatto delle ore perse su scala di rischio 1-10
-                rischio_base = min(10.0, round((ore_perdute_totatli / self.ORE_TEORICHE_ANNUE) * 10, 2))
-            else:
-                ore_effettive = self.ORE_TEORICHE_ANNUE
-                prod_reale = 0.0
-
-            # Calcolo Rischio Pesato con Stress Test What-If
-            rischio_pesato = round(rischio_base * moltiplicatore_finale, 2)
+            d = asset if isinstance(asset, dict) else vars(asset)
+            nome = d.get("nome", "Asset")
+            r_base = d.get("rischio", 0.0)
             
-            # Recupero rischio storico e calcolo accelerazione EMA
-            rischio_storico = rischio_base * 0.85 
-            m_score = self._calcola_trend_momentum_alpha(rischio_pesato, rischio_storico, w1=w1, w2=w2)
+            # Integrazione Metriche H(prod)
+            ore_p = sum([d.get(k, 0) for k in ["ferie", "festivita", "assenze", "permessi", "ritardi", "micropause"]])
+            if ore_p > 0:
+                r_base = min(10.0, round((ore_p / self.ORE_TEORICHE_ANNUE) * 10, 2))
             
-            # Generazione Output IA
-            consiglio = self._genera_consiglio_azione(rischio_pesato, settore_rilevato, m_score)
+            r_pesato = round(r_base * moltiplicatore, 2)
+            m_score = self._calcola_trend_momentum_alpha(r_pesato, r_base * 0.85, w1=weights[0], w2=weights[1])
             
-            # Definizione stato visivo condizionale
-            stato_salute = "CRITICO" if rischio_pesato > soglia_critica else "OTTIMALE"
-            if 5.0 < rischio_pesato <= soglia_critica:
-                stato_salute = "ATTENZIONE"
-
             report.append({
-                "asset": nome_asset,
-                "stato": stato_salute,
-                "rischio": rischio_pesato,
+                "asset": nome,
+                "stato": "CRITICO" if r_pesato > soglia else "OTTIMALE" if r_pesato < 5 else "ATTENZIONE",
+                "rischio": r_pesato,
                 "momentum_score": m_score,
-                "consiglio_strategico": consiglio,
+                "consiglio_strategico": self._genera_consiglio_azione(r_pesato, settore_rilevato, m_score),
                 "settore": settore_rilevato,
-                "ore_produttive_effettive": ore_effettive,
-                "produttivita_oraria_reale": prod_reale,
-                "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Parametri nominali"
+                "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
             })
-            
-            # Chiamata di persistenza interna preservata
-            self._archivia_asset(asset, rischio_pesato)
-            
+            self._archivia_asset(d, r_pesato)
         return report
 
-            # --- NUOVO MODULO: INTELLIGENCE MAGAZZINO & MARKETING ---
-    def analizza_giacenze_e_proponi_marketing(self, df_asset):
-        """
-        Analizza la 'anzianità' della merce e genera proposte di marketing automatiche.
-        Utile per liberare liquidità bloccata in giacenze vecchie.
-        """
+    # --- MODULO INTELLIGENCE: RECUPERO LIQUIDITÀ (INCOMING) ---
+    def analizza_giacenze_e_proponi_marketing(self, df):
         proposte = []
         oggi = datetime.now()
-        
-        # Se non ci sono dati, restituiamo una lista vuota
-        if df_asset is None or df_asset.empty:
-            return proposte
+        if df is None or df.empty: return proposte
             
-        for index, row in df_asset.iterrows():
-            # Calcoliamo da quanto tempo l'asset è nel sistema
-            try:
-                data_inserimento = pd.to_datetime(row['timestamp'])
-                giorni_fermi = (oggi - data_inserimento).days
-            except:
-                giorni_fermi = 0
-            
-            # Se la merce è ferma da più di 30 giorni (Giacenza Warning)
-            if giorni_fermi > 30:
-                nome = row.get('nome', 'Prodotto Ignoto')
+        for _, row in df.iterrows():
+            giorni = (oggi - pd.to_datetime(row['timestamp'])).days
+            if giorni > 30:
                 rischio = row.get('rischio', 0.0)
-                
-                # LOGICA DI MARKETING AI:
-                # Se il rischio è alto (>7), proponiamo uno sconto aggressivo per liberare spazio
-                # Se il rischio è medio, proponiamo una promozione bundle
-                if rischio > 7.0:
-                    sconto = "40%"
-                    tipo_offerta = "Liquidazione Totale"
-                    target = "35 pacchi"
-                else:
-                    sconto = "20%"
-                    tipo_offerta = "Promozione Bundle"
-                    target = "10 pacchi"
-                
-                messaggio = (
-                    f"🚨 RISCHIO ALTO: La giacenza di '{nome}' è ferma da {giorni_fermi} giorni. "
-                    f"Se continua così, l'asset graverà sul bilancio a lungo termine. "
-                    f"CONSIGLIO AI: Applica {tipo_offerta} con sconto del {sconto} "
-                    f"per ordini superiori a {target}."
-                )
+                valore = row.get('valore_extra', 0.0)
+                sconto = 0.4 if rischio > 7 else 0.2
+                recupero = round(valore * (1 - sconto), 2)
                 
                 proposte.append({
-                    "asset": nome,
-                    "giorni_giacenza": giorni_fermi,
-                    "proposta_marketing": messaggio,
-                    "rischio_attuale": rischio
+                    "asset": row.get('nome'),
+                    "giorni": giorni,
+                    "recupero_stimato": f"€ {recupero}",
+                    "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}% per recuperare liquidità."
                 })
-                
         return proposte
 
-# --- COLLEGAMENTO CRITTOGRAFICO SECURE VAULT ---
-def salva_report_certificato(azienda, dati_report, vault):
-    """Genera un blob cifrato per la notarizzazione del report tramite SecureVault."""
-    try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        certificato = f"TS: {timestamp} | AZIENDA: {azienda} | PROTOCOLLO ALPHA CERTIFIED | AES-256"
-        return vault.encrypt_data(certificato)
-    except Exception as e:
-        logger.error(f"Certificazione fallita tramite secure_vault: {e}")
-        return None
+    def _archivia_asset(self, d, rischio):
+        try:
+            self.db.salva_asset(
+                user_id=d.get("user_id", 1), nome_asset=d.get("nome"),
+                rischio=rischio, tipo=d.get("tipo", "Enterprise"),
+                momentum=d.get("momentum", "Stabile"), volatilita=d.get("volatilita", 0.0)
+            )
+        except Exception as e: logger.warning(f"DB Sync fallito: {e}")

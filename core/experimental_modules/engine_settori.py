@@ -4,7 +4,7 @@
 SETTORI_CONFIG = {
     "PRIMARIO_ALIMENTARE": {
         "keywords": ["scadenza", "lotto", "haccp", "temperatura", "fresco", "conservazione"],
-        "soglia_critica": 6.5,  # Più severo per via della deperibilità
+        "soglia_critica": 6.5,
         "label": "Qualità e Deperibilità",
         "action_plan": "Verificare immediatamente scadenze imminenti e integrità catena del freddo.",
         "moltiplicatore_rischio": 1.3
@@ -22,6 +22,20 @@ SETTORI_CONFIG = {
         "label": "Efficienza Distributiva",
         "action_plan": "Analizzare lead time dei vettori e ottimizzare rotte di distribuzione.",
         "moltiplicatore_rischio": 1.0
+    },
+    "EDILE_COSTRUZIONI": {
+        "keywords": ["cantiere", "commessa", "ponteggio", "cemento", "sicurezza", "dpi", "subappalto"],
+        "soglia_critica": 7.0,
+        "label": "Sicurezza e Commesse",
+        "action_plan": "Revisione immediata scadenze di cantiere e conformità DPI/Sicurezza.",
+        "moltiplicatore_rischio": 1.2
+    },
+    "FASHION_RETAIL": {
+        "keywords": ["collezione", "taglia", "colore", "sku", "stagione", "invenduto", "reso"],
+        "soglia_critica": 7.8,
+        "label": "Rotazione Stagionale",
+        "action_plan": "Analisi rapida dell'invenduto stagionale. Pianificare promozioni mirate.",
+        "moltiplicatore_rischio": 1.05
     }
 }
 
