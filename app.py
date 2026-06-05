@@ -500,7 +500,7 @@ elif scelta == "📊 War Room Strategica":
                     }
                 }
 
-                # Recuperiamo i dettagli o usiamo quelli standard
+                # Recuperiamo i dettagli o usiamo queli standard
                 info = consigli_settore.get(settore_rilevato, {
                     "ufficio": "Direzione Generale",
                     "guadagno": "+5% efficienza globale",
