@@ -228,6 +228,9 @@ if scelta == "🏠 Home":
         """, unsafe_allow_html=True)
     
         st.markdown("---")
+
+    st.markdown("### 📊 Cosa Ottieni")
+    col_a, col_b, col_c, col_d = st.columns(4)
     
     with col_a:
         st.markdown("### 📈 Analisi Predittiva")
