@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from core.ingestor import IngestoreDati
 from core.engine import DataGateway, salva_report_certificato
 from core.database import DatabaseAziendale
-from core.notifier import Sentinella  # <--- INSERISCI QUI QUESTA RIGA
+from core.notifier import Sentinella
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
@@ -360,21 +360,38 @@ elif scelta == "📊 War Room Strategica":
                 sim = SimulatoreRischio()
                 risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
                 
-                # --- ESECUZIONE SENTINELLA (Notifica Automatica) ---
-                sentinella = Sentinella()
-                asset_a_rischio = [(a.get('asset'), a.get('rischio')) for a in report_analisi if a.get('rischio', 0) > 7]
-                if asset_a_rischio:
-                    sentinella.genera_report(asset_a_rischio)
-                    st.warning("⚠️ Rilevate criticità: Report di allerta generato in `data/logs/report_critico.txt`")
+                        # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
+        sentinella = Sentinella()
+        asset_a_rischio = [(a.get('asset'), a.get('rischio')) for a in report_analisi if a.get('rischio') > 7.5]
+        
+        if asset_a_rischio:
+            # 1. Genera il report su file (come faceva prima)
+            sentinella.genera_report(asset_a_rischio)
+            
+            # 2. INVIO EMAIL (Nuova funzione Enterprise)
+            try:
+                from core.email_manager import EmailManager
+                mailer = EmailManager()
+                corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
+                mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
+            except Exception as e:
+                st.sidebar.error(f"Errore invio notifica: {e}")
+
+            st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
                 
                 # --- GRAFICO PREDITTIVO INTEGRATO ---
-                if risultati_sim:
-                    st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                    
-                fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
-                st.plotly_chart(fig_pred, use_container_width=True)
-                fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
-                status.update(label="✅ Analisi e Stress Test completati!", state="complete")
+            if asset_a_rischio:
+            # 1. Genera il report su file
+                sentinella.genera_report(asset_a_rischio)
+            
+            # 2. INVIO EMAIL (Non farti cancellare questa parte!)
+            try:
+                from core.email_manager import EmailManager
+                mailer = EmailManager()
+                corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
+                mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
+            except Exception as e:
+                st.sidebar.error(f"Errore invio: {e}")
                 
                 # AGGIORNA LE METRICHE IN ALTO
                 col1, col2, col3, col4 = st.columns(4)
