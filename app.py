@@ -15,8 +15,8 @@ from core.notifier import Sentinella
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
-from core.simulator import SimulatoreRischio
-from core.visuals import genera_grafico_predittivo
+#from core.simulator import SimulatoreRischio
+#from core.visuals import genera_grafico_predittivo
 # =========================
 #   CONFIGURAZIONE BASE
 # =========================
