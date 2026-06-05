@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 import logging
 from core.secure_vault import SecureVault
-# RIGA CORRETTA: Ho sostituito AssetDiRelazione con AssetDiRisorsa
 from core.entities import AssetDiMercato, AssetDiValore, AssetDiRisorsa, AssetStrategico
 from core.database import DatabaseAziendale
 
