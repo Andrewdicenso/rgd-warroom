@@ -1,3 +1,4 @@
+py
 import os
 from datetime import datetime
 from core.ingestor import IngestoreDati
@@ -7,39 +8,39 @@ def esegui_importazione_massiva(azienda_id):
     ingestor = IngestoreDati()
     db = DatabaseAziendale()
     
-    # Percorso corretto: punta alla cartella che hai creato prima
+    # Percorso allineato alla struttura data/
     cartella_storico = os.path.join("data", "history_import")
     
     if not os.path.exists(cartella_storico):
         print(f"⚠️ Errore: La cartella {cartella_storico} non esiste.")
         return
 
-    # Cerchiamo tutti i file CSV dentro la cartella
-    file_presenti = [f for f in os.listdir(cartella_storico) if f.endswith('.csv')]
+    # Estendiamo la ricerca a CSV ed EXCEL (come abbiamo fatto nell'ingestore)
+    file_presenti = [f for f in os.listdir(cartella_storico) if f.lower().endswith(('.csv', '.xlsx', '.xls'))]
     
     if not file_presenti:
-        print("ℹ️ Cartella vuota: Inserisci i file CSV in data/history_import per iniziare.")
+        print("ℹ️ Nessun file trovato: Carica CSV o Excel in data/history_import.")
         return
 
-    print(f"🚀 Inizio importazione di {len(file_presenti)} file storici...")
+    print(f"🚀 RGD-ALPHA: Inizio importazione massiva di {len(file_presenti)} file storici...")
 
     for nome_file in file_presenti:
         path_completo = os.path.join(cartella_storico, nome_file)
-        print(f"📄 Elaborazione del file storico: {nome_file}...")
+        print(f"📄 Elaborazione asset: {nome_file}...")
         
         try:
-            # L'ingestore elabora e mappa i dati automaticamente
-            lista_asset = ingestor.elabora_csv(path_completo, azienda_id)
+            # MODIFICATO: Usiamo 'elabora_file' che è la versione potenziata e sicura
+            lista_asset = ingestor.elabora_file(path_completo, azienda_id)
             
-            # Registriamo l'evento nel database per vederlo nella Centrale Admin
-            db.registra_caricamento(azienda_id, "IMPORT_STORICO", nome_file)
-            print(f"✅ Successo: {len(lista_asset)} asset caricati correttamente.")
+            # Registriamo l'evento per la supervisione Admin
+            db.registra_caricamento(azienda_id, "MIGRAZIONE_STORICA", nome_file)
+            print(f"✅ Successo: {len(lista_asset)} asset migrati nel sistema.")
             
         except Exception as e:
-            print(f"❌ Errore durante l'import di {nome_file}: {e}")
+            print(f"❌ Errore critico su {nome_file}: {e}")
 
-    print("\n🏆 Operazione completata: Il database ora contiene i dati del passato!")
+    print("\n🏆 MIGRAZIONE COMPLETATA: La War Room ora dispone dello storico dati!")
 
 if __name__ == "__main__":
-    # Avviamo l'import per la tua azienda di test (allineato con la dashboard)
-    esegui_importazione_massiva("AZ-TEST-01")
+    # Allineato all'ID che abbiamo visto nella dashboard (AZ-1 o AZ-TEST-01)
+    esegui_importazione_massiva("AZ-1")
