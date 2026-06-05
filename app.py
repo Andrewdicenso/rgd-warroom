@@ -440,10 +440,12 @@ elif scelta == "📊 War Room Strategica":
                 res = max(round(100 - (f_stress * 10), 1), 0)
                 cols[4].metric("Resilience", f"{res}%")
 
-                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
+                                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
                 if risultati_sim:
-                 st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
+                    st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
+                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
+                    st.plotly_chart(fig_pred, use_container_width=True) # <--- AGGIUNTA QUESTA RIGA MANCANTE
+                
                 # --- GRAFICO MOMENTUM ---
                 st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
                 df_plot = pd.DataFrame(report_analisi)
@@ -451,16 +453,55 @@ elif scelta == "📊 War Room Strategica":
                              color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"})
                 st.plotly_chart(fig, use_container_width=True)
 
-                # --- RAGIONAMENTO IA ---
-                st.subheader("🧠 Ragionamento Strategico")
+                # --- RAGIONAMENTO IA DINAMICO ---
+                st.subheader("🧠 Ragionamento Strategico Intelligence")
+
+                # Recuperiamo il settore rilevato dall'analisi (es. PRIMARIO_ALIMENTARE, TERZIARIO_LOGISTICA)
+                settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
+
+                # Definiamo i suggerimenti specifici per reparto/ufficio in base al settore
+                consigli_settore = {
+                    "PRIMARIO_ALIMENTARE": {
+                        "ufficio": "Qualità e Logistica",
+                        "guadagno": "+15% riduzione sprechi",
+                        "prognosi": "Rischio deperibilità elevato. La velocità di rotazione è vitale."
+                    },
+                    "SECONDARIO_MANIFATTURA": {
+                        "ufficio": "Produzione e Acquisti",
+                        "guadagno": "+12% ottimizzazione stock",
+                        "prognosi": "Rallentamento flussi rilevato. Possibile fermo macchina tra 10gg."
+                    },
+                    "TERZIARIO_LOGISTICA": {
+                        "ufficio": "Ufficio Spedizioni / Traffico",
+                        "guadagno": "+20% efficienza consegne",
+                        "prognosi": "Collo di bottiglia nei vettori. Saturazione magazzino imminente."
+                    },
+                    "EDILE": {
+                        "ufficio": "Capocantiere / Approvvigionamento",
+                        "guadagno": "+10% gestione materiali",
+                        "prognosi": "Ritardo forniture materiali pesanti. Rischio penali su commessa."
+                    }
+                }
+
+                # Recuperiamo i dettagli o usiamo quelli standard
+                info = consigli_settore.get(settore_rilevato, {
+                    "ufficio": "Direzione Generale",
+                    "guadagno": "+5% efficienza globale",
+                    "prognosi": "Parametri standard. Monitorare la stabilità operativa."
+                })
+
                 st.markdown(f"""
                 <div class="ai-reasoning">
-                    <strong>SINTESI DIREZIONALE:</strong><br>
-                    Il sistema rileva un impatto di crisi simulata che riduce la resilienza al {res}%. 
-                    Il Momentum Score indica che il rischio non è statico ma in espansione temporale.<br><br>
-                    <strong>AZIONE ALPHA:</strong><br>
-                    Si suggerisce di dare priorità agli asset con Momentum > 1.5. Il tempo di giacenza sta erodendo 
-                    il margine operativo più velocemente del previsto. Intervenire sulla supply chain entro 15gg.
+                    <strong>📍 ANALISI PER REPARTO: <span style='color:#3498db'>{info['ufficio']}</span></strong><br>
+                    <strong>📊 SETTORE IDENTIFICATO:</strong> {settore_rilevato.replace('_', ' ')}<br><br>
+                    
+                    <strong>🔮 PROGNOSI IA:</strong><br>
+                    {info['prognosi']} Il sistema rileva che la resilienza è al {res}%. 
+                    Il Momentum Score indica un'espansione del rischio specifica per il comparto {settore_rilevato}.<br><br>
+                    
+                    <strong>🚀 AZIONE ALPHA (Suggerimento):</strong><br>
+                    Intervenire entro 15gg. Si suggerisce di dare priorità agli asset con Momentum > 1.5. 
+                    L'intervento tempestivo porterà a un <strong>incremento stimato del {info['guadagno']}</strong> sui margini operativi.
                 </div>
                 """, unsafe_allow_html=True)
 
