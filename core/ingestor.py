@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 import logging
 from core.secure_vault import SecureVault
-from core.entities import AssetDiMercato, AssetDiValore, AssetDiRelazione, AssetStrategico
+# RIGA CORRETTA: Ho sostituito AssetDiRelazione con AssetDiRisorsa
+from core.entities import AssetDiMercato, AssetDiValore, AssetDiRisorsa, AssetStrategico
 from core.database import DatabaseAziendale
 
 logger = logging.getLogger("RGD-Alpha.Ingestor")
@@ -47,7 +48,8 @@ class IngestoreDati:
         if any(k in col for k in ['collezione', 'taglia', 'colore', 'stagione', 'invenduto']):
             return "FASHION", AssetDiMercato
         if any(k in col for k in self.mappa_sinonimi['inefficienze']) or 'dipendente' in col:
-            return "PRODUTTIVITA", AssetStrategico
+            # Qui usiamo la classe corretta AssetDiRisorsa
+            return "PRODUTTIVITA", AssetDiRisorsa 
         if any(k in col for k in ['fattura', 'iban', 'lordo', 'partita_iva']):
             return "FINANCE", AssetDiValore
         if any(k in col for k in ['bolla', 'ddt', 'magazzino', 'vettore', 'spedizione']):
