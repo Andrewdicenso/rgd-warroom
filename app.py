@@ -9,8 +9,6 @@ import streamlit as st
 from dotenv import load_dotenv
 
 # --- CONFIGURAZIONE PERCORSI SISTEMA ---
-# Spieghiamo a Python di guardare dentro 'core'
-# RISOLVE: L'impossibilità di trovare simulator.py e visuals.py
 PROJECT_ROOT = Path(__file__).parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
@@ -18,19 +16,23 @@ if str(PROJECT_ROOT / "core") not in sys.path:
     sys.path.append(str(PROJECT_ROOT / "core"))
 
 # --- MODULI CORE & AUTH ---
-# Ora che il percorso è allineato, carichiamo i componenti
 from core.ingestor import IngestoreDati
 from core.engine import DataGateway
 from core.database import DatabaseAziendale
 from core.notifier import Sentinella
-
-# Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 
-# CARICAMENTO MODULI ANALITICI
-# RISOLVE: La mancanza di funzioni nel calcolo predittivo e nei grafici
-from simulator import SimulatoreRischio
+# --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
+
+try:
+    from simulator import SimulatoreRischio
+except Exception as e:
+    st.sidebar.error(f"Errore caricamento Simulatore: {e}")
+    class SimulatoreRischio: 
+        def __init__(self, *args, **kwargs): pass
+        def esegui_stress_test(self, *args, **kwargs): return {"probabilita_crisi": 0, "percorsi_raw": None}
+
 # =========================
 #   CONFIGURAZIONE BASE
 # =========================
@@ -206,7 +208,7 @@ if scelta == "🏠 Home":
         <div class='welcome-card'>
             <h3 style='margin-top: 0;'>👋 Benvenuto nella tua War Room Personale</h3>
             <p style='font-size: 1.1rem; line-height: 1.6;'>
-                <strong>RGD-Alpha</strong> non è un semplice gestionale. È un sistema di 
+                <strong>RGD-Alpha</strong> non è un simple gestionale. È un sistema di 
                 <strong>Risk Intelligence</strong> che analizza il tuo inventario e calcola la 
                 <strong>Solidità Operativa</strong> della tua azienda in tempo reale.
             </p>
@@ -241,7 +243,7 @@ if scelta == "🏠 Home":
         </div>
         """, unsafe_allow_html=True)
     
-        st.markdown("---")
+    st.markdown("---")
 
     st.markdown("### 📊 Cosa Ottieni")
     col_a, col_b, col_c, col_d = st.columns(4)
@@ -303,7 +305,7 @@ elif scelta == "📊 War Room Strategica":
         </div>
     """.format(azienda), unsafe_allow_html=True)
     
-    # Metriche in evidenza (anche se non ci sono ancora dati)
+    # Metriche in evidenza di default (prima dell'elaborazione file)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -344,6 +346,7 @@ elif scelta == "📊 War Room Strategica":
     
     st.markdown("---")
     
+    # Caricamento e parametri nella Sidebar della War Room
     with st.sidebar:
         with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
             w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
@@ -356,7 +359,8 @@ elif scelta == "📊 War Room Strategica":
     if uploaded_file:
         path = UPLOAD_DIR / azienda / uploaded_file.name
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
+        with open(path, "wb") as f: 
+            f.write(uploaded_file.getbuffer())
 
         with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
             ingestor = IngestoreDati()
@@ -369,6 +373,10 @@ elif scelta == "📊 War Room Strategica":
                 
                 # Calcolo con Stress Test e Pesi EMA
                 report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
+                
+                # --- CICLO COMPILAZIONE DATABASE ---
+                for r in report_analisi:
+                    db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
                 
                 # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
@@ -377,7 +385,6 @@ elif scelta == "📊 War Room Strategica":
 
                 # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
                 sentinella = Sentinella()
-                # keep original dicts from report_analisi
                 asset_a_rischio = [a for a in report_analisi if a.get('rischio') > 7.5]
 
                 if asset_a_rischio:
@@ -399,7 +406,7 @@ elif scelta == "📊 War Room Strategica":
                     # 1. Genera il report su file
                     sentinella.genera_report(asset_a_rischio)
 
-                    # 2. INVIO EMAIL (Non farti cancellare questa parte!)
+                    # 2. INVIO EMAIL
                     try:
                         from core.email_manager import EmailManager
                         mailer = EmailManager()
@@ -408,7 +415,7 @@ elif scelta == "📊 War Room Strategica":
                     except Exception as e:
                         st.sidebar.error(f"Errore invio: {e}")
 
-                # AGGIORNA LE METRICHE IN ALTO
+                # AGGIORNA LE METRICHE IN ALTO DINAMICAMENTE
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
@@ -472,11 +479,13 @@ elif scelta == "📊 War Room Strategica":
                 res = max(round(100 - (f_stress * 10), 1), 0)
                 cols[4].metric("Resilience", f"{res}%")
 
-                                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
-                if risultati_sim:
+                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
+                if risultati_sim and risultati_sim.get('percorsi_raw') is not None:
                     st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
                     fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
-                    st.plotly_chart(fig_pred, use_container_width=True) # <--- AGGIUNTA QUESTA RIGA MANCANTE
+                    st.plotly_chart(fig_pred, use_container_width=True)
+                else:
+                    st.info("🔮 Analisi IA: Proiezione grafica temporaneamente non disponibile.")
                 
                 # --- GRAFICO MOMENTUM ---
                 st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
@@ -488,7 +497,7 @@ elif scelta == "📊 War Room Strategica":
                 # --- RAGIONAMENTO IA DINAMICO ---
                 st.subheader("🧠 Ragionamento Strategico Intelligence")
 
-                # Recuperiamo il settore rilevato dall'analisi (es. PRIMARIO_ALIMENTARE, TERZIARIO_LOGISTICA)
+                # Recuperiamo il settore rilevato dall'analisi
                 settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
 
                 # Definiamo i suggerimenti specifici per reparto/ufficio in base al settore
@@ -515,7 +524,7 @@ elif scelta == "📊 War Room Strategica":
                     }
                 }
 
-                # Recuperiamo i dettagli o usiamo queli standard
+                # Recuperiamo i dettagli o usiamo quelli standard
                 info = consigli_settore.get(settore_rilevato, {
                     "ufficio": "Direzione Generale",
                     "guadagno": "+5% efficienza globale",
@@ -549,9 +558,7 @@ elif scelta == "📊 War Room Strategica":
                     </div>
                     """, unsafe_allow_html=True)
 
-                # ========================================================
                 # --- INTEGRAZIONE RGD-ALPHA CREW (NODE.JS BRIDGE) ---
-                # ========================================================
                 st.markdown("---")
                 st.header("👥 RGD-ALPHA CREW | Client Risk Early Warning")
                 
@@ -588,7 +595,8 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
         df = db.supervisione_admin_metriche_globali()
         if df is not None and not df.empty:
             st.dataframe(df, use_container_width=True, hide_index=True)
-    except: st.info("In attesa di dati dai nodi periferici.")
+    except: 
+        st.info("In attesa di dati dai nodi periferici.")
 
 # =========================
 #   ARCHIVIO STORICO
