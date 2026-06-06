@@ -360,41 +360,40 @@ elif scelta == "📊 War Room Strategica":
                 # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
                 sim = SimulatoreRischio()
                 risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-                
-                        # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
-        sentinella = Sentinella()
-        asset_a_rischio = [(a.get('asset'), a.get('rischio')) for a in report_analisi if a.get('rischio') > 7.5]
-        
-        if asset_a_rischio:
-            # 1. Genera il report su file (come faceva prima)
-            asset_a_rischio_dict = [vars(a) for a in asset_a_rischio]
-            sentinella.genera_report_strategico(asset_a_rischio_dict)
-            
-            # 2. INVIO EMAIL (Nuova funzione Enterprise)
-            try:
-                from core.email_manager import EmailManager
-                mailer = EmailManager()
-                corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
-                mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
-            except Exception as e:
-                st.sidebar.error(f"Errore invio notifica: {e}")
 
-            st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
-                
-                # --- GRAFICO PREDITTIVO INTEGRATO ---
-            if asset_a_rischio:
-            # 1. Genera il report su file
-                sentinella.genera_report(asset_a_rischio)
-            
-            # 2. INVIO EMAIL (Non farti cancellare questa parte!)
-            try:
-                from core.email_manager import EmailManager
-                mailer = EmailManager()
-                corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
-                mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
-            except Exception as e:
-                st.sidebar.error(f"Errore invio: {e}")
-                
+                # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
+                sentinella = Sentinella()
+                # keep original dicts from report_analisi
+                asset_a_rischio = [a for a in report_analisi if a.get('rischio') > 7.5]
+
+                if asset_a_rischio:
+                    asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
+                    sentinella.genera_report_strategico(asset_a_rischio_dict)
+
+                    # 2. INVIO EMAIL (Nuova funzione Enterprise)
+                    try:
+                        from core.email_manager import EmailManager
+                        mailer = EmailManager()
+                        corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
+                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
+                    except Exception as e:
+                        st.sidebar.error(f"Errore invio notifica: {e}")
+
+                    st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
+
+                    # --- GRAFICO PREDITTIVO INTEGRATO ---
+                    # 1. Genera il report su file
+                    sentinella.genera_report(asset_a_rischio)
+
+                    # 2. INVIO EMAIL (Non farti cancellare questa parte!)
+                    try:
+                        from core.email_manager import EmailManager
+                        mailer = EmailManager()
+                        corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
+                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
+                    except Exception as e:
+                        st.sidebar.error(f"Errore invio: {e}")
+
                 # AGGIORNA LE METRICHE IN ALTO
                 col1, col2, col3, col4 = st.columns(4)
                 
