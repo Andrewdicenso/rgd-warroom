@@ -367,7 +367,7 @@ elif scelta == "📊 War Room Strategica":
         
         if asset_a_rischio:
             # 1. Genera il report su file (come faceva prima)
-            sentinella.genera_report(asset_a_rischio)
+            sentinella.genera_report_strategico(asset_a_rischio)
             
             # 2. INVIO EMAIL (Nuova funzione Enterprise)
             try:
