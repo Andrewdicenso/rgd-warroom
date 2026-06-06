@@ -1,4 +1,5 @@
 import os
+import sys  # <--- RISOLVE: Il NameError (sys non definito)
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -7,7 +8,17 @@ import plotly.express as px
 import streamlit as st
 from dotenv import load_dotenv
 
+# --- CONFIGURAZIONE PERCORSI SISTEMA ---
+# Spieghiamo a Python di guardare dentro 'core'
+# RISOLVE: L'impossibilità di trovare simulator.py e visuals.py
+PROJECT_ROOT = Path(__file__).parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+if str(PROJECT_ROOT / "core") not in sys.path:
+    sys.path.append(str(PROJECT_ROOT / "core"))
+
 # --- MODULI CORE & AUTH ---
+# Ora che il percorso è allineato, carichiamo i componenti
 from core.ingestor import IngestoreDati
 from core.engine import DataGateway
 from core.database import DatabaseAziendale
@@ -15,9 +26,11 @@ from core.notifier import Sentinella
 
 # Importiamo la logica centralizzata dal pacchetto auth
 from auth.auth import inizializza_sessione, login_utente, logout_utente
-sys.path.append("core")
-from core.simulator import SimulatoreRischio
-from core.visuals import genera_grafico_predittivo
+
+# CARICAMENTO MODULI ANALITICI
+# RISOLVE: La mancanza di funzioni nel calcolo predittivo e nei grafici
+from simulator import SimulatoreRischio
+from visuals import genera_grafico_predittivo
 # =========================
 #   CONFIGURAZIONE BASE
 # =========================
