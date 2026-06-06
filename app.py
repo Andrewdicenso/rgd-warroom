@@ -142,6 +142,20 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
             st.error("Email già registrata.")
             return
         
+        # Determina ruolo (Admin supremo o Utente)
+        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
+        ruolo = "admin" if email.lower() == admin_email_env else "user"
+
+        # CREAZIONE UTENTE: Passiamo None come azienda per farla generare automatica (AZ-id)
+        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None)
+        
+        if user_id:
+            st.success(f"✅ Registrazione completata come {ruolo.upper()}. Ora puoi accedere.")
+            st.balloons()
+    except Exception as e:
+        st.error(f"Errore registrazione: {e}")
+
+        
         # --- MODIFICA PER RENDER E VENDITA ---
         # Leggiamo l'email dell'admin dalla "Cassaforte" (.env)
         admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
