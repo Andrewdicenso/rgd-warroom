@@ -234,13 +234,15 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f" Errore salvataggio asset {nome_asset}: {e}")
 
-        def recupera_asset_per_utente(self, user_id: int):
+        py
+    def recupera_asset_per_utente(self, user_id: int):
+        """Recupera gli asset con logica di supervisione Admin/Cliente."""
         try:
             utente = self.get_utente_by_id(user_id)
-            if not utente: return pd.DataFrame()
+            if not utente: 
+                return pd.DataFrame()
             
             ruolo = utente.get("ruolo")
-
             with self._get_conn() as conn:
                 if ruolo == "admin":
                     query = "SELECT * FROM asset_logs ORDER BY id DESC"
@@ -251,17 +253,12 @@ class DatabaseAziendale:
                 df = pd.read_sql_query(query, conn, params=params)
 
             if not df.empty:
-                # Decriptazione Sicura: se fallisce, non blocca il sistema
-                def safe_decrypt(x):
-                    try: return self.vault.decrypt_data(x) if x else ""
-                    except: return "Dato Protetto"
-                
-                df['company_id'] = df['company_id'].apply(safe_decrypt)
-                df['nome'] = df['nome'].apply(safe_decrypt)
-            
+                # Decriptazione sicura
+                df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
+                df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
             return df
         except Exception as e:
-            logger.error(f"Errore supervisione asset: {e}")
+            logger.error(f"Errore recupero asset: {e}")
             return pd.DataFrame()
 
     # ==========================================
