@@ -234,7 +234,6 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f" Errore salvataggio asset {nome_asset}: {e}")
 
-        py
     def recupera_asset_per_utente(self, user_id: int):
         """Recupera gli asset con logica di supervisione Admin/Cliente."""
         try:

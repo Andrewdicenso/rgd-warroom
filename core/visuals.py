@@ -1,8 +1,6 @@
-# core/visuals.py
 import plotly.graph_objects as go
 import numpy as np
 
-py
 def genera_grafico_predittivo(percorsi_rischio, giorni_proiettati):
     fig = go.Figure()
 
