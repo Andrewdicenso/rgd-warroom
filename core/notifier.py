@@ -56,3 +56,8 @@ class Sentinella:
         """Monitoraggio sicurezza del Vault."""
         with open(self.log_path, "a") as f:
             f.write(f"⚠️ SECURITY: Tentativo di accesso fallito per {email} alle {datetime.datetime.now()}\n")
+
+            py
+    def genera_report(self, report_analisi):
+        """Alias per compatibilità con app.py"""
+        return self.genera_report_strategico(report_analisi)
