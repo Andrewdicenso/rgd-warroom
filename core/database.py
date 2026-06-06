@@ -108,34 +108,36 @@ class DatabaseAziendale:
     #   UTENTI / AUTENTICAZIONE
     # =========================
 
+   # =========================
+    #   UTENTI / AUTENTICAZIONE
+    # =========================
+
     def crea_utente(self, email, password, ruolo="user", azienda=None):
-        """
-        Crea un nuovo utente.
-        La password viene hashata internamente con bcrypt.
-        """
+        """Crea un nuovo utente e gestisce l'azienda automatica."""
         try:
             with self._get_conn() as conn:
                 cursor = conn.cursor()
 
                 email_enc = self.vault.encrypt_data(email)
-
-                # HASH SICURO DELLA PASSWORD
                 password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-                # Inserisco utente senza azienda per ottenere l'id
+                if azienda is not None:
+                    azienda_enc = self.vault.encrypt_data(azienda)
+                    cursor.execute("""
+                        INSERT INTO utenti (email, password_hash, ruolo, azienda)
+                        VALUES (?, ?, ?, ?)
+                    """, (email_enc, password_hash, ruolo, azienda_enc))
+                    return cursor.lastrowid
+                
                 cursor.execute("""
                     INSERT INTO utenti (email, password_hash, ruolo, azienda)
                     VALUES (?, ?, ?, ?)
                 """, (email_enc, password_hash, ruolo, None))
                 user_id = cursor.lastrowid
 
-                # Se non è stata passata un'azienda, ne genero una
-                if azienda is None:
-                    azienda = f"AZ-{user_id}"
+                azienda_generata = f"AZ-{user_id}"
+                azienda_enc = self.vault.encrypt_data(azienda_generata)
 
-                azienda_enc = self.vault.encrypt_data(azienda)
-
-                # Aggiorno l'azienda dell'utente
                 cursor.execute("""
                     UPDATE utenti SET azienda = ?
                     WHERE id = ?
@@ -146,6 +148,26 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f"Errore creazione utente: {e}")
             raise
+
+    def get_utente_by_id(self, user_id: int):
+        """Recupera un utente tramite il suo ID decriptandone i dati."""
+        try:
+            with self._get_conn() as conn:
+                cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti WHERE id = ?", (user_id,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return {
+                        "id": row[0],
+                        "email": self.vault.decrypt_data(row[1]),
+                        "password_hash": row[2],
+                        "ruolo": row[3],
+                        "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
+                    }
+            return None
+        except Exception as e:
+            logger.error(f"Errore recupero utente per ID {user_id}: {e}")
+            return None
 
     def get_utente_by_email(self, email):
         """Recupera un utente decriptando le email nel database per il confronto."""
