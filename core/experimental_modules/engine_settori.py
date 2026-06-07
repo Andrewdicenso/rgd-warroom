@@ -1,9 +1,6 @@
 # FILE: experimental_modules/engine_settori.py
 # SCOPO: Mappatura intelligente e configurazione dinamica del motore RGD-Alpha
 
-import pandas as pd
-import pypdf
-
 SETTORI_CONFIG = {
     "PRIMARIO_ALIMENTARE": {
         "keywords": ["scadenza", "lotto", "haccp", "temperatura", "fresco", "conservazione"],
@@ -48,14 +45,21 @@ def analizza_e_configura_motore(lista_colonne):
     il testo per garantire il riconoscimento del settore, ispezionando anche 
     le chiavi annidate in dati_extra se presenti.
     """
+    # Puliamo e rendiamo minuscole tutte le colonne singolarmente, togliendo spazi vuoti
     colonne_pulite = [str(col).strip().lower() for col in lista_colonne]
     
+    # --- INTEGRAZIONE STRATEGICA 2026 ---
+    # Se l'ingestore ha inserito 'dati_extra' tra le chiavi, espandiamo l'analisi
+    # per intercettare keyword annidate come 'scadenza' o 'lotto'
     if "dati_extra" in colonne_pulite:
+        # Aggiungiamo esplicitamente le keyword note di dati_extra per l'ispezione delle stringhe
         colonne_pulite.extend(["scadenza", "lotto", "id_asset"])
     
+    # Uniamo in un'unica stringa per il controllo delle keyword
     colonne_str = " ".join(colonne_pulite)
     
     for settore, config in SETTORI_CONFIG.items():
+        # Controlla se almeno una keyword del settore è presente nelle colonne pulite
         if any(key in colonne_str for key in config["keywords"]):
             return {
                 "settore": settore,
@@ -65,86 +69,11 @@ def analizza_e_configura_motore(lista_colonne):
                 "moltiplicatore": config["moltiplicatore_rischio"]
             }
             
+    # Configurazione di default se non viene riconosciuto un settore specifico
     return {
         "settore": "GENERALE",
         "soglia": 7.0,
         "descrizione": "Analisi Strategica Standard",
         "consiglio": "Monitoraggio periodico dei KPI standard di rischio.",
         "moltiplicatore": 1.0
-    }
-
-
-# =====================================================================
-# --- NUOVO MODULO: LOGICA WARROOM (CATEGORIE: PESO, QUANTITÀ, TEMPO) ---
-# =====================================================================
-
-CONFIG_MACRO_CATEGORIE = {
-    "PESO": {
-        "unita": ["kg", "chili", "tonnellate", "litri", "metri cubi", "mc", "massa", "volume"],
-        "info_calcolo": "Calcolo basato su Massa e Volume di merci sfuse o liquidi."
-    },
-    "QUANTITA": {
-        "unita": ["pezzi", "unita", "lotti", "confezioni", "scatole", "numero", "sku"],
-        "info_calcolo": "Calcolo rigoroso a unità o conteggio pezzi a inventario."
-    },
-    "TEMPO_SERVIZIO": {
-        "unita": ["ore", "ore lavoro", "visualizzazioni", "transazioni", "tratte", "chilometri", "giorni", "abbonamenti"],
-        "info_calcolo": "Calcolo basato su prestazioni orarie, servizi erogati o tempo di utilizzo."
-    }
-}
-
-def estrai_testo_da_file_warroom(file_caricato):
-    """
-    Estrae in modo sicuro una stringa di testo da file Excel, CSV o PDF 
-    senza salvare nulla sul server (elaborazione in memoria).
-    """
-    try:
-        nome_file = file_caricato.name.lower()
-        
-        if nome_file.endswith('.csv'):
-            df = pd.read_csv(file_caricato, nrows=5)
-            colonne = ", ".join(df.columns.astype(str))
-            anteprima = df.to_string(index=False)
-            return f"FILE TABELLARE CSV\nColonne: {colonne}\nDati:\n{anteprima}"
-            
-        elif nome_file.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(file_caricato, nrows=5)
-            colonne = ", ".join(df.columns.astype(str))
-            anteprima = df.to_string(index=False)
-            return f"FILE TABELLARE EXCEL\nColonne: {colonne}\nDati:\n{anteprima}"
-            
-        elif nome_file.endswith('.pdf'):
-            lettore = pypdf.PdfReader(file_caricato)
-            testo_estratto = ""
-            for i in range(min(2, len(lettore.pages))):
-                testo_estratto += lettore.pages[i].extract_text() + "\n"
-            return f"DOCUMENTO PDF\nContenuto:\n{testo_estratto[:1500]}"
-            
-    except Exception as e:
-        return f"Errore durante l'estrazione del testo: {str(e)}"
-    
-    return "Formato file non supportato."
-
-def classifica_documento_warroom(testo_estratto):
-    """
-    Analizza il testo normalizzato. Al momento simula l'analisi semantica 
-    in attesa dell'attivazione dell'API Key per l'AI Micro, garantendo 
-    che il sistema non vada mai in crash.
-    """
-    testo_minuscolo = testo_estratto.lower()
-    
-    # Controllo rapido tramite parole chiave per decidere la categoria in sicurezza
-    for categoria, configurazione in CONFIG_MACRO_CATEGORIE.items():
-        if any(parola in testo_minuscolo for parola in configurazione["unita"]):
-            return {
-                "categoria": categoria,
-                "dettaglio": configurazione["info_calcolo"],
-                "stato_ai": "Simulazione locale attiva"
-            }
-            
-    # Risposta di fallback se il documento è ambiguo
-    return {
-        "categoria": "QUANTITA",
-        "dettaglio": "Categoria assegnata automaticamente (Default a Pezzi/Unità).",
-        "stato_ai": "Simulazione locale attiva (Fallback)"
     }
