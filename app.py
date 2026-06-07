@@ -22,6 +22,7 @@ from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
+from core.experimental_modules.reparti_engine import ottieni_macro_aree, ottieni_reparti_per_macro_area, genera_percorso_salvataggio
 
 # --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
@@ -383,11 +384,22 @@ elif scelta == "📊 War Room Strategica":
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
 
+    st.markdown("### 🏢 Destinazione Documento Aziendale")
+    
+    lista_macro = ottieni_macro_aree()
+    macro_scelta = st.selectbox("1. Seleziona la Macro-Area:", lista_macro)
+    
+    lista_reparti = ottieni_reparti_per_macro_area(macro_scelta)
+    reparto_scelto = st.selectbox("2. Seleziona il Reparto specifico:", lista_reparti)
+    st.markdown("---")
+
     uploaded_file = st.file_uploader("📁 Carica inventario CSV", type=["csv"])
     if uploaded_file:
-        path = UPLOAD_DIR / azienda / uploaded_file.name
+        # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
+        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f: 
+        
+        with open(path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
         with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
@@ -396,11 +408,12 @@ elif scelta == "📊 War Room Strategica":
             
             if lista_asset:
                 engine = DataGateway()
+
                 # RIPRISTINATO: Uso di user_id come richiesto
-                db.registra_caricamento(user_id, "UNIVERSAL", uploaded_file.name)
+                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
                 
                 # Calcolo con Stress Test e Pesi EMA
-                report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
+                report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
                 
                 # --- CICLO COMPILAZIONE DATABASE ---
                 for r in report_analisi:
