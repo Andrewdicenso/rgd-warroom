@@ -629,19 +629,17 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 #   ARCHIVIO STORICO
 # =========================
 elif scelta == "📜 Archivio Storico":
-    st.title("📜 Archivio Storico Caricamenti")
+    st.title("📜 Archivio Storico Analisi")
     
+    # Se sei Admin vedi tutto, se sei Cliente vedi solo i tuoi dati
     if is_admin:
-        st.info("👁️ Visualizzazione Admin: vedi tutti i caricamenti di tutte le aziende")
-        try:
-            df_logs = db.recupera_log_caricamenti_admin()
-            if not df_logs.empty:
-                st.dataframe(df_logs, use_container_width=True, hide_index=True)
-            else:
-                st.warning("📭 Nessun file caricato nel sistema")
-        except Exception as e:
-            st.error(f"Errore recupero dati: {e}")
+        st.info("👁️ Visualizzazione Admin: vedi lo storico di tutti i clienti")
+        df_log = db.recupera_log_caricamenti_admin()
     else:
-        st.info(f"👁️ Visualizzazione limitata alla tua azienda: {azienda}")
-        # Qui potresti aggiungere una query filtrata per azienda se necessario
-        st.warning("📭 Archivio storico in fase di implementazione per utenti standard")
+        st.info("👁️ Visualizzazione limitata ai file della tua azienda")
+        df_log = db.recupera_log_caricamenti_per_utente(user_id)
+
+    if not df_log.empty:
+        st.dataframe(df_log, use_container_width=True, hide_index=True)
+    else:
+        st.warning("📭 Nessun dato trovato in questo archivio.")
