@@ -383,25 +383,26 @@ elif scelta == "📊 War Room Strategica":
         with st.expander("🚨 STRESS TEST", expanded=True):
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
-
-    # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
-    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
-
-    uploaded_file = st.file_uploader("📁 Carica inventario CSV", type=["csv"])
-    if uploaded_file:
-        # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
-        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-
-        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-            ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_file(str(path), azienda)
             
-            if lista_asset:
-                engine = DataGateway()
+        # Corretto: Ora queste righe sono IDENTATE DENTRO 'with st.sidebar'
+        # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
+        macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
+
+        uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
+        if uploaded_file:
+            # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
+            path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+                
+            with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+                ingestor = IngestoreDati()
+                lista_asset = ingestor.elabora_file(str(path), azienda)
+                
+                if lista_asset:
+                    engine = DataGateway()
 
                 # RIPRISTINATO: Uso di user_id come richiesto
                 db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
