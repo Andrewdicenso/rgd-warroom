@@ -108,83 +108,17 @@ UPLOAD_DIR = Path(upload_path)
 # Crea la cartella se non esiste
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-st.set_page_config(
-    page_title="RGD-Alpha | War Room Strategica",
-    layout="wide",
-    page_icon="🛡️"
-)
-
 inizializza_sessione()
 
-# =========================
-#   CSS ENTERPRISE POTENZIATO
-# =========================
-st.markdown("""
-    <style>
-    .kpi-box { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #007BFF; margin-bottom: 15px; }
-    .kpi-box-critical { background-color: #fff5f5; padding: 20px; border-radius: 10px; border-left: 5px solid #dc3545; margin-bottom: 15px; }
-    .ai-reasoning { background: #0e1117; border: 1px solid #d4af37; padding: 25px; border-radius: 15px; color: #e2e8f0; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .crew-box { padding:15px; border-radius:10px; background:rgba(255,255,255,0.02); margin-bottom:10px; border-left: 5px solid #ccc; }
-    
-    /* NUOVI STILI PER WAR ROOM */
-    .warroom-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 2rem;
-        border-radius: 1rem;
-        margin-bottom: 2rem;
-        border-left: 5px solid #e74c3c;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .warroom-header h1 {
-        color: white;
-        margin: 0 0 0.5rem 0;
-        font-size: 2.5rem;
-    }
-    .warroom-header p {
-        color: #ecf0f1;
-        margin: 0;
-        font-size: 1.1rem;
-    }
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center;
-        border-top: 4px solid #3498db;
-    }
-    .metric-card h3 {
-        margin: 0 0 0.5rem 0;
-        color: #7f8c8d;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-    }
-    .metric-card .value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-    .metric-card .delta {
-        font-size: 0.9rem;
-        margin-top: 0.5rem;
-    }
-    .welcome-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 1rem;
-        color: white;
-        margin: 2rem 0;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .step-box {
-        background: rgba(255,255,255,0.1);
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1rem 0;
-        border-left: 4px solid #ffd700;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ========================================================
+#   CSS CENTRALIZZATO (Richiama il file style.css)
+# ========================================================
+try:
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    # Se il file non viene trovato (es. primo deploy), usa uno stile di backup
+    st.warning("⚠️ File style.css non trovato. Caricamento stile di base.")
 
 db = DatabaseAziendale()
 
