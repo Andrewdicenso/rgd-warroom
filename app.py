@@ -643,3 +643,9 @@ elif scelta == "📜 Archivio Storico":
         st.dataframe(df_log, use_container_width=True, hide_index=True)
     else:
         st.warning("📭 Nessun dato trovato in questo archivio.")
+
+        if st.button("🗑️ Svuota tutti i dati"):
+            id_utente_corrente = st.session_state.get("user_id", 1)
+            db.svuota_dati_azienda(id_utente_corrente)
+            st.success("✅ Dati eliminati con successo!")
+            st.rerun()

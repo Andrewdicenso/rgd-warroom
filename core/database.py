@@ -17,7 +17,7 @@ class DatabaseAziendale:
     Include funzioni analitiche avanzate per KPI e pannello Admin di supervisione.
     """
 
-    def __init__(self, db_folder="data/db", db_name="azienda.db"):
+    def __init__(self, db_folder="data", db_name="azienda.db"):
         try:
             os.makedirs(db_folder, exist_ok=True)
             self.db_path = os.path.join(db_folder, db_name)
@@ -107,11 +107,6 @@ class DatabaseAziendale:
     # =========================
     #   UTENTI / AUTENTICAZIONE
     # =========================
-
-   # =========================
-    #   UTENTI / AUTENTICAZIONE
-    # =========================
-
     def crea_utente(self, email, password, ruolo="user", azienda=None):
         """Crea un nuovo utente e gestisce l'azienda automatica."""
         try:
@@ -173,13 +168,11 @@ class DatabaseAziendale:
         """Recupera un utente decriptando le email nel database per il confronto."""
         try:
             with self._get_conn() as conn:
-                # Prendiamo tutti gli utenti per confrontare l'email decriptata
                 cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti")
                 rows = cursor.fetchall()
 
             for row in rows:
                 try:
-                    # Decriptiamo l'email salvata nel DB per vedere se coincide con quella inserita
                     email_decriptata = self.vault.decrypt_data(row[1])
                     if email_decriptata.lower() == email.lower():
                         return {
@@ -190,8 +183,7 @@ class DatabaseAziendale:
                             "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
                         }
                 except:
-                    continue # Se un'email non è criptata o è corrotta, passa alla successiva
-
+                    continue
             return None
         except Exception as e:
             logger.error(f"Errore recupero utente: {e}")
@@ -216,7 +208,6 @@ class DatabaseAziendale:
     # =========================
     #   ASSET / LOGICHE AZIENDALI
     # =========================
-
     def get_azienda_per_utente(self, user_id: int):
         utente = self.get_utente_by_id(user_id)
         if not utente:
@@ -274,7 +265,6 @@ class DatabaseAziendale:
                 df = pd.read_sql_query(query, conn, params=params)
 
             if not df.empty:
-                # Decriptazione sicura
                 df['company_id'] = df['company_id'].apply(lambda x: self.vault.decrypt_data(x) if x else "")
                 df['nome'] = df['nome'].apply(lambda x: self.vault.decrypt_data(x) if x else "Dato Protetto")
             return df
@@ -282,10 +272,45 @@ class DatabaseAziendale:
             logger.error(f"Errore recupero asset: {e}")
             return pd.DataFrame()
 
+    # --- NUOVE FUNZIONI DI CANCELLAZIONE AUTOMATICA ---
+    def svuota_dati_azienda(self, user_id: int) -> bool:
+        """
+        Elimina in modo sicuro tutti i dati di analisi di un utente specifico (Multi-tenant).
+        Preserva l'account dell'utente, rimuovendo asset, kpi e cronologia file.
+        """
+        try:
+            with self._get_conn() as conn:
+                cursor = conn.cursor()
+                # Elimina da tutte le tabelle collegate all'utente
+                cursor.execute("DELETE FROM asset_logs WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM storico_kpi WHERE user_id = ?", (user_id,))
+                cursor.execute("DELETE FROM log_caricamenti WHERE user_id = ?", (user_id,))
+                conn.commit()
+                logger.info(f"🗑️ Hard reset completato per l'utente ID: {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Errore durante lo svuotamento dati utente {user_id}: {e}")
+            return False
+
+    def elimina_singolo_log_caricamento(self, user_id: int, log_id: int) -> bool:
+        """
+        Elimina un singolo file caricato dalla cronologia dell'utente (Archivio Storico).
+        Garantisce che l'utente possa eliminare solo i propri file.
+        """
+        try:
+            with self._get_conn() as conn:
+                cursor = conn.cursor()
+                # Verifica incrociata con user_id per sicurezza multi-tenant
+                cursor.execute("DELETE FROM log_caricamenti WHERE id = ? AND user_id = ?", (log_id, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"❌ Errore eliminazione log {log_id}: {e}")
+            return False
+
     # ==========================================
     #   CALCOLO MATEMATICO KPI (FIXED FOR ADMIN)
     # ==========================================
-
     def calcola_e_salva_kpi_correnti(self, user_id: int):
         try:
             utente = self.get_utente_by_id(user_id)
@@ -325,7 +350,8 @@ class DatabaseAziendale:
             azienda_enc = self.vault.encrypt_data(str(azienda))
             with self._get_conn() as conn:
                 conn.execute("INSERT INTO storico_kpi (user_id, company_id, kpi_nome, valore) VALUES (?, ?, ?, ?)", (user_id, azienda_enc, kpi_nome, valore))
-        except Exception as e: logger.error(f"Errore salva KPI: {e}")
+        except Exception as e: 
+            logger.error(f"Errore salva KPI: {e}")
 
     def recupera_kpi_per_utente(self, user_id: int):
         try:
@@ -336,9 +362,11 @@ class DatabaseAziendale:
                     df = pd.read_sql_query("SELECT * FROM storico_kpi WHERE company_id = ? ORDER BY data_rilevazione DESC", conn, params=(azienda_enc,))
                 else:
                     df = pd.read_sql_query("SELECT * FROM storico_kpi WHERE user_id = ? ORDER BY data_rilevazione DESC", conn, params=(user_id,))
-            if not df.empty: df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
+            if not df.empty: 
+                df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
             return df
-        except Exception as e: return pd.DataFrame()
+        except Exception as e: 
+            return pd.DataFrame()
 
     def supervisione_admin_metriche_globali(self):
         """Monitoraggio clienti per Admin."""
@@ -362,7 +390,8 @@ class DatabaseAziendale:
                     "Rischio": round(u_logs["rischio"].mean(), 2) if len(u_logs) > 0 else 0.0
                 })
             return pd.DataFrame(res)
-        except Exception as e: return pd.DataFrame()
+        except Exception as e: 
+            return pd.DataFrame()
 
     def registra_caricamento(self, user_id: int, contesto: str, nome_file: str):
         try:
@@ -370,7 +399,8 @@ class DatabaseAziendale:
             az_enc, f_enc = self.vault.encrypt_data(str(azienda)), self.vault.encrypt_data(str(nome_file))
             with self._get_conn() as conn:
                 conn.execute("INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (?, ?, ?, ?)", (user_id, az_enc, contesto, f_enc))
-        except Exception as e: logger.error(f"Errore log: {e}")
+        except Exception as e: 
+            logger.error(f"Errore log: {e}")
 
     def recupera_log_caricamenti_per_utente(self, user_id: int):
         try:
@@ -392,11 +422,9 @@ class DatabaseAziendale:
         """Funzione specifica per la visualizzazione globale Admin (richiesta dalla pagina Archivio)."""
         try:
             with self._get_conn() as conn:
-                # Recupera TUTTI i log di caricamento di tutte le aziende
                 df = pd.read_sql_query("SELECT * FROM log_caricamenti ORDER BY timestamp DESC", conn)
 
             if not df.empty:
-                # Decriptiamo i nomi file e le aziende per la tua supervisione
                 df["azienda"] = df["azienda"].apply(lambda x: self.vault.decrypt_data(x) if x else "N/A")
                 df["nome_file"] = df["nome_file"].apply(lambda x: self.vault.decrypt_data(x) if x else "N/A")
             return df
