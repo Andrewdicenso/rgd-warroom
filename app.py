@@ -21,6 +21,7 @@ from core.engine import DataGateway
 from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
+from core.experimental_modules.warroom_engine import assegna_categoria_warroom
 
 # --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
@@ -405,6 +406,17 @@ elif scelta == "📊 War Room Strategica":
                 for r in report_analisi:
                     db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+
+                # --- NUOVA ANALISI AUTONOMA WAR ROOM ---
+                risultato_wr = assegna_categoria_warroom(uploaded_file)
+                if "errore" not in risultato_wr:
+                    st.markdown(f"""
+                    <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                        <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">🎯 Classificazione Macro-Categoria War Room</h4>
+                        <p style="margin: 5px 0;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
+                        <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
                 sim = SimulatoreRischio()
