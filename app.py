@@ -329,7 +329,7 @@ elif scelta == "📊 War Room Strategica":
     """, unsafe_allow_html=True)
     
     # 2. POSIZIONE CORRETTA: Fuori dalla sidebar, al centro della pagina!
-    st.markdown("### 🏢 Seleziona Destinazione Documento")
+    st.markdown
     macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
     
     st.markdown("---") # Linea di separazione
@@ -386,7 +386,6 @@ elif scelta == "📊 War Room Strategica":
             
         # Corretto: Ora queste righe sono IDENTATE DENTRO 'with st.sidebar'
         # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
-        macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
 
         uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
         if uploaded_file:

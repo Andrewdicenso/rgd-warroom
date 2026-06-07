@@ -3,7 +3,7 @@
     background-color: #f4f7f9;
 }
 
-/* 2. WAR ROOM HEADER - Elegante e compatto */
+/* 2. WAR ROOM HEADER - Testo Bianco su Sfondo Blu */
 .warroom-header {
     background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
     padding: 1.5rem 2rem;
@@ -11,6 +11,18 @@
     margin-bottom: 2rem;
     border-bottom: 4px solid #d4af37; /* Tocco Oro rgandja */
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    color: white !important; /* Forza tutto il testo in bianco */
+}
+
+.warroom-header h1 {
+    color: white !important;
+    margin: 0 0 5px 0 !important;
+    font-weight: 700 !important;
+}
+
+.warroom-header p {
+    color: #cbd5e0 !important; /* Grigio chiaro per il sottotitolo, molto leggibile */
+    margin: 0 !important;
 }
 
 /* 3. BARRA DI DESTINAZIONE */
