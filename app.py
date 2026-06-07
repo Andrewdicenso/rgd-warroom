@@ -22,7 +22,7 @@ from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
-from core.experimental_modules.reparti_engine import ottieni_macro_aree, ottieni_reparti_per_macro_area, genera_percorso_salvataggio
+from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
 
 # --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
@@ -384,14 +384,8 @@ elif scelta == "📊 War Room Strategica":
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
 
-    st.markdown("### 🏢 Destinazione Documento Aziendale")
-    
-    lista_macro = ottieni_macro_aree()
-    macro_scelta = st.selectbox("1. Seleziona la Macro-Area:", lista_macro)
-    
-    lista_reparti = ottieni_reparti_per_macro_area(macro_scelta)
-    reparto_scelto = st.selectbox("2. Seleziona il Reparto specifico:", lista_reparti)
-    st.markdown("---")
+    # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
+    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
 
     uploaded_file = st.file_uploader("📁 Carica inventario CSV", type=["csv"])
     if uploaded_file:
