@@ -23,6 +23,66 @@ from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
 from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
+# --- 1. CONFIGURAZIONE PAGINA (Deve essere la prima funzione Streamlit chiamata) ---
+st.set_page_config(
+    page_title="War Room Strategica | RGandja",
+    page_icon="🚀",
+    layout="wide",  # Questo rende il progetto "degno" occupando tutto lo spazio
+    initial_sidebar_state="expanded"
+)
+
+# --- 2. CENTRALIZZAZIONE DELLO STILE (RGANDJA PREMIUM LOOK) ---
+st.markdown("""
+<style>
+    /* Sfondo e Font */
+    .stApp { background-color: #f4f7f9; }
+    
+    /* Header Professionale */
+    .warroom-header {
+        background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        border-bottom: 5px solid #d4af37; /* Oro RGandja */
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        color: white;
+    }
+
+    /* Griglia KPI */
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        text-align: center;
+        border-top: 5px solid #3498db;
+        transition: transform 0.3s ease;
+    }
+    .metric-card:hover { transform: translateY(-5px); }
+    .metric-card h3 { color: #627d98; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; }
+    .metric-card .value { font-size: 2.2rem; font-weight: bold; color: #102a43; }
+
+    /* Barra Aree Aziendali */
+    .area-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 2rem;
+    }
+    .area-box {
+        flex: 1;
+        background: #e1e7ec;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        color: #243b53;
+        border: 1px solid #cbd5e0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 3. INIZIALIZZAZIONE SESSIONE ---
+inizializza_sessione() 
 
 # --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
@@ -326,15 +386,21 @@ if scelta == "🏠 Home":
 #   WAR ROOM STRATEGICA
 # =========================
 elif scelta == "📊 War Room Strategica":
-    # Header War Room migliorato
-    st.markdown("""
+    # 1. HEADER
+    st.markdown(f"""
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
-            <p>Analisi in tempo reale della solidità operativa di <strong>{}</strong></p>
+            <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
         </div>
-    """.format(azienda), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-    # Metriche in evidenza di default (prima dell'elaborazione file)
+    # 2. POSIZIONE CORRETTA: Fuori dalla sidebar, al centro della pagina!
+    st.markdown("### 🏢 Seleziona Destinazione Documento")
+    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
+    
+    st.markdown("---") # Linea di separazione
+
+    # 3. METRICHE (Le 4 colonne con i numeri)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
