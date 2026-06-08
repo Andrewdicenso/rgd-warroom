@@ -182,33 +182,44 @@ if not st.session_state.autenticato:
     st.stop()
 
 # ========================================================
-#   RECUPERO DATI SESSIONE
+#   1. RECUPERO DATI E SIDEBAR (Sempre visibile)
 # ========================================================
 user_id = st.session_state.get('user_id')
 azienda = st.session_state.get('azienda', 'N/D')
 ruolo = st.session_state.get('ruolo', 'user')
 is_admin = (ruolo == "admin")
 
-# ========================================================
-#   NAVIGAZIONE SIDEBAR
-# ========================================================
-menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
-if is_admin: 
-    menu.insert(1, "🕵️ Centrale Admin")
+with st.sidebar:
+    st.markdown(f"### 🛡️ RGD-ALPHA\n**Operatore:** {azienda}")
+    
+    # MENU NAVIGAZIONE
+    menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
+    if is_admin: 
+        menu.insert(1, "🕵️ Centrale Admin")
+    scelta = st.sidebar.radio("Navigazione", menu)
+    
+    st.markdown("---")
+    
+    # PARAMETRI TECNICI
+    with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
+        w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
+        w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
+    
+    with st.expander("🚨 STRESS TEST", expanded=True):
+        ritardo = st.slider("Ritardo Fornitori (GG)", 0, 30, 0)
+        f_stress = 1.0 + (ritardo / 50.0)
 
-scelta = st.sidebar.radio("Navigazione", menu)
-
-st.sidebar.markdown("---")
-if st.sidebar.button("🚪 Esci dalla Sessione"):
-    logout_utente()
+    st.markdown("---")
+    if st.button("🚪 Esci dalla Sessione"):
+        logout_utente()
 
 # ========================================================
-#   PAGINE DELL'APPLICAZIONE
+#   2. LOGICA DELLE PAGINE (Al centro)
 # ========================================================
 
-# --- 1. HOME ---
+# --- HOME PAGE ---
 if scelta == "🏠 Home":
-    st.markdown("""
+    st.markdown(f"""
         <div class='warroom-header' style='text-align: center;'>
             <h1 style='font-size: 3.5rem;'>🛡️ RGD-ALPHA</h1>
             <p style='font-size: 1.2rem; opacity: 0.9;'>Sistemi Avanzati di Risk Intelligence Aziendale</p>
@@ -219,27 +230,31 @@ if scelta == "🏠 Home":
         <div class='welcome-card' style='background: white; padding: 2rem; border-radius: 15px; border-top: 5px solid #d4af37; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
             <h2 style='margin-top: 0;'>👋 Benvenuto, Operatore {azienda}</h2>
             <p style='font-size: 1.15rem; color: #334e68;'>
-                <strong>RGD-Alpha</strong> è il tuo centro di comando strategico. 
-                Analizziamo i tuoi asset per garantirti la massima <strong>Solidità Operativa</strong>.
+                RGD-Alpha è il tuo centro di comando strategico. 
             </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Step Box
-    st.markdown("<br><h3 style='text-align: center;'>🚀 Flusso Operativo</h3>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1: st.info("**1. Configura**\n\nUsa gli slider a sinistra per lo Stress Test.")
-    with c2: st.info("**2. Carica**\n\nInvia il CSV nella War Room Strategica.")
-    with c3: st.info("**3. Analizza**\n\nOttieni proiezioni e alert immediati.")
-
-# --- 2. WAR ROOM ---
+# --- WAR ROOM STRATEGICA ---
 elif scelta == "📊 War Room Strategica":
     st.markdown(f"<div class='warroom-header' style='text-align: center;'><h1>🚀 War Room Strategica</h1><p>Operatore: {azienda}</p></div>", unsafe_allow_html=True)
     
-    # QUI AGGIUNGEREMO IL RESTO DEL CODICE WAR ROOM DOPO IL TEST
-    st.write("Sezione in fase di caricamento...")
+    # Selezione Reparti
+    st.markdown("### 🏢 Seleziona Destinazione Documento")
+    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
+    
+    st.divider()
+    
+    # Caricamento file
+    uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
+    
+    if uploaded_file:
+        with st.status("🔄 Analisi in corso...") as status:
+            # Qui il sistema eseguirà il caricamento e l'analisi
+            st.write("File ricevuto, elaborazione dati...")
+            # Inserire qui la tua logica di salvataggio file (path = ...)
 
-# --- 3. CENTRALE ADMIN ---
+# --- CENTRALE ADMIN ---
 elif scelta == "🕵️ Centrale Admin" and is_admin:
     st.title("🕵️ Centrale Admin")
     df_utenti = db.get_tutti_gli_utenti()
