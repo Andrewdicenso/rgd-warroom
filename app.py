@@ -184,6 +184,8 @@ if not st.session_state.autenticato:
 # =========================
 #   PAGINA HOME / BENVENUTO (Versione RGandja Premium)
 # =========================
+menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
+scelta = st.sidebar.radio("Navigazione", menu)
 if scelta == "🏠 Home":
     # Header con branding centrato e pulito
     st.markdown("""
