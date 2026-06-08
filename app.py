@@ -225,7 +225,7 @@ if scelta == "🏠 Home":
             <h4>2️⃣ Carica</h4>
             <p style='font-size: 0.9rem;'>Vai in 'War Room' e carica il tuo inventario CSV.</p>
         </div>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True) 
     
     with col3:
         st.markdown("""
