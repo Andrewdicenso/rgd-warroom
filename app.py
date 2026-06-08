@@ -181,102 +181,71 @@ if not st.session_state.autenticato:
             
     st.stop()
 
-# =========================
-#   PAGINA HOME / BENVENUTO (Versione RGandja Premium)
-# =========================
+py
+# ========================================================
+#   RECUPERO DATI SESSIONE
+# ========================================================
+user_id = st.session_state.get('user_id')
+azienda = st.session_state.get('azienda', 'N/D')
+ruolo = st.session_state.get('ruolo', 'user')
+is_admin = (ruolo == "admin")
+
+# ========================================================
+#   NAVIGAZIONE SIDEBAR
+# ========================================================
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
+if is_admin: 
+    menu.insert(1, "🕵️ Centrale Admin")
+
 scelta = st.sidebar.radio("Navigazione", menu)
+
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Esci dalla Sessione"):
+    logout_utente()
+
+# ========================================================
+#   PAGINE DELL'APPLICAZIONE
+# ========================================================
+
+# --- 1. HOME ---
 if scelta == "🏠 Home":
-    # Header con branding centrato e pulito
     st.markdown("""
-        <div class='warroom-header'>
+        <div class='warroom-header' style='text-align: center;'>
             <h1 style='font-size: 3.5rem;'>🛡️ RGD-ALPHA</h1>
             <p style='font-size: 1.2rem; opacity: 0.9;'>Sistemi Avanzati di Risk Intelligence Aziendale</p>
         </div>
     """, unsafe_allow_html=True)
     
-    # Card di benvenuto - Usa la classe welcome-card che abbiamo nel CSS
     st.markdown(f"""
-        <div class='welcome-card'>
+        <div class='welcome-card' style='background: white; padding: 2rem; border-radius: 15px; border-top: 5px solid #d4af37; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
             <h2 style='margin-top: 0;'>👋 Benvenuto, Operatore {azienda}</h2>
-            <p style='font-size: 1.15rem; line-height: 1.6;'>
+            <p style='font-size: 1.15rem; color: #334e68;'>
                 <strong>RGD-Alpha</strong> è il tuo centro di comando strategico. 
-                Analizziamo i tuoi asset per garantirti la massima <strong>Solidità Operativa</strong> 
-                e prevenire i rischi prima che diventino criticità.
+                Analizziamo i tuoi asset per garantirti la massima <strong>Solidità Operativa</strong>.
             </p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # Sezione "Come Iniziare" con Step Box migliorati
-    st.markdown("<h3 style='text-align: center; margin-bottom: 2rem;'>🚀 Flusso Operativo Rapido</h3>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #d4af37;'>
-            <h4>1️⃣ Configura</h4>
-            <p style='font-size: 0.9rem;'>Definisci i parametri di stress test nella sidebar.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #3498db;'>
-            <h4>2️⃣ Carica</h4>
-            <p style='font-size: 0.9rem;'>Vai in 'War Room' e carica il tuo inventario CSV.</p>
-        </div>
-        """, unsafe_allow_html=True) 
-    
-    with col3:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #27ae60;'>
-            <h4>3️⃣ Analizza</h4>
-            <p style='font-size: 0.9rem;'>Ottieni proiezioni a 30gg e alert immediati.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    # Sezione "Cosa Ottieni" - Usiamo un layout più compatto
-    st.markdown("<h3 style='text-align: center;'>🛡️ Protocolli di Sicurezza & Analisi</h3>", unsafe_allow_html=True)
-    col_a, col_b, col_c, col_d = st.columns(4)
+    # Step Box
+    st.markdown("<br><h3 style='text-align: center;'>🚀 Flusso Operativo</h3>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1: st.info("**1. Configura**\n\nUsa gli slider a sinistra per lo Stress Test.")
+    with c2: st.info("**2. Carica**\n\nInvia il CSV nella War Room Strategica.")
+    with c3: st.info("**3. Analizza**\n\nOttieni proiezioni e alert immediati.")
+
+# --- 2. WAR ROOM ---
+elif scelta == "📊 War Room Strategica":
+    st.markdown(f"<div class='warroom-header' style='text-align: center;'><h1>🚀 War Room Strategica</h1><p>Operatore: {azienda}</p></div>", unsafe_allow_html=True)
     
-    with col_a:
-        st.info("**📈 Analisi Predittiva**\n\nMonitoraggio costante dell'obsolescenza.")
-    with col_b:
-        st.info("**🏭 Multi-Settore**\n\nAdattabilità totale a ogni filiera.")
-    with col_c:
-        st.info("**🔐 Criptazione**\n\nProtocollo AES-256 integrato.")
-    with col_d:
-        st.info("**📝 Audit Trail**\n\nTracciamento totale delle operazioni.")
-    # Value proposition
-    st.markdown("""
-        <div style='background: #f8f9fa; padding: 2rem; border-radius: 1rem; margin: 2rem 0; border-left: 5px solid #e74c3c;'>
-            <h3 style='margin-top: 0;'>🎯 Per Imprenditori Come Te</h3>
-            <blockquote style='font-size: 1.2rem; font-style: italic; color: #555; margin: 0;'>
-                "Mentre i comuni gestionali si limitano allo storico, 
-                RGD-Alpha calcola in tempo reale la Solidità Operativa, 
-                identificando i rischi <strong>prima</strong> che colpiscano il bilancio."
-            </blockquote>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Call to action
-    st.markdown("""
-        <div style='text-align: center; padding: 2rem;'>
-            <h3>Pronto a proteggere la tua azienda?</h3>
-            <p style='font-size: 1.2rem;'>Clicca su <strong>War Room Strategica</strong> nel menu a sinistra per iniziare!</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Sicurezza
-    st.markdown("""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 1rem; color: white; margin: 2rem 0;'>
-            <h3 style='margin-top: 0;'>🔐 Sicurezza Garantita</h3>
-            <p style='margin: 0;'>Dati cifrati AES-256 • Hosting Europeo • GDPR Compliant</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # QUI AGGIUNGEREMO IL RESTO DEL CODICE WAR ROOM DOPO IL TEST
+    st.write("Sezione in fase di caricamento...")
+
+# --- 3. CENTRALE ADMIN ---
+elif scelta == "🕵️ Centrale Admin" and is_admin:
+    st.title("🕵️ Centrale Admin")
+    df_utenti = db.get_tutti_gli_utenti()
+    st.dataframe(df_utenti, use_container_width=True)
+
 
 # =========================
 #   WAR ROOM STRATEGICA
