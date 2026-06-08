@@ -123,7 +123,7 @@ except FileNotFoundError:
 db = DatabaseAziendale()
 
 # =========================
-#   GESTIONE REGISTRAZIONE
+#   GESTIONE REGISTRAZIONE (Versione Pulita)
 # =========================
 def registra_nuovo_utente(email: str, password: str, conferma: str):
     if not email or not password or not conferma:
@@ -132,161 +132,121 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
     if password != conferma:
         st.error("Le password non coincidono.")
         return
+    
     try:
+        # 1. Verifica se l'utente esiste già
         esistente = db.get_utente_by_email(email)
         if esistente:
             st.error("Email già registrata.")
             return
         
-        # Determina ruolo (Admin supremo o Utente)
+        # 2. Determina ruolo (Admin se l'email coincide con quella in .env o quella di default)
         admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
         ruolo = "admin" if email.lower() == admin_email_env else "user"
 
-        # Passiamo None come azienda per farla generare automatica (AZ-id)
+        # 3. Crea l'utente nel Database
+        # Passiamo None come azienda per farla generare automatica (es. AZ-123)
         user_id = db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None)
         
         if user_id:
             st.success(f"✅ Registrazione completata come {ruolo.upper()}. Ora puoi accedere.")
             st.balloons()
+            
     except Exception as e:
-        st.error(f"Errore registrazione: {e}")
-        
-        # Determina ruolo (Admin supremo o Utente)
-        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
-        ruolo = "admin" if email.lower() == admin_email_env else "user"
-
-        # CREAZIONE UTENTE: Passiamo None come azienda per farla generare automatica (AZ-id)
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None)
-        
-        if user_id:
-            st.success(f"✅ Registrazione completata come {ruolo.upper()}. Ora puoi accedere.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore registrazione: {e}")
-
-        
-        # --- MODIFICA PER RENDER E VENDITA ---
-        # Leggiamo l'email dell'admin dalla "Cassaforte" (.env)
-        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
-        ruolo = "admin" if email.lower() == admin_email_env else "user"
-        # ------------------------------------
-
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo)
-        if user_id:
-            st.success("✅ Registrazione completata. Effettua il login.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore registrazione: {e}")
+        st.error(f"Errore critico durante la registrazione: {e}")
 
 # =========================
-#   SCHERMATA AUTH
+#   SCHERMATA AUTH (Login e Tabs)
 # =========================
 if not st.session_state.autenticato:
     tab_login, tab_register = st.tabs(["🔐 Login", "🆕 Registrazione"])
+    
     with tab_login:
-        st.title("🔐 Accesso Utente")
+        st.header("🔐 Accesso Utente")
         e_login = st.text_input("Email", key="l_email").strip()
         p_login = st.text_input("Password", type="password", key="l_pwd").strip()
         if st.button("Accedi"):
-            if login_utente(db, e_login, p_login): st.rerun()
-            else: st.error("Credenziali errate.")
+            if login_utente(db, e_login, p_login): 
+                st.rerun()
+            else: 
+                st.error("Credenziali errate.")
+                
     with tab_register:
-        st.title("🆕 Crea account Beta")
+        st.header("🆕 Crea account Beta")
         e_reg = st.text_input("Email", key="r_email").strip()
         p_reg = st.text_input("Password", type="password", key="r_pwd").strip()
         c_reg = st.text_input("Conferma", type="password", key="r_conf").strip()
-        if st.button("Registrati"): registra_nuovo_utente(e_reg, p_reg, c_reg)
+        if st.button("Registrati"): 
+            registra_nuovo_utente(e_reg, p_reg, c_reg)
+            
     st.stop()
 
 # =========================
-#   NAVIGAZIONE SIDEBAR
-# =========================
-user_id = st.session_state.user_id
-azienda = st.session_state.azienda
-ruolo = st.session_state.ruolo
-is_admin = (ruolo == "admin")
-
-st.sidebar.title("🛡️ RGD-ALPHA")
-st.sidebar.write(f"Operatore: **{azienda}**")
-menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
-if is_admin: menu.insert(1, "🕵️ Centrale Admin")
-scelta = st.sidebar.radio("Navigazione", menu)
-
-if st.sidebar.button("Logout"): logout_utente()
-
-# =========================
-#   PAGINA HOME / BENVENUTO
+#   PAGINA HOME / BENVENUTO (Versione RGandja Premium)
 # =========================
 if scelta == "🏠 Home":
-    # Header con branding
+    # Header con branding centrato e pulito
     st.markdown("""
-        <div style='text-align: center; padding: 3rem 0;'>
-            <h1 style='font-size: 3.5rem; margin: 0;'>🛡️ RGD-Alpha</h1>
-            <h2 style='color: #7f8c8d; margin: 0.5rem 0 2rem 0;'>War Room Strategica Aziendale</h2>
+        <div class='warroom-header'>
+            <h1 style='font-size: 3.5rem;'>🛡️ RGD-ALPHA</h1>
+            <p style='font-size: 1.2rem; opacity: 0.9;'>Sistemi Avanzati di Risk Intelligence Aziendale</p>
         </div>
     """, unsafe_allow_html=True)
     
-    # Card di benvenuto
-    st.markdown("""
+    # Card di benvenuto - Usa la classe welcome-card che abbiamo nel CSS
+    st.markdown(f"""
         <div class='welcome-card'>
-            <h3 style='margin-top: 0;'>👋 Benvenuto nella tua War Room Personale</h3>
-            <p style='font-size: 1.1rem; line-height: 1.6;'>
-                <strong>RGD-Alpha</strong> non è un simple gestionale. È un sistema di 
-                <strong>Risk Intelligence</strong> che analizza il tuo inventario e calcola la 
-                <strong>Solidità Operativa</strong> della tua azienda in tempo reale.
+            <h2 style='margin-top: 0;'>👋 Benvenuto, Operatore {azienda}</h2>
+            <p style='font-size: 1.15rem; line-height: 1.6;'>
+                <strong>RGD-Alpha</strong> è il tuo centro di comando strategico. 
+                Analizziamo i tuoi asset per garantirti la massima <strong>Solidità Operativa</strong> 
+                e prevenire i rischi prima che diventino criticità.
             </p>
         </div>
     """, unsafe_allow_html=True)
     
-    # Come iniziare
-    st.markdown("### 🚀 Come Iniziare (30 secondi)")
+    # Sezione "Come Iniziare" con Step Box migliorati
+    st.markdown("<h3 style='text-align: center; margin-bottom: 2rem;'>🚀 Flusso Operativo Rapido</h3>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>1️⃣ Registrati</h4>
-            <p style='margin: 0;'>Clicca su "Registrazione" in alto e crea il tuo account</p>
+        <div class='metric-card' style='border-top-color: #d4af37;'>
+            <h4>1️⃣ Configura</h4>
+            <p style='font-size: 0.9rem;'>Definisci i parametri di stress test nella sidebar.</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>2️⃣ Carica un CSV</h4>
-            <p style='margin: 0;'>Vai su "War Room Strategica" e carica il tuo file inventario</p>
+        <div class='metric-card' style='border-top-color: #3498db;'>
+            <h4>2️⃣ Carica</h4>
+            <p style='font-size: 0.9rem;'>Vai in 'War Room' e carica il tuo inventario CSV.</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>3️⃣ Ottieni l'Analisi</h4>
-            <p style='margin: 0;'>Vedi immediatamente Solidità, Rischio e Proiezioni</p>
+        <div class='metric-card' style='border-top-color: #27ae60;'>
+            <h4>3️⃣ Analizza</h4>
+            <p style='font-size: 0.9rem;'>Ottieni proiezioni a 30gg e alert immediati.</p>
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
-    st.markdown("### 📊 Cosa Ottieni")
+    # Sezione "Cosa Ottieni" - Usiamo un layout più compatto
+    st.markdown("<h3 style='text-align: center;'>🛡️ Protocolli di Sicurezza & Analisi</h3>", unsafe_allow_html=True)
     col_a, col_b, col_c, col_d = st.columns(4)
     
     with col_a:
-        st.markdown("### 📈 Analisi Predittiva")
-        st.markdown("<p style='font-size: 20px;'>Scopri quali asset rischiano di diventare obsoleti</p>", unsafe_allow_html=True)
-
+        st.info("**📈 Analisi Predittiva**\n\nMonitoraggio costante dell'obsolescenza.")
     with col_b:
-        st.markdown("### 🏭 Multi-Settore")
-        st.markdown("<p style='font-size: 20px;'>Supporto per alimentare, abbigliamento, e-commerce</p>", unsafe_allow_html=True)
-
+        st.info("**🏭 Multi-Settore**\n\nAdattabilità totale a ogni filiera.")
     with col_c:
-        st.markdown("### 🔐 Sicurezza Enterprise")
-        st.markdown("<p style='font-size: 20px;'>Dati cifrati con AES-256</p>", unsafe_allow_html=True)
-
+        st.info("**🔐 Criptazione**\n\nProtocollo AES-256 integrato.")
     with col_d:
-        st.markdown("### 📝 Audit Trail")
-        st.markdown("<p style='font-size: 20px;'>Ogni operazione è tracciata</p>", unsafe_allow_html=True)
-    
+        st.info("**📝 Audit Trail**\n\nTracciamento totale delle operazioni.")
     # Value proposition
     st.markdown("""
         <div style='background: #f8f9fa; padding: 2rem; border-radius: 1rem; margin: 2rem 0; border-left: 5px solid #e74c3c;'>
@@ -375,33 +335,41 @@ elif scelta == "📊 War Room Strategica":
     
     st.markdown("---")
     
-    # Caricamento e parametri nella Sidebar della War Room
+        # --- 1. SIDEBAR: PARAMETRI E LOGOUT ---
     with st.sidebar:
+        # Prima gli expander con i parametri
         with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
             w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
             w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
+            
         with st.expander("🚨 STRESS TEST", expanded=True):
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
-            
-        # Corretto: Ora queste righe sono IDENTATE DENTRO 'with st.sidebar'
-        # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
 
-        uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
-        if uploaded_file:
-            # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
-            path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
-            path.parent.mkdir(parents=True, exist_ok=True)
+        # AGGIUNGI QUESTO ALLA FINE DELLA SIDEBAR
+        st.sidebar.markdown("---") # Una linea di divisione
+        if st.sidebar.button("🚪 Esci dalla Sessione"): 
+            logout_utente()
             
-            with open(path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-                
-            with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-                ingestor = IngestoreDati()
-                lista_asset = ingestor.elabora_file(str(path), azienda)
-                
-                if lista_asset:
-                    engine = DataGateway()
+    # --- 2. AREA CENTRALE: CARICAMENTO E ANALISI ---
+    # Nota come queste righe ora iniziano dall'inizio della colonna, 
+    # non sono più "figlie" della sidebar!
+    st.markdown("---")
+    uploaded_file = st.file_uploader("📂 Carica inventario CSV per l'analisi strategica", type=["csv"])
+
+    if uploaded_file:
+        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+            ingestor = IngestoreDati()
+            lista_asset = ingestor.elabora_file(str(path), azienda)
+            
+            if lista_asset:
+                engine = DataGateway()
 
                 # RIPRISTINATO: Uso di user_id come richiesto
                 db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)

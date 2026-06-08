@@ -80,3 +80,10 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
+
+/* Rende il bottone logout rosso quando ci passi sopra */
+.stSidebar .stButton > button:hover {
+    background-color: #e74c3c !important; /* Rosso */
+    color: white !important;
+    border-color: #c0392b !important;
+}
