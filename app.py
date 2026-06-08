@@ -329,7 +329,7 @@ elif scelta == "📊 War Room Strategica":
     """, unsafe_allow_html=True)
     
     # 2. POSIZIONE CORRETTA: Fuori dalla sidebar, al centro della pagina!
-    st.markdown
+    st.markdown("### 🏢 Seleziona Destinazione Documento") # Aggiungi il testo tra parentesi
     macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
     
     st.markdown("---") # Linea di separazione
