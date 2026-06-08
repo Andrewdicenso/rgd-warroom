@@ -9,7 +9,7 @@ def mostra_interfaccia_4_aree():
     Disegna visivamente le 4 macro-aree (Tab) sulla pagina
     e restituisce la Macro-Area e il Reparto scelti dall'utente.
     """
-    st.markdown("### 🏢 Destinazione Documento Aziendale")
+    st.markdown("### 🏢 Seleziona Destinazione Documento")
     
     # Creiamo le 4 grandi sezioni visibili sulla pagina come schede
     tab1, tab2, tab3, tab4 = st.tabs([
