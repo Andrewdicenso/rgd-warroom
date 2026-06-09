@@ -62,23 +62,50 @@ if admin_mode:
 # 2. LOGICA WAR ROOM (Ingestione Documentale Standard)
 if war_room_mode:
     st.header("📊 War Room: Ingestione Documentale VIP")
-    st.info("Carica Documenti Microsoft, Adobe o OpenSource per l'analisi.")
     file_caricato = st.file_uploader("Trascina qui il documento", type=None)
 
     if file_caricato:
         risultato = ingestore.elabora_file(file_caricato, COMPANY_ID)
         
         if risultato['status'] == 'success':
-            st.success(risultato.get('message', "✅ File elaborato con successo."))
-            if 'data' in risultato:
-                st.session_state['ultimo_caricamento'] = risultato['data']
-        elif risultato['status'] == 'warning':
-            st.warning(f"⚠️ {risultato['message']}")
-            if st.button("Autorizzo elaborazione file modificato"):
-                st.info("Procedo con l'estrazione forzata...")
-        elif risultato['status'] == 'error':
-            st.error(f"❌ {risultato['message']}")
+            st.success("✅ Analisi completata.")
+            lista_asset = risultato.get('data')
+            
+            # --- CONNESSIONE MANCANTE: SALVATAGGIO NEL DB ---
+            if lista_asset and st.button("Conferma e Salva nel Progetto"):
+                conn = get_connection()
+                cur = conn.cursor()
+                for asset in lista_asset:
+                    # Inserimento dati reali nel database
+                    cur.execute("""
+                        INSERT INTO asset_logs (nome, rischio, company_id, timestamp, eliminato) 
+                        VALUES (%s, %s, %s, %s, False)
+                    """, (asset['nome'], asset['rischio'], COMPANY_ID, datetime.now()))
+                conn.commit()
+                conn.close()
+                st.success("🚀 Dati salvati e pronti per la Dashboard!")
+
     st.markdown("---")
+    # --- NUOVA SEZIONE: GESTIONE FILE CON X ROSSA ---
+    st.subheader("📂 Registro Documenti e Cancellazioni")
+    conn = get_connection()
+    df_files = pd.read_sql(f"SELECT id, nome, timestamp, eliminato, motivo_eliminazione FROM asset_logs WHERE company_id='{COMPANY_ID}'", conn)
+    
+    for _, row in df_files.iterrows():
+        c1, c2, c3 = st.columns([3, 1, 1])
+        if row['eliminato']:
+            c1.markdown(f"❌ ~~{row['nome']}~~")
+            c2.caption(f"Motivo: {row['motivo_eliminazione']}")
+        else:
+            c1.write(f"📄 {row['nome']}")
+            if c3.button("Elimina", key=f"del_{row['id']}"):
+                motivo = st.text_input("Motivo cancellazione:", key=f"mot_{row['id']}")
+                if st.button("Conferma", key=f"btn_{row['id']}"):
+                    cur = conn.cursor()
+                    cur.execute("UPDATE asset_logs SET eliminato = True, motivo_eliminazione = %s WHERE id = %s", (motivo, row['id']))
+                    conn.commit()
+                    st.rerun()
+    conn.close()
 
 # 3. LOGICA DASHBOARD PRINCIPALE
 st.title("🚀 RGandja Alpha: Business Intelligence Proattiva")
