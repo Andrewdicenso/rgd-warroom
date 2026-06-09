@@ -9,7 +9,23 @@ def test_caricamento_legacy():
     print(f"--- Avvio Importazione Legacy da: {file_da_caricare} ---")
     
     # Eseguiamo l'elaborazione
-    lista_asset = ingestore.elabora_csv(file_da_caricare, id_azienda_test)
+        import pandas as pd
+    import streamlit as st
+    try:
+        if file_da_caricare.name.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(file_da_caricare)
+        else:
+            df = pd.read_csv(file_da_caricare, sep=None, engine='python')
+        if df.empty:
+            st.error("⚠️ Il file è vuoto.")
+            return
+        st.success("✅ File caricato correttamente.")
+        # Se il tuo ingestore ha una funzione per elaborare il dataframe usa quella, 
+        # altrimenti converti il dataframe in lista per la tua logica successiva:
+        lista_asset = df.to_dict('records') 
+    except Exception as e:
+        st.error(f"❌ Errore nel formato file: {e}")
+        return
 
     # Verifichiamo se la lista contiene qualcosa
     if not lista_asset:
