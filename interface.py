@@ -19,69 +19,81 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from core.engine import DataGateway
+from ingestor import IngestoreDati
 
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="RGandja Alpha - Intelligence Dashboard", layout="wide")
 
-# Inizializzazione Gateway
+# Inizializzazione Gateway e Ingestore
 gateway = DataGateway()
-COMPANY_ID = "AZ-TEST-01" # Puoi renderlo dinamico basato sul login
+ingestore = IngestoreDati()
+COMPANY_ID = "AZ-TEST-01"
 
-# --- SIDEBAR: NAVIGAZIONE E CENTRALE ADMIN ---
+# --- SIDEBAR: CENTRO COMANDO ---
 st.sidebar.title("🛡️ Centro Comando")
-admin_mode = st.sidebar.checkbox("🕵️ Attiva Centrale Admin")
+admin_mode = st.sidebar.checkbox("🕵️ Centrale Admin")
+war_room_mode = st.sidebar.checkbox("📊 War Room (Caricamento)")
 
+# 1. LOGICA CENTRALE ADMIN (Attivazione Clienti VIP)
 if admin_mode:
-    st.header("🕵️ Centrale Admin - Gestione Clienti VIP")
+    st.header("🕵️ Centrale Admin - Gestione Accessi")
     try:
         conn = get_connection()
         df_utenti = pd.read_sql("SELECT id, email, is_active, role FROM users ORDER BY id DESC", conn)
-        
-        st.write("Abilita i nuovi account registrati (es. tua sorella) selezionando 'is_active':")
         edited_df = st.data_editor(
             df_utenti,
             column_config={
                 "is_active": st.column_config.CheckboxColumn("ATTIVA", default=False),
                 "role": st.column_config.SelectboxColumn("RUOLO", options=["user", "vip", "admin"])
             },
-            disabled=["id", "email"],
-            hide_index=True,
-            key="admin_table"
+            disabled=["id", "email"], hide_index=True, key="admin_editor"
         )
-        
         if st.button("SALVA ATTIVAZIONI"):
             cur = conn.cursor()
             for _, row in edited_df.iterrows():
-                cur.execute(
-                    "UPDATE users SET is_active = %s, role = %s WHERE id = %s",
-                    (row['is_active'], row['role'], row['id'])
-                )
+                cur.execute("UPDATE users SET is_active = %s, role = %s WHERE id = %s", (row['is_active'], row['role'], row['id']))
             conn.commit()
-            cur.close()
-            st.success("✅ Database sincronizzato. I clienti ora possono operare.")
-            st.balloons()
+            st.success("✅ Database sincronizzato.")
         conn.close()
     except Exception as e:
-        st.error(f"Errore connessione Admin: {e}")
+        st.error(f"Errore Admin: {e}")
     st.markdown("---")
 
-# --- LOGICA DASHBOARD PRINCIPALE ---
+# 2. LOGICA WAR ROOM (Ingestione Documentale Standard)
+if war_room_mode:
+    st.header("📊 War Room: Ingestione Documentale VIP")
+    st.info("Carica Documenti Microsoft, Adobe o OpenSource per l'analisi.")
+    file_caricato = st.file_uploader("Trascina qui il documento", type=None)
+
+    if file_caricato:
+        risultato = ingestore.elabora_file(file_caricato, COMPANY_ID)
+        
+        if risultato['status'] == 'success':
+            st.success(risultato.get('message', "✅ File elaborato con successo."))
+            if 'data' in risultato:
+                st.session_state['ultimo_caricamento'] = risultato['data']
+        elif risultato['status'] == 'warning':
+            st.warning(f"⚠️ {risultato['message']}")
+            if st.button("Autorizzo elaborazione file modificato"):
+                st.info("Procedo con l'estrazione forzata...")
+        elif risultato['status'] == 'error':
+            st.error(f"❌ {risultato['message']}")
+    st.markdown("---")
+
+# 3. LOGICA DASHBOARD PRINCIPALE
 st.title("🚀 RGandja Alpha: Business Intelligence Proattiva")
 
 def get_assets():
     try:
         conn = get_connection()
-        query = f"SELECT DISTINCT nome FROM asset_logs WHERE company_id = '{COMPANY_ID}'"
-        df = pd.read_sql(query, conn)
+        df = pd.read_sql(f"SELECT DISTINCT nome FROM asset_logs WHERE company_id = '{COMPANY_ID}'", conn)
         conn.close()
         return df['nome'].tolist()
-    except:
-        return []
+    except: return []
 
 assets = get_assets()
-
 if not assets:
-    st.info("👋 Benvenuto. Inizia caricando dei dati nella sezione War Room per popolare la Dashboard.")
+    st.info("👋 Benvenuto. Usa la War Room per caricare i primi dati.")
     st.stop()
 
 selected_asset = st.sidebar.selectbox("Seleziona Reparto / Asset", assets)
@@ -96,47 +108,27 @@ fattore_stress = st.sidebar.slider("Fattore Stress Test", 1.0, 2.0, 1.0, 0.1)
 if selected_asset:
     try:
         conn = get_connection()
-        query_last = f"""
-            SELECT * FROM asset_logs 
-            WHERE nome='{selected_asset}' AND company_id='{COMPANY_ID}'
-            ORDER BY timestamp DESC LIMIT 1
-        """
-        df_last = pd.read_sql(query_last, conn)
+        df_last = pd.read_sql(f"SELECT * FROM asset_logs WHERE nome='{selected_asset}' AND company_id='{COMPANY_ID}' ORDER BY timestamp DESC LIMIT 1", conn)
         conn.close()
         
         if not df_last.empty:
             asset_data = df_last.to_dict(orient='records')[0]
-            
-            # Motore Predittivo
-            risultato_scan = gateway.esegui_scan_strategico(
-                lista_asset=[asset_data], 
-                contesto="Produttività Risorse", 
-                fattore_stress=fattore_stress, 
-                weights=(w1, w2)
-            )
-            report = risultato_scan[0]
+            report = gateway.esegui_scan_strategico(lista_asset=[asset_data], contesto="Produttività", fattore_stress=fattore_stress, weights=(w1, w2))[0]
 
-            # Visualizzazione KPI
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Indice Rischio", f"{report['rischio']}/10")
             c2.metric("Momentum Score", report['momentum_score'])
             c3.metric("Ore Produttive", f"{int(report['ore_produttive_effettive'])}h")
             c4.metric("Produttività Oraria", report['produttivita_oraria_reale'])
 
-            # Grafici
             col_l, col_r = st.columns(2)
             with col_l:
                 conn = get_connection()
                 df_h = pd.read_sql(f"SELECT timestamp, rischio FROM asset_logs WHERE nome='{selected_asset}' LIMIT 25", conn)
                 conn.close()
                 st.plotly_chart(px.line(df_h, x='timestamp', y='rischio', title="Trend Rischio"), use_container_width=True)
-            
             with col_r:
-                fig_gauge = go.Figure(go.Indicator(
-                    mode="gauge+number", value=report['rischio'],
-                    gauge={'axis': {'range': [0, 10]}, 'bar': {'color': "darkblue"},
-                           'steps': [{'range': [0, 5], 'color': "green"}, {'range': [5, 10], 'color': "red"}]}))
-                st.plotly_chart(fig_gauge, use_container_width=True)
+                st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=report['rischio'], gauge={'axis': {'range': [0, 10]}, 'steps': [{'range': [0, 5], 'color': "green"}, {'range': [5, 10], 'color': "red"}]})), use_container_width=True)
 
             st.info(f"**Azione Consigliata**: {report['consiglio_strategico']}")
     except Exception as e:
