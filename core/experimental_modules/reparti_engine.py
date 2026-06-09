@@ -1,39 +1,42 @@
 # FILE: core/experimental_modules/reparti_engine.py
-# SCOPO: Gestione isolata dei dati e dell'interfaccia grafica a 4 sezioni (Tab) per i reparti
+# SCOPO: Gestione dell'albero delle Macro-Aree, Sotto-Reparti e generazione percorsi di salvataggio
 
-import streamlit as st
+import os
 from pathlib import Path
 
-def mostra_interfaccia_4_aree():
-    """
-    Versione VIP: Gestisce solo i 4 Pilastri Strategici.
-    Restituisce solo la Macro-Area scelta (Senza sottovoci).
-    """
-    st.markdown("### 🏢 Seleziona Destinazione Documento")
-    
-    # Creiamo i 4 grandi pilastri come bottoni orizzontali
-    pilastri = [
-        "💼 Amministrazione & Controllo", 
-        "⚙️ Operativa & Logistica", 
-        "📣 Commerciale & Marketing", 
-        "👥 Risorse Umane & Servizi"
+# Configurazione ad albero delle Macro-Aree e dei relativi Sotto-Reparti
+STRUTTURA_AZIENDALE = {
+    "Area Amministrativa e Controllo": [
+        "Amministrazione", 
+        "Contabilità e Finanza", 
+        "Controllo di Gestione"
+    ],
+    "Area Operativa e Logistica": [
+        "Acquisti", 
+        "Magazzino e Logistica", 
+        "Produzione - Erogazione Servizi", 
+        "Ufficio Tecnico - Ricerca e Sviluppo"
+    ],
+    "Area Commerciale e Comunicazione": [
+        "Marketing", 
+        "Vendite - Commerciale", 
+        "Customer Care - Assistenza Clienti"
+    ],
+    "Area Risorse Umane e Servizi Generali": [
+        "Risorse Umane (HR)", 
+        "Sistemi Informativi (IT)", 
+        "Affari Legali e Compliance", 
+        "Segreteria e Servizi Generali"
     ]
-    
-    # Usiamo un radio button orizzontale per massima pulizia
-    macro_scelta = st.radio(
-        "Seleziona il pilastro di destinazione:",
-        options=pilastri,
-        horizontal=True,
-        label_visibility="collapsed"
-    )
-    
-    st.markdown("---")
-    
-    if macro_scelta:
-        st.info(f"📍 Destinazione impostata: **{macro_scelta}**")
-        
-    # Restituiamo la scelta. Reparto scelto è uguale a macro_scelta perché abbiamo tolto le sottovoci.
-    return macro_scelta, macro_scelta
+}
+
+def ottieni_macro_aree():
+    """Restituisce la lista di tutte le Macro-Aree disponibili."""
+    return list(STRUTTURA_AZIENDALE.keys())
+
+def ottieni_reparti_per_macro_area(macro_area):
+    """Restituisce i reparti associati a una specifica Macro-Area."""
+    return STRUTTURA_AZIENDALE.get(macro_area, [])
 
 def genera_percorso_salvataggio(base_dir, azienda, macro_area, reparto, nome_file):
     """
