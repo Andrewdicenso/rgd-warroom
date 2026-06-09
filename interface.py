@@ -40,6 +40,17 @@ if admin_mode:
     try:
         conn = get_connection()
         df_utenti = pd.read_sql("SELECT id, email, is_active, role FROM users ORDER BY id DESC", conn)
+        
+        # --- LOGICA COLORE VERDE PER RIGHE ATTIVE ---
+        def style_attivi(row):
+            return ['background-color: #d4edda' if row.is_active else '' for _ in row]
+        
+        st.write("Visualizzazione Stato Attuale (Verde = Attivo):")
+        # Visualizziamo il riepilogo colorato
+        st.dataframe(df_utenti.style.apply(style_attivi, axis=1), hide_index=True, use_container_width=True)
+
+        st.write("Modifica permessi qui sotto:")
+        # Editor per le modifiche
         edited_df = st.data_editor(
             df_utenti,
             column_config={
@@ -48,15 +59,24 @@ if admin_mode:
             },
             disabled=["id", "email"], hide_index=True, key="admin_editor"
         )
+
         if st.button("SALVA ATTIVAZIONI"):
             cur = conn.cursor()
             for _, row in edited_df.iterrows():
-                cur.execute("UPDATE users SET is_active = %s, role = %s WHERE id = %s", (row['is_active'], row['role'], row['id']))
+                cur.execute(
+                    "UPDATE users SET is_active = %s, role = %s WHERE id = %s", 
+                    (row['is_active'], row['role'], row['id'])
+                )
             conn.commit()
-            st.success("✅ Database sincronizzato.")
+            cur.close()
+            st.success("✅ Database sincronizzato. I nuovi clienti verdi sono attivi!")
+            st.rerun()
+            
         conn.close()
+        
     except Exception as e:
         st.error(f"Errore Admin: {e}")
+        
     st.markdown("---")
 
 # 2. LOGICA WAR ROOM (Ingestione Documentale Standard)
