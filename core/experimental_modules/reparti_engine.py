@@ -6,74 +6,34 @@ from pathlib import Path
 
 def mostra_interfaccia_4_aree():
     """
-    Disegna visivamente le 4 macro-aree (Tab) sulla pagina
-    e restituisce la Macro-Area e il Reparto scelti dall'utente.
+    Versione VIP: Gestisce solo i 4 Pilastri Strategici.
+    Restituisce solo la Macro-Area scelta (Senza sottovoci).
     """
-   
+    st.markdown("### 🏢 Seleziona Destinazione Documento")
     
-    # Creiamo le 4 grandi sezioni visibili sulla pagina come schede
-    tab1, tab2, tab3, tab4 = st.tabs([
+    # Creiamo i 4 grandi pilastri come bottoni orizzontali
+    pilastri = [
         "💼 Amministrazione & Controllo", 
         "⚙️ Operativa & Logistica", 
         "📣 Commerciale & Marketing", 
         "👥 Risorse Umane & Servizi"
-    ])
+    ]
     
-    macro_scelta = ""
-    reparto_scelto = ""
+    # Usiamo un radio button orizzontale per massima pulizia
+    macro_scelta = st.radio(
+        "Seleziona il pilastro di destinazione:",
+        options=pilastri,
+        horizontal=True,
+        label_visibility="collapsed"
+    )
     
-    # --- SEZIONE 1: AMMINISTRAZIONE ---
-    with tab1:
-        st.markdown("##### Seleziona il reparto amministrativo:")
-        reparto_amm = st.radio(
-            "Reparti:", ["Amministrazione", "Contabilità e Finanza", "Controllo di Gestione"],
-            key="rep_amm", label_visibility="collapsed"
-        )
-        if reparto_amm:
-            macro_scelta = "Area Amministrativa e Controllo"
-            reparto_scelto = reparto_amm
-
-    # --- SEZIONE 2: OPERATIVA ---
-    with tab2:
-        st.markdown("##### Seleziona il reparto operativo:")
-        reparto_ope = st.radio(
-            "Reparti:", ["Acquisti", "Magazzino e Logistica", "Produzione - Erogazione Servizi", "Ufficio Tecnico - Ricerca e Sviluppo"],
-            key="rep_ope", label_visibility="collapsed"
-        )
-        if reparto_ope:
-            macro_scelta = "Area Operativa e Logistica"
-            reparto_scelto = reparto_ope
-
-    # --- SEZIONE 3: COMMERCIALE ---
-    with tab3:
-        st.markdown("##### Seleziona il reparto commerciale:")
-        reparto_com = st.radio(
-            "Reparti:", ["Marketing", "Vendite - Commerciale", "Customer Care - Assistenza Clienti"],
-            key="rep_com", label_visibility="collapsed"
-        )
-        if reparto_com:
-            macro_scelta = "Area Commerciale e Comunicazione"
-            reparto_scelto = reparto_com
-
-    # --- SEZIONE 4: RISORSE UMANE ---
-    with tab4:
-        st.markdown("##### Seleziona il reparto servizi e risorse:")
-        reparto_hr = st.radio(
-            "Reparti:", ["Risorse Umane (HR)", "Sistemi Informativi (IT)", "Affari Legali e Compliance", "Segreteria e Servizi Generali"],
-            key="rep_hr", label_visibility="collapsed"
-        )
-        if reparto_hr:
-            macro_scelta = "Area Risorse Umane e Servizi Generali"
-            reparto_scelto = reparto_hr
-
     st.markdown("---")
     
-    if reparto_scelto:
-        st.info(f"📍 Il documento verrà archiviato in: **{macro_scelta}** ➔ **{reparto_scelto}**")
+    if macro_scelta:
+        st.info(f"📍 Destinazione impostata: **{macro_scelta}**")
         
-    # Restituiamo le due scelte ad app.py
-    return macro_scelta, reparto_scelto
-
+    # Restituiamo la scelta. Reparto scelto è uguale a macro_scelta perché abbiamo tolto le sottovoci.
+    return macro_scelta, macro_scelta
 
 def genera_percorso_salvataggio(base_dir, azienda, macro_area, reparto, nome_file):
     """
