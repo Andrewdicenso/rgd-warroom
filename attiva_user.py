@@ -1,18 +1,19 @@
 import psycopg2
 
 try:
-    # Connessione al database
+    # Connessione al database esterno
     conn = psycopg2.connect('postgresql://postgres.itqjupaxatvsnwbtbeiv:RGD-Alpha-2025@aws-0-eu-central-1.pooler.supabase.com:6543/postgres')
     cur = conn.cursor()
 
-    # Esecuzione comando di attivazione
+    # Comando per attivare tua sorella SOLO come USER
     query = "UPDATE users SET is_active = True, role = 'user' WHERE email = 'nancydc82@yahoo.it';"
-    cur.execute(query)
     
+    cur.execute(query)
     conn.commit()
+    
     cur.close()
     conn.close()
-    print("✅ ALLINEAMENTO COMPLETATO: TUA SORELLA È ATTIVA COME CLIENTE")
+    print("✅ OPERAZIONE RIUSCITA: Nancy attivata con ruolo USER")
 
 except Exception as e:
-    print(f"❌ Errore durante l'operazione: {e}")
+    print(f"❌ Errore: {e}")
