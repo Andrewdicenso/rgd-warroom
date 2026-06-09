@@ -9,8 +9,10 @@ def test_caricamento_legacy():
     print(f"--- Avvio Importazione Legacy da: {file_da_caricare} ---")
     
     # Eseguiamo l'elaborazione
+    import pandas as pd
+    import streamlit as st
     try:
-        if file_da_caricare.endswith(('.xlsx', '.xls')):
+        if file_da_caricare.name.endswith(('.xlsx', '.xls')):
             df = pd.read_excel(file_da_caricare)
         else:
             df = pd.read_csv(file_da_caricare, sep=None, engine='python')
