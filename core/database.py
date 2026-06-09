@@ -13,36 +13,31 @@ class DatabaseAziendale:
     def __init__(self):
         try:
             self.vault = SecureVault()
-            
-            # Rileva automaticamente se siamo su Render o locale
             database_url = os.getenv("DATABASE_URL")
             
             if not database_url:
-                # Fallback locale per sviluppo
                 from pathlib import Path
                 db_folder = Path("data/db")
                 db_folder.mkdir(parents=True, exist_ok=True)
                 database_url = f"sqlite:///{db_folder / 'azienda.db'}"
-                logger.info("📁 Usando SQLite locale (sviluppo)")
+                logger.info("📁 Usando SQLite locale")
             else:
-                logger.info("☁️ Usando PostgreSQL (produzione Render)")
+                # Correzione fondamentale per Render: SQLAlchemy vuole postgresql:// non postgres://
+                if database_url.startswith("postgres://"):
+                    database_url = database_url.replace("postgres://", "postgresql://", 1)
+                logger.info("☁️ Usando PostgreSQL")
             
-            # Configura connection pool per PostgreSQL
-            if database_url.startswith("postgresql"):
+            if "postgresql" in database_url:
                 self.engine = create_engine(
-                    database_url,
-                    pool_size=5,
-                    max_overflow=10,
-                    pool_timeout=30,
-                    pool_recycle=1800,
+                    database_url, 
+                    pool_size=5, 
+                    max_overflow=10, 
                     connect_args={"sslmode": "require"}
                 )
             else:
                 self.engine = create_engine(database_url, connect_args={"check_same_thread": False})
             
             self.crea_tabelle()
-            logger.info("🛡️ Database RGD-Alpha inizializzato")
-            
         except Exception as e:
             logger.critical(f"❌ Fallimento database: {e}")
             raise
@@ -51,11 +46,16 @@ class DatabaseAziendale:
         return self.engine.connect()
 
     def crea_tabelle(self):
+        # Rileva automaticamente se siamo su Postgres o SQLite per la chiave primaria
+        is_postgres = "postgresql" in self.engine.dialect.name
+        pk_type = "SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        
         try:
             with self._get_conn() as conn:
-                conn.execute(text("""
+                # Creazione tabelle con sintassi adattiva
+                conn.execute(text(f"""
                     CREATE TABLE IF NOT EXISTS utenti (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id {pk_type},
                         email TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         ruolo TEXT NOT NULL,
@@ -63,10 +63,9 @@ class DatabaseAziendale:
                         data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
-                
-                conn.execute(text("""
+                conn.execute(text(f"""
                     CREATE TABLE IF NOT EXISTS asset_logs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id {pk_type},
                         user_id INTEGER NOT NULL,
                         company_id TEXT NOT NULL,
                         nome TEXT NOT NULL,
@@ -74,43 +73,43 @@ class DatabaseAziendale:
                         rischio REAL NOT NULL,
                         momentum TEXT,
                         volatilita REAL,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
-                
-                conn.execute(text("""
+                conn.execute(text(f"""
                     CREATE TABLE IF NOT EXISTS log_caricamenti (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        id {pk_type}, 
                         user_id INTEGER, 
                         azienda TEXT, 
                         contesto TEXT, 
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
                         nome_file TEXT
                     )
                 """))
-                
                 conn.commit()
         except Exception as e:
-            logger.error(f"❌ Errore creazione schema: {e}")
-            raise
+            logger.error(f"❌ Errore schema: {e}")
 
     def crea_utente(self, email, password, ruolo="user", azienda=None):
         try:
+            email_enc = self.vault.encrypt_data(email)
+            password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+            
             with self._get_conn() as conn:
-                cursor = conn.cursor()
-                email_enc = self.vault.encrypt_data(email)
-                password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-                cursor.execute(text("INSERT INTO utenti (email, password_hash, ruolo, azienda) VALUES (?, ?, ?, ?)"), 
-                             (email_enc, password_hash, ruolo, None))
-                user_id = cursor.lastrowid
+                # Nota: Uso RETURNING id per Postgres, lastrowid è per SQLite
+                query = text("INSERT INTO utenti (email, password_hash, ruolo) VALUES (:e, :p, :r) RETURNING id")
+                result = conn.execute(query, {"e": email_enc, "p": password_hash, "r": ruolo})
+                user_id = result.fetchone()[0]
+                
                 if azienda is None: azienda = f"AZ-{user_id}"
                 azienda_enc = self.vault.encrypt_data(azienda)
-                cursor.execute(text("UPDATE utenti SET azienda = ? WHERE id = ?"), (azienda_enc, user_id))
+                
+                conn.execute(text("UPDATE utenti SET azienda = :a WHERE id = :id"), {"a": azienda_enc, "id": user_id})
                 conn.commit()
                 return user_id
         except Exception as e:
             logger.error(f"Errore creazione utente: {e}")
-            raise
+            return None
 
     def get_utente_by_email(self, email):
         try:
@@ -127,86 +126,47 @@ class DatabaseAziendale:
                         return {"id": row[0], "email": email_dec, "password_hash": row[2], "ruolo": row[3], "azienda": azienda_dec}
                 except: continue
             return None
-        except Exception as e:
-            return None
-
-    def get_utente_by_id(self, user_id: int):
-        try:
-            with self._get_conn() as conn:
-                cursor = conn.execute(text("SELECT id, email, password_hash, ruolo, azienda FROM utenti WHERE id = ?"), (user_id,))
-                row = cursor.fetchone()
-            if not row: return None
-            email_dec = self.vault.decrypt_data(row[1])
-            if isinstance(email_dec, bytes): email_dec = email_dec.decode()
-            azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
-            if isinstance(azienda_dec, bytes): azienda_dec = azienda_dec.decode()
-            return {"id": row[0], "email": email_dec, "password_hash": row[2], "ruolo": row[3], "azienda": azienda_dec}
         except: return None
-
-    def supervisione_admin_metriche_globali(self):
-        try:
-            with self._get_conn() as conn:
-                df = pd.read_sql_query("SELECT email, ruolo, azienda, data_creazione FROM utenti", conn)
-                if df.empty: return df
-                df["email"] = df["email"].apply(lambda x: self.vault.decrypt_data(x).decode() if isinstance(self.vault.decrypt_data(x), bytes) else self.vault.decrypt_data(x))
-                df["azienda"] = df["azienda"].apply(lambda x: self.vault.decrypt_data(x).decode() if isinstance(self.vault.decrypt_data(x), bytes) else self.vault.decrypt_data(x))
-                return df
-        except: return pd.DataFrame()
-
-    def recupera_attivita_globale(self, solo_admin=False):
-        try:
-            with self._get_conn() as conn:
-                df = pd.read_sql_query("SELECT * FROM asset_logs", conn)
-                return df
-        except: return pd.DataFrame()
-
-    def recupera_log_caricamenti_admin(self):
-        try:
-            with self._get_conn() as conn:
-                df = pd.read_sql_query("SELECT * FROM log_caricamenti", conn)
-                return df
-        except: return pd.DataFrame()
-
-    def registra_caricamento(self, user_id, contesto, nome_file):
-        try:
-            azienda = self.get_utente_by_id(user_id)["azienda"]
-            with self._get_conn() as conn:
-                conn.execute(text("INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (?, ?, ?, ?)"), 
-                             (user_id, azienda, contesto, nome_file))
-                conn.commit()
-        except: pass
 
     def salva_asset(self, user_id, nome_asset, rischio, **kwargs):
         try:
-            azienda = self.get_utente_by_id(user_id)["azienda"]
+            # Recupero azienda per l'utente
+            utente = self.get_utente_by_id(user_id)
+            azienda = utente["azienda"] if utente else "Unknown"
+            
             with self._get_conn() as conn:
-                conn.execute(text("INSERT INTO asset_logs (user_id, company_id, nome, tipo, rischio, momentum, volatilita) VALUES (?, ?, ?, ?, ?, ?, ?)"),
-                             (user_id, azienda, nome_asset, kwargs.get('tipo'), rischio, kwargs.get('momentum'), kwargs.get('volatilita')))
+                conn.execute(text("""
+                    INSERT INTO asset_logs (user_id, company_id, nome, tipo, rischio, momentum, volatilita) 
+                    VALUES (:u, :c, :n, :t, :r, :m, :v)
+                """), {
+                    "u": user_id, "c": azienda, "n": nome_asset, 
+                    "t": kwargs.get('tipo'), "r": rischio, 
+                    "m": kwargs.get('momentum'), "v": kwargs.get('volatilita')
+                })
                 conn.commit()
-        except: pass
+        except Exception as e:
+            logger.error(f"Errore salvataggio asset: {e}")
 
-    def calcola_e_salva_kpi_correnti(self, user_id):
-        """Calcola i KPI reali basandosi sugli asset salvati nel database."""
+    def get_utente_by_id(self, user_id):
         try:
             with self._get_conn() as conn:
-                cursor = conn.execute(text("""
-                    SELECT AVG(rischio) FROM asset_logs 
-                    WHERE user_id = ? AND timestamp >= datetime('now', '-1 hour')
-                """), (user_id,))
-                rischio_medio = cursor.fetchone()[0]
-            
-            if rischio_medio is None:
-                return {"solidita": 100, "impatto_30gg": "N/D", "rischio_medio": 0}
+                result = conn.execute(text("SELECT id, email, password_hash, ruolo, azienda FROM utenti WHERE id = :id"), {"id": user_id})
+                row = result.fetchone()
+                if row:
+                    email_dec = self.vault.decrypt_data(row[1])
+                    if isinstance(email_dec, bytes): email_dec = email_dec.decode()
+                    azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
+                    if isinstance(azienda_dec, bytes): azienda_dec = azienda_dec.decode()
+                    return {"id": row[0], "email": email_dec, "password_hash": row[2], "ruolo": row[3], "azienda": azienda_dec}
+            return None
+        except: return None
 
-            solidita = round(100 - (rischio_medio * 10), 1)
-            solidita = max(min(solidita, 100), 0)
-            
-            impatto = "CRITICO" if rischio_medio > 7 else "ATTENZIONE" if rischio_medio > 4 else "STABILE"
-
-            return {
-                "solidita": solidita,
-                "impatto_30gg": impatto,
-                "rischio_medio": round(rischio_medio, 2)
-            }
-        except:
-            return {"solidita": 0, "impatto_30gg": "ERRORE", "rischio_medio": 0}
+    def registra_caricamento(self, user_id, contesto, nome_file):
+        try:
+            utente = self.get_utente_by_id(user_id)
+            azienda = utente["azienda"] if utente else "Unknown"
+            with self._get_conn() as conn:
+                conn.execute(text("INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (:u, :a, :c, :f)"), 
+                             {"u": user_id, "a": azienda, "c": contesto, "f": nome_file})
+                conn.commit()
+        except: pass
