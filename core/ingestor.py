@@ -11,120 +11,132 @@ logger = logging.getLogger("RGD-Alpha.Ingestor")
 class IngestoreDati:
     """
     INGESTORE ENTERPRISE RGD-ALPHA v2.0:
-    Sistema adattivo con auto-correzione, mappatura multi-settore (Edile, Fashion, Risorse)
-    e protezione contro crash da dati sporchi.
+    Sistema adattivo con auto-correzione, mappatura multi-settore.
     """
     def __init__(self, key_path="core/security/vault.key"):
-        self.vault = SecureVault(key_path=key_path)
+        # Gestione sicura del Vault per evitare crash se il file manca in locale
+        try:
+            self.vault = SecureVault(key_path=key_path)
+        except:
+            self.vault = None
+            logger.warning("Vault non inizializzato: procedo in modalità standard.")
+            
         self.db = DatabaseAziendale()
         
-        # Mappa sinottica estesa per coprire i nuovi domini aziendali
         self.mappa_sinonimi = {
-            'quantita': ['quantita', 'pezzi', 'qta', 'stock', 'unita', 'giacenza', 'rimanenza', 'output_totale'],
-            'valore': ['prezzo', 'importo', 'lordo', 'valore', 'costo', 'ammontare', 'prezzo_acquisto', 'valore_extra'],
-            'rischio': ['rischio', 'impatto', 'criticita', 'priorita', 'risk', 'pericolo', 'urgenza'],
-            'ore': ['ore', 'tempo', 'durata', 'h', 'lavorato', 'ore_effettive'],
+            'quantita': ['quantita', 'pezzi', 'qta', 'stock', 'unita', 'giacenza', 'rimanenza', 'output_totale', 'prodotti'],
+            'valore': ['prezzo', 'importo', 'lordo', 'valore', 'costo', 'ammontare', 'acquisto'],
+            'rischio': ['rischio', 'impatto', 'criticita', 'priorita', 'risk', 'pericolo'],
+            'ore': ['ore', 'tempo', 'durata', 'h', 'lavorato'],
             'inefficienze': ['ferie', 'festivita', 'assenze', 'permessi', 'ritardi', 'micropause']
         }
 
     def _pulisce_intestazioni(self, df):
-        """Standardizza i nomi delle colonne."""
-        df.columns = [str(c).strip().lower().replace(' ', '_').replace('à', 'a').replace('ò', 'o') for c in df.columns]
+        """Standardizza i nomi delle colonne eliminando spazi e accenti."""
+        df.columns = [
+            str(c).strip().lower()
+            .replace(' ', '_')
+            .replace('à', 'a').replace('è', 'e').replace('é', 'e')
+            .replace('ì', 'i').replace('ò', 'o').replace('ù', 'u') 
+            for c in df.columns
+        ]
         return df
 
     def _valida_dati_critici(self, df):
         if df.empty: return False, "Il file caricato è vuoto."
-        nomi_possibili = ['nome', 'descrizione', 'prodotto', 'asset', 'sku', 'cantiere', 'cliente', 'fornitore']
+        nomi_possibili = ['nome', 'descrizione', 'prodotto', 'asset', 'sku', 'cantiere', 'cliente', 'dipendente']
         if not any(col in df.columns for col in nomi_possibili):
-            return False, "Struttura file non riconosciuta. Manca colonna 'Nome' o 'Prodotto'."
+            return False, "Struttura file non riconosciuta: manca una colonna identificativa (es. Nome o Asset)."
         return True, "Validazione superata."
 
     def _auto_rilevamento_settore(self, colonne):
-        """Mappatura intelligente basata sulle keyword di settore."""
         col = set(colonne)
-        if any(k in col for k in ['cantiere', 'commessa', 'ponteggio', 'cemento', 'sicurezza_dpi']):
+        if any(k in col for k in ['cantiere', 'commessa', 'ponteggio', 'sicurezza']):
             return "EDILE", AssetStrategico
-        if any(k in col for k in ['collezione', 'taglia', 'colore', 'stagione', 'invenduto']):
+        if any(k in col for k in ['collezione', 'taglia', 'stagione']):
             return "FASHION", AssetDiMercato
         if any(k in col for k in self.mappa_sinonimi['inefficienze']) or 'dipendente' in col:
-            # Qui usiamo la classe corretta AssetDiRisorsa
             return "PRODUTTIVITA", AssetDiRisorsa 
-        if any(k in col for k in ['fattura', 'iban', 'lordo', 'partita_iva']):
+        if any(k in col for k in ['fattura', 'iban', 'partita_iva']):
             return "FINANCE", AssetDiValore
-        if any(k in col for k in ['bolla', 'ddt', 'magazzino', 'vettore', 'spedizione']):
-            return "LOGISTICS", AssetDiMercato
         return "GENERAL", AssetStrategico
 
-    def _estrai_dato(self, row, categoria_chiave, default=0):
+    def _estrai_dato(self, row, categoria_chiave, default=0.0):
         for sinonimo in self.mappa_sinonimi.get(categoria_chiave, []):
             if sinonimo in row and not pd.isna(row[sinonimo]):
-                return row[sinonimo]
+                return self._valida_numerico(row[sinonimo])
         return default
 
     def _estrai_nome(self, row):
-        for k in ['nome', 'prodotto', 'asset', 'descrizione', 'cantiere', 'cliente', 'fornitore']:
-            if k in row: return str(row[k])
+        for k in ['nome', 'prodotto', 'asset', 'descrizione', 'cantiere', 'dipendente']:
+            if k in row and not pd.isna(row[k]): return str(row[k])
         return "Asset_Generico"
 
     def _valida_numerico(self, val):
+        if pd.isna(val): return 0.0
         try:
-            v = str(val).replace(',', '.')
-            return float(v)
+            return float(str(val).replace(',', '.'))
         except:
             return 0.0
 
-    def elabora_file(self, file_path, company_id):
+    def elabora_csv(self, file_source, company_id):
         """
-        ELABORATORE UNIVERSALE: Gestisce sia CSV che Excel con auto-rilevamento codifica.
+        Alias per mantenere compatibilità con interface.py e gestire 
+        sia oggetti file (Streamlit) che percorsi (Terminal).
         """
-        asset_list = [] 
-        if not os.path.exists(file_path): return asset_list
+        # Se è un oggetto file di Streamlit, usiamo il nome, altrimenti il path
+        file_path = getattr(file_source, 'name', str(file_source))
+        return self.elabora_file(file_source, company_id)
 
+    def elabora_file(self, file_input, company_id):
+        asset_list = []
         try:
-            # 1. GESTIONE ESTENSIONE
-            estensione = os.path.splitext(file_path)[1].lower()
-            
-            if estensione == '.csv':
-                try:
-                    df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')
-                except:
-                    df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin-1')
-            elif estensione in ['.xls', '.xlsx']:
-                df = pd.read_excel(file_path)
+            # Rilevamento estensione dinamico
+            nome_file = getattr(file_input, 'name', str(file_input))
+            ext = os.path.splitext(nome_file)[1].lower()
+
+            if ext == '.csv':
+                df = pd.read_csv(file_input, sep=None, engine='python', encoding='utf-8', on_bad_lines='skip')
+            elif ext in ['.xls', '.xlsx']:
+                df = pd.read_excel(file_input)
             else:
-                logger.error(f"Formato {estensione} non supportato.")
-                return asset_list
+                return []
 
-            # 2. PROCESSO DI PULIZIA
             df = self._pulisce_intestazioni(df)
-            valido, messaggio = self._valida_dati_critici(df)
-            if not valido:
-                logger.warning(f"Validazione fallita: {messaggio}")
-                return asset_list
+            valido, msg = self._valida_dati_critici(df)
+            if not valido: return []
 
-            # 3. RILEVAMENTO E MAPPATURA
             settore_nome, ClasseAsset = self._auto_rilevamento_settore(df.columns)
-            self.db.registra_caricamento(company_id, f"Analisi {settore_nome}", os.path.basename(file_path))
+            
+            # Registrazione log nel database reale
+            try:
+                self.db.registra_caricamento(company_id, f"Analisi {settore_nome}", nome_file)
+            except:
+                pass
 
             for _, row in df.iterrows():
-                dati_riga = row.to_dict()
-                dati_riga['nome'] = self._estrai_nome(row)
-                dati_riga['rischio'] = self._valida_numerico(self._estrai_dato(row, 'rischio', 5.0))
-                dati_riga['valore_extra'] = self._valida_numerico(self._estrai_dato(row, 'valore', 0.0))
-                dati_riga['company_id'] = company_id
+                # Costruiamo il dizionario dati con protezione contro i valori mancanti
+                dati_riga = {
+                    'nome': self._estrai_nome(row),
+                    'rischio': self._estrai_dato(row, 'rischio', 5.0),
+                    'valore_extra': self._estrai_dato(row, 'valore', 0.0),
+                    'output_totale': self._estrai_dato(row, 'quantita', 0.0),
+                    'company_id': company_id,
+                    'timestamp': datetime.now()
+                }
                 
+                # Inserimento dinamico inefficienze (evita il crash se la colonna non esiste)
                 for ineff in self.mappa_sinonimi['inefficienze']:
-                    dati_riga[ineff] = self._valida_numerico(row.get(ineff, 0))
-                
-                dati_riga['output_totale'] = self._valida_numerico(self._estrai_dato(row, 'quantita', 0))
+                    dati_riga[ineff] = self._valida_numerico(row.get(ineff, 0.0))
 
                 try:
+                    # Creazione istanza asset basata sul settore rilevato
                     nuovo_asset = ClasseAsset(**dati_riga)
                     asset_list.append(nuovo_asset)
                 except Exception as e:
-                    logger.debug(f"Salto riga per incompatibilità: {e}")
+                    continue
 
         except Exception as e:
-            logger.error(f"Errore critico ingestione RGD-Alpha: {e}")
+            logger.error(f"Errore critico ingestore: {e}")
         
         return asset_list
