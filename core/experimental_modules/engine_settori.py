@@ -1,6 +1,9 @@
 # FILE: experimental_modules/engine_settori.py
 # SCOPO: Mappatura intelligente e configurazione dinamica del motore RGD-Alpha
 
+import pandas as pd
+import pypdf
+
 SETTORI_CONFIG = {
     "PRIMARIO_ALIMENTARE": {
         "keywords": ["scadenza", "lotto", "haccp", "temperatura", "fresco", "conservazione"],
