@@ -239,6 +239,9 @@ if scelta == "🏠 Home":
 elif scelta == "📊 War Room Strategica":
     st.markdown(f"<div class='warroom-header' style='text-align: center;'><h1>🚀 War Room Strategica</h1><p>Operatore: {azienda}</p></div>", unsafe_allow_html=True)
     
+    # Selezione Reparti
+    st.markdown("### 🏢 Seleziona Destinazione Documento")
+    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree()
     
     st.divider()
     
