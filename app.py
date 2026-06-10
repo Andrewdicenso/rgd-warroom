@@ -332,9 +332,265 @@ elif scelta == "📊 War Room Strategica":
     st.markdown("### 🏢 Seleziona Destinazione Documento") # Aggiungi il testo tra parentesi
     macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
     
-    st.markdown("---") # Linea di separazione
+    # --- ESECUZIONE E CARICAMENTO DEL BACKEND ESTRATTI DALLA SIDEBAR E SPOSTATI QUI ---
+    # Calibrazione e stress test (rimangono agganciati a variabili lette più giù dalla sidebar)
+    with st.sidebar:
+        with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
+            w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
+            w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
+        with st.expander("🚨 STRESS TEST", expanded=True):
+            ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
+            f_stress = 1.0 + (ritardo / 50.0)
 
-    # 3. METRICHE (Le 4 colonne con i numeri)
+    # Inserito strategicamente subito dopo la selezione della struttura aziendale sulla pagina centrale
+    uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
+    if uploaded_file:
+        # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
+        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+            ingestor = IngestoreDati()
+            lista_asset = ingestor.elabora_file(str(path), azienda)
+            
+            if lista_asset:
+                engine = DataGateway()
+
+            # RIPRISTINATO: Uso di user_id come richiesto
+            db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
+            
+            # Calcolo con Stress Test e Pesi EMA
+            report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
+            
+            # --- CICLO COMPILAZIONE DATABASE ---
+            for r in report_analisi:
+                db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
+            kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+
+            # --- NUOVA ANALISI AUTONOMA WAR ROOM ---
+            risultato_wr = assegna_categoria_warroom(uploaded_file)
+            if "errore" not in risultato_wr:
+                st.markdown(f"""
+                <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                    <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">🎯 Classificazione Macro-Categoria War Room</h4>
+                    <p style="margin: 5px 0;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
+                    <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
+            sim = SimulatoreRischio()
+            risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
+
+            # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
+            sentinella = Sentinella()
+            asset_a_rischio = [a for a in report_analisi if a.get('rischio') > 7.5]
+
+            if asset_a_rischio:
+                asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
+                sentinella.genera_report_strategico(asset_a_rischio_dict)
+
+                # 2. INVIO EMAIL (Nuova funzione Enterprise)
+                try:
+                    from core.email_manager import EmailManager
+                    mailer = EmailManager()
+                    corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
+                    mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
+                except Exception as e:
+                    st.sidebar.error(f"Errore invio notifica: {e}")
+
+                st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
+
+                # --- GRAFICO PREDITTIVO INTEGRATO ---
+                # 1. Genera il report su file
+                sentinella.genera_report(asset_a_rischio)
+
+                # 2. INVIO EMAIL
+                try:
+                    from core.email_manager import EmailManager
+                    mailer = EmailManager()
+                    corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
+                    mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
+                except Exception as e:
+                    st.sidebar.error(f"Errore invio: {e}")
+
+            # AGGIORNA LE METRICHE IN ALTO DINAMICAMENTE
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.markdown("""
+                <div class='metric-card'>
+                    <h3>Solidità Operativa</h3>
+                    <div class='value'>{}%</div>
+                    <div class='delta'>{}</div>
+                </div>
+                """.format(
+                    kpi_reali.get('solidita', 0),
+                    "↑ Ottima" if kpi_reali.get('solidita', 0) > 80 else "→ Nella norma" if kpi_reali.get('solidita', 0) > 50 else "↓ Attenzione"
+                ), unsafe_allow_html=True)
+            
+            with col2:
+                rischio_val = kpi_reali.get('rischio_medio', 0)
+                colore_rischio = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+                st.markdown("""
+                <div class='metric-card' style='border-top-color: {};'>
+                    <h3>Rischio Medio</h3>
+                    <div class='value' style='color: {}'>{}/10</div>
+                    <div class='delta'>{}</div>
+                </div>
+                """.format(
+                    colore_rischio,
+                    colore_rischio,
+                    rischio_val,
+                    "Critico" if rischio_val > 7 else "Medio" if rischio_val > 4 else "Basso"
+                ), unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown("""
+                <div class='metric-card' style='border-top-color: #f39c12;'>
+                    <h3>Asset Analizzati</h3>
+                    <div class='value'>{}</div>
+                    <div class='delta'>totali</div>
+                </div>
+                """.format(len(report_analisi)), unsafe_allow_html=True)
+            
+            with col4:
+                impatto = kpi_reali.get('impatto_30gg', 'N/D')
+                colore_impatto = "#e74c3c" if impatto == "CRITICO" else "#f39c12" if impatto == "ATTENZIONE" else "#27ae60"
+                st.markdown("""
+                <div class='metric-card' style='border-top-color: {};'>
+                    <h3>Impatto 30gg</h3>
+                    <div class='value' style='color: {}'>{}</div>
+                    <div class='delta'>proiezione</div>
+                </div>
+                """.format(colore_impatto, colore_impatto, impatto), unsafe_allow_html=True)
+            
+            st.markdown("---")
+
+            # --- 5 KPI ALPHA ---
+            st.header("🛡️ Indicatori Strategici Vitali")
+            cols = st.columns(5)
+            cols[0].metric("Solidità", f"{kpi_reali.get('solidita', 0)}%")
+            cols[1].metric("Rischio Medio", f"{kpi_reali.get('rischio_medio', 0)}/10")
+            avg_m = sum([a.get('momentum_score', 0) for a in report_analisi]) / len(report_analisi) if report_analisi else 0
+            cols[2].metric("Trend Momentum", f"{round(avg_m, 2)}", delta="Accelerazione" if avg_m > 1.2 else "Stabile")
+            cols[3].metric("Efficienza Risorse", "84.2%")
+            res = max(round(100 - (f_stress * 10), 1), 0)
+            cols[4].metric("Resilience", f"{res}%")
+
+            # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
+            if risultati_sim and risultati_sim.get('percorsi_raw') is not None:
+                st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
+                fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
+                st.plotly_chart(fig_pred, use_container_width=True)
+            else:
+                st.info("🔮 Analisi IA: Proiezione grafica temporaneamente non disponibile.")
+            
+            # --- GRAFICO MOMENTUM ---
+            st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
+            df_plot = pd.DataFrame(report_analisi)
+            fig = px.bar(df_plot, x="asset", y="momentum_score", color="stato",
+                         color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"})
+            st.plotly_chart(fig, use_container_width=True)
+
+            # --- RAGIONAMENTO IA DINAMICO ---
+            st.subheader("🧠 Ragionamento Strategico Intelligence")
+
+            # Recuperiamo il settore rilevato dall'analisi
+            settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
+
+            # Definiamo i suggerimenti specifici per reparto/ufficio in base al settore
+            consigli_settore = {
+                "PRIMARIO_ALIMENTARE": {
+                    "ufficio": "Qualità e Logistica",
+                    "guadagno": "+15% riduzione sprechi",
+                    "prognosi": "Rischio deperibilità elevato. La velocità di rotazione è vitale."
+                },
+                "SECONDARIO_MANIFATTURA": {
+                    "ufficio": "Produzione e Acquisti",
+                    "guadagno": "+12% ottimizzazione stock",
+                    "prognosi": "Rallentamento flussi rilevato. Possibile fermo macchina tra 10gg."
+                },
+                "TERZIARIO_LOGISTICA": {
+                    "ufficio": "Ufficio Spedizioni / Traffico",
+                    "guadagno": "+20% efficienza consegne",
+                    "prognosi": "Collo di bottiglia nei vettori. Saturazione magazzino imminente."
+                },
+                "EDILE": {
+                    "ufficio": "Capocantiere / Approvvigionamento",
+                    "guadagno": "+10% gestione materiali",
+                    "prognosi": "Ritardo forniture materiali pesanti. Rischio penali su commessa."
+                }
+            }
+
+            # Recuperiamo i dettagli o usiamo quelli standard
+            info = consigli_settore.get(settore_rilevato, {
+                "ufficio": "Direzione Generale",
+                "guadagno": "+5% efficienza globale",
+                "prognosi": "Parametri standard. Monitorare la stabilità operativa."
+            })
+
+            st.markdown(f"""
+            <div class="ai-reasoning">
+                <strong>📍 ANALISI PER REPARTO: <span style='color:#3498db'>{info['ufficio']}</span></strong><br>
+                <strong>📊 SETTORE IDENTIFICATO:</strong> {settore_rilevato.replace('_', ' ')}<br><br>
+                
+                <strong>🔮 PROGNOSI IA:</strong><br>
+                {info['prognosi']} Il sistema rileva che la resilienza è al {res}%. 
+                Il Momentum Score indica un'espansione del rischio specifica per il comparto {settore_rilevato}.<br><br>
+                
+                <strong>🚀 AZIONE ALPHA (Suggerimento):</strong><br>
+                Intervenire entro 15gg. Si suggerisce di dare priorità agli asset con Momentum > 1.5. 
+                L'intervento tempestivo porterà a un <strong>incremento stimato del {info['guadagno']}</strong> sui margini operativi.
+            </div>
+            """, unsafe_allow_html=True)
+
+            # --- DETTAGLIO ASSET ---
+            st.subheader("📝 Piano d'Azione per Asset")
+            for asset in report_analisi:
+                r = asset.get('rischio', 0)
+                box = "kpi-box-critical" if r > 7 else "kpi-box"
+                st.markdown(f"""
+                <div class="{box}">
+                    <b>{asset.get('asset')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score')}
+                    <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico')}</small>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # --- INTEGRAZIONE RGD-ALPHA CREW (NODE.JS BRIDGE) ---
+            st.markdown("---")
+            st.header("👥 RGD-ALPHA CREW | Client Risk Early Warning")
+            
+            try:
+                # Bridge simulato con il Backend Node.js
+                col_crew1, col_crew2, col_crew3 = st.columns(3)
+                with col_crew1: st.metric("Clienti Monitorati", "124")
+                with col_crew2: st.metric("Clienti ad Alto Rischio", "8", delta="↑ 2", delta_color="inverse")
+                with col_crew3: st.metric("Churn Rate Previsto", "3.2%")
+
+                st.subheader("🚨 Alert Recenti: Relazioni Clienti (da MongoDB)")
+                clienti_alert = [
+                    {"cliente": "Azienda Meccanica SPA", "rischio": "ROSSO", "motivo": "Drop frequenza d'acquisto -40%"},
+                    {"cliente": "Logistica Nord Srl", "rischio": "GIALLO", "motivo": "Peggioramento tono comunicazioni"},
+                    {"cliente": "Distribuzione Alimentare", "rischio": "ROSSO", "motivo": "Ritardo pagamenti > 15gg"}
+                ]
+                for c in clienti_alert:
+                    c_color = "#e74c3c" if c['rischio'] == "ROSSO" else "#f1c40f"
+                    st.markdown(f"""
+                        <div class="crew-box" style="border-left-color: {c_color};">
+                            <strong>{c['cliente']}</strong> - <span style="color:{c_color}">{c['rischio']}</span><br>
+                            <small>{c['motivo']}</small>
+                        </div>
+                    """, unsafe_allow_html=True)
+            except:
+                st.info("⚠️ Collegamento al modulo CREW (Node.js) in corso di inizializzazione...")
+
+    st.markdown("---") # Linea di separazione originale
+
+    # 3. METRICHE (Le 4 colonne statiche di fallback con i numeri originariamente fornite)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -374,263 +630,6 @@ elif scelta == "📊 War Room Strategica":
         """, unsafe_allow_html=True)
     
     st.markdown("---")
-    
-    # Caricamento e parametri nella Sidebar della War Room
-    with st.sidebar:
-        with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
-            w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
-            w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
-        with st.expander("🚨 STRESS TEST", expanded=True):
-            ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
-            f_stress = 1.0 + (ritardo / 50.0)
-            
-        # Corretto: Ora queste righe sono IDENTATE DENTRO 'with st.sidebar'
-        # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
-
-        uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
-        if uploaded_file:
-            # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
-            path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-                
-            with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-                ingestor = IngestoreDati()
-                lista_asset = ingestor.elabora_file(str(path), azienda)
-                
-                if lista_asset:
-                    engine = DataGateway()
-
-                # RIPRISTINATO: Uso di user_id come richiesto
-                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
-                
-                # Calcolo con Stress Test e Pesi EMA
-                report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
-                
-                # --- CICLO COMPILAZIONE DATABASE ---
-                for r in report_analisi:
-                    db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-
-                # --- NUOVA ANALISI AUTONOMA WAR ROOM ---
-                risultato_wr = assegna_categoria_warroom(uploaded_file)
-                if "errore" not in risultato_wr:
-                    st.markdown(f"""
-                    <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
-                        <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">🎯 Classificazione Macro-Categoria War Room</h4>
-                        <p style="margin: 5px 0;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
-                        <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
-                sim = SimulatoreRischio()
-                risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-
-                # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
-                sentinella = Sentinella()
-                asset_a_rischio = [a for a in report_analisi if a.get('rischio') > 7.5]
-
-                if asset_a_rischio:
-                    asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
-                    sentinella.genera_report_strategico(asset_a_rischio_dict)
-
-                    # 2. INVIO EMAIL (Nuova funzione Enterprise)
-                    try:
-                        from core.email_manager import EmailManager
-                        mailer = EmailManager()
-                        corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
-                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
-                    except Exception as e:
-                        st.sidebar.error(f"Errore invio notifica: {e}")
-
-                    st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
-
-                    # --- GRAFICO PREDITTIVO INTEGRATO ---
-                    # 1. Genera il report su file
-                    sentinella.genera_report(asset_a_rischio)
-
-                    # 2. INVIO EMAIL
-                    try:
-                        from core.email_manager import EmailManager
-                        mailer = EmailManager()
-                        corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
-                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
-                    except Exception as e:
-                        st.sidebar.error(f"Errore invio: {e}")
-
-                # AGGIORNA LE METRICHE IN ALTO DINAMICAMENTE
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    st.markdown("""
-                    <div class='metric-card'>
-                        <h3>Solidità Operativa</h3>
-                        <div class='value'>{}%</div>
-                        <div class='delta'>{}</div>
-                    </div>
-                    """.format(
-                        kpi_reali.get('solidita', 0),
-                        "↑ Ottima" if kpi_reali.get('solidita', 0) > 80 else "→ Nella norma" if kpi_reali.get('solidita', 0) > 50 else "↓ Attenzione"
-                    ), unsafe_allow_html=True)
-                
-                with col2:
-                    rischio_val = kpi_reali.get('rischio_medio', 0)
-                    colore_rischio = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
-                    st.markdown("""
-                    <div class='metric-card' style='border-top-color: {};'>
-                        <h3>Rischio Medio</h3>
-                        <div class='value' style='color: {}'>{}/10</div>
-                        <div class='delta'>{}</div>
-                    </div>
-                    """.format(
-                        colore_rischio,
-                        colore_rischio,
-                        rischio_val,
-                        "Critico" if rischio_val > 7 else "Medio" if rischio_val > 4 else "Basso"
-                    ), unsafe_allow_html=True)
-                
-                with col3:
-                    st.markdown("""
-                    <div class='metric-card' style='border-top-color: #f39c12;'>
-                        <h3>Asset Analizzati</h3>
-                        <div class='value'>{}</div>
-                        <div class='delta'>totali</div>
-                    </div>
-                    """.format(len(report_analisi)), unsafe_allow_html=True)
-                
-                with col4:
-                    impatto = kpi_reali.get('impatto_30gg', 'N/D')
-                    colore_impatto = "#e74c3c" if impatto == "CRITICO" else "#f39c12" if impatto == "ATTENZIONE" else "#27ae60"
-                    st.markdown("""
-                    <div class='metric-card' style='border-top-color: {};'>
-                        <h3>Impatto 30gg</h3>
-                        <div class='value' style='color: {}'>{}</div>
-                        <div class='delta'>proiezione</div>
-                    </div>
-                    """.format(colore_impatto, colore_impatto, impatto), unsafe_allow_html=True)
-                
-                st.markdown("---")
-
-                # --- 5 KPI ALPHA ---
-                st.header("🛡️ Indicatori Strategici Vitali")
-                cols = st.columns(5)
-                cols[0].metric("Solidità", f"{kpi_reali.get('solidita', 0)}%")
-                cols[1].metric("Rischio Medio", f"{kpi_reali.get('rischio_medio', 0)}/10")
-                avg_m = sum([a.get('momentum_score', 0) for a in report_analisi]) / len(report_analisi) if report_analisi else 0
-                cols[2].metric("Trend Momentum", f"{round(avg_m, 2)}", delta="Accelerazione" if avg_m > 1.2 else "Stabile")
-                cols[3].metric("Efficienza Risorse", "84.2%")
-                res = max(round(100 - (f_stress * 10), 1), 0)
-                cols[4].metric("Resilience", f"{res}%")
-
-                # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
-                if risultati_sim and risultati_sim.get('percorsi_raw') is not None:
-                    st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                    fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
-                    st.plotly_chart(fig_pred, use_container_width=True)
-                else:
-                    st.info("🔮 Analisi IA: Proiezione grafica temporaneamente non disponibile.")
-                
-                # --- GRAFICO MOMENTUM ---
-                st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
-                df_plot = pd.DataFrame(report_analisi)
-                fig = px.bar(df_plot, x="asset", y="momentum_score", color="stato",
-                             color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"})
-                st.plotly_chart(fig, use_container_width=True)
-
-                # --- RAGIONAMENTO IA DINAMICO ---
-                st.subheader("🧠 Ragionamento Strategico Intelligence")
-
-                # Recuperiamo il settore rilevato dall'analisi
-                settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
-
-                # Definiamo i suggerimenti specifici per reparto/ufficio in base al settore
-                consigli_settore = {
-                    "PRIMARIO_ALIMENTARE": {
-                        "ufficio": "Qualità e Logistica",
-                        "guadagno": "+15% riduzione sprechi",
-                        "prognosi": "Rischio deperibilità elevato. La velocità di rotazione è vitale."
-                    },
-                    "SECONDARIO_MANIFATTURA": {
-                        "ufficio": "Produzione e Acquisti",
-                        "guadagno": "+12% ottimizzazione stock",
-                        "prognosi": "Rallentamento flussi rilevato. Possibile fermo macchina tra 10gg."
-                    },
-                    "TERZIARIO_LOGISTICA": {
-                        "ufficio": "Ufficio Spedizioni / Traffico",
-                        "guadagno": "+20% efficienza consegne",
-                        "prognosi": "Collo di bottiglia nei vettori. Saturazione magazzino imminente."
-                    },
-                    "EDILE": {
-                        "ufficio": "Capocantiere / Approvvigionamento",
-                        "guadagno": "+10% gestione materiali",
-                        "prognosi": "Ritardo forniture materiali pesanti. Rischio penali su commessa."
-                    }
-                }
-
-                # Recuperiamo i dettagli o usiamo quelli standard
-                info = consigli_settore.get(settore_rilevato, {
-                    "ufficio": "Direzione Generale",
-                    "guadagno": "+5% efficienza globale",
-                    "prognosi": "Parametri standard. Monitorare la stabilità operativa."
-                })
-
-                st.markdown(f"""
-                <div class="ai-reasoning">
-                    <strong>📍 ANALISI PER REPARTO: <span style='color:#3498db'>{info['ufficio']}</span></strong><br>
-                    <strong>📊 SETTORE IDENTIFICATO:</strong> {settore_rilevato.replace('_', ' ')}<br><br>
-                    
-                    <strong>🔮 PROGNOSI IA:</strong><br>
-                    {info['prognosi']} Il sistema rileva che la resilienza è al {res}%. 
-                    Il Momentum Score indica un'espansione del rischio specifica per il comparto {settore_rilevato}.<br><br>
-                    
-                    <strong>🚀 AZIONE ALPHA (Suggerimento):</strong><br>
-                    Intervenire entro 15gg. Si suggerisce di dare priorità agli asset con Momentum > 1.5. 
-                    L'intervento tempestivo porterà a un <strong>incremento stimato del {info['guadagno']}</strong> sui margini operativi.
-                </div>
-                """, unsafe_allow_html=True)
-
-                # --- DETTAGLIO ASSET ---
-                st.subheader("📝 Piano d'Azione per Asset")
-                for asset in report_analisi:
-                    r = asset.get('rischio', 0)
-                    box = "kpi-box-critical" if r > 7 else "kpi-box"
-                    st.markdown(f"""
-                    <div class="{box}">
-                        <b>{asset.get('asset')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score')}
-                        <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                # --- INTEGRAZIONE RGD-ALPHA CREW (NODE.JS BRIDGE) ---
-                st.markdown("---")
-                st.header("👥 RGD-ALPHA CREW | Client Risk Early Warning")
-                
-                try:
-                    # Bridge simulato con il Backend Node.js
-                    col_crew1, col_crew2, col_crew3 = st.columns(3)
-                    with col_crew1: st.metric("Clienti Monitorati", "124")
-                    with col_crew2: st.metric("Clienti ad Alto Rischio", "8", delta="↑ 2", delta_color="inverse")
-                    with col_crew3: st.metric("Churn Rate Previsto", "3.2%")
-
-                    st.subheader("🚨 Alert Recenti: Relazioni Clienti (da MongoDB)")
-                    clienti_alert = [
-                        {"cliente": "Azienda Meccanica SPA", "rischio": "ROSSO", "motivo": "Drop frequenza d'acquisto -40%"},
-                        {"cliente": "Logistica Nord Srl", "rischio": "GIALLO", "motivo": "Peggioramento tono comunicazioni"},
-                        {"cliente": "Distribuzione Alimentare", "rischio": "ROSSO", "motivo": "Ritardo pagamenti > 15gg"}
-                    ]
-                    for c in clienti_alert:
-                        c_color = "#e74c3c" if c['rischio'] == "ROSSO" else "#f1c40f"
-                        st.markdown(f"""
-                            <div class="crew-box" style="border-left-color: {c_color};">
-                                <strong>{c['cliente']}</strong> - <span style="color:{c_color}">{c['rischio']}</span><br>
-                                <small>{c['motivo']}</small>
-                            </div>
-                        """, unsafe_allow_html=True)
-                except:
-                    st.info("⚠️ Collegamento al modulo CREW (Node.js) in corso di inizializzazione...")
 
 # =========================
 #   CENTRALE ADMIN
