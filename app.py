@@ -324,18 +324,18 @@ elif scelta == "📊 War Room Strategica":
     st.markdown(f"""
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
-            <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
+            <p>Analisi in tempo reale e Analisi predettiva<strong>{azienda}</strong></p>
         </div>
     """, unsafe_allow_html=True)
 
     # --- NUOVA SEZIONE: GUIDA PROFESSIONALE (Inserita qui per chiarezza) ---
-    with st.expander("📋 GUIDA: Selezione Reparto / Area Focus", expanded=True):
+    with st.expander("📋 GUIDA: Selezione Dipartimento", expanded=True):
         st.markdown("""
-        Prima di caricare il file, seleziona il **Reparto / Area Focus** per calibrare l'algoritmo Alpha:
-        1. **Amministrazione:** Flussi finanziari, tempistiche di incasso, indici di liquidità e stabilità di bilancio.
-        2. **Magazzino:** Rotazione delle scorte, asset obsoleti, giacenze critiche e indici di deperibilità.
-        3. **Acquisti e Logistica:** Stress test sui tempi di consegna dei fornitori e colli di bottiglia nei vettori.
-        4. **Produzione / Vendite:** Saturazione della capacità operativa, efficienza delle risorse e previsione del Churn Rate.
+        Prima di caricare il file, seleziona il **Dipartimento** per poter calibrare l'algoritmo RGD-Alfa specifico.:
+        1. **Administration & Finance:**
+        2. **Production & Logistic:**
+        3. **Sales & Marketing:**
+        4. **Human Resources & Facilities:**
         """)
 
     st.markdown("---")
@@ -343,12 +343,11 @@ elif scelta == "📊 War Room Strategica":
     # --- 2. SELEZIONE REPARTO (UNA SOLA VOLTA) ---
     # Questa funzione ora gestisce i menu a tendina. Rimuovi ogni altro selectbox manuale!
     struttura = mostra_interfaccia_4_aree()
-    macro_scelta = struttura['macro_area']
-    reparto_scelto = struttura['reparto']
+    Dipartimento_scelto = struttura['Dipartimento']
 
     # --- 3. CARICAMENTO FILE (SPOSTATO AL CENTRO) ---
-    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
-    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", type=["csv", "xlsx"])
+    st.subheader(f"📂 Upload Files: {dipartimento_scelto}")
+    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {dipartimento_scelto}", type=["csv", "xlsx"])
 
     # --- 4. CALIBRAZIONE EMA E STRESS TEST (In Sidebar) ---
     with st.sidebar:
