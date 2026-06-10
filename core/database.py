@@ -830,3 +830,34 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f"Errore recupero log caricamenti admin: {e}")
             return pd.DataFrame()
+
+    def recupera_attivita_globale(self):
+        """Recupera tutti i log degli asset analizzati."""
+        try:
+            with self._get_conn() as conn:
+                return pd.read_sql_query("SELECT * FROM asset_logs", conn)
+        except Exception as e:
+            logger.error(f"Errore recupero attività: {e}")
+            return pd.DataFrame()
+
+    def recupera_log_caricamenti_admin(self):
+        """Recupera la cronologia dei file caricati."""
+        try:
+            with self._get_conn() as conn:
+                return pd.read_sql_query("SELECT * FROM log_caricamenti", conn)
+        except Exception as e:
+            logger.error(f"Errore recupero log caricamenti: {e}")
+            return pd.DataFrame()
+
+    def supervisione_admin_metriche_globali(self):
+        """Recupera l'elenco utenti per la centrale Admin."""
+        try:
+            with self._get_conn() as conn:
+                df = pd.read_sql_query("SELECT id, email, ruolo, azienda, data_creazione FROM utenti", conn)
+                # Decrittazione email se necessario
+                if not df.empty:
+                    df['email'] = df['email'].apply(lambda x: self.vault.decrypt_data(x))
+                return df
+        except Exception as e:
+            logger.error(f"Errore supervisione admin: {e}")
+            return pd.DataFrame()
