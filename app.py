@@ -343,8 +343,8 @@ elif scelta == "📊 War Room Strategica":
     # --- 2. SELEZIONE REPARTO (UNA SOLA VOLTA) ---
     # Questa funzione ora gestisce i menu a tendina. Rimuovi ogni altro selectbox manuale!
     struttura = mostra_interfaccia_4_aree()
-    macro_scelta = struttura['macro_area']
-    reparto_scelto = struttura['reparto']
+    macro_scelta = struttura['Dipartimento']
+    reparto_scelto = struttura['Dipartimento'] 
 
     # --- 3. CARICAMENTO FILE (SPOSTATO AL CENTRO) ---
     st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
