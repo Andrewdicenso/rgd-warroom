@@ -22,7 +22,6 @@ class SecureVault:
             env_key = os.getenv("VAULT_KEY_CONTENT")
             if env_key:
                 logger.info("🛡️ Chiave caricata con successo da variabile d'ambiente.")
-                # Assicuriamoci che sia in bytes
                 return env_key.encode('utf-8') if isinstance(env_key, str) else env_key
 
             # 2. TENTATIVO: Cerca nel file locale (per VS Code)
@@ -43,6 +42,7 @@ class SecureVault:
                 logger.warning("⚠️ Nuova chiave generata (Locale).")
                 return key
             else:
+                # Se siamo su Render e arriviamo qui, significa che manca la variabile d'ambiente
                 raise ValueError("ERRORE CRITICO: Chiave mancante su Render! Aggiungi VAULT_KEY_CONTENT nelle variabili.")
 
         except Exception as e:
@@ -53,7 +53,6 @@ class SecureVault:
         """Cifra una stringa e restituisce una stringa sicura per il DB."""
         if data is None: return None
         try:
-            # Convertiamo in bytes, cifriamo e torniamo in stringa per SQLite
             return self.cipher.encrypt(data.encode('utf-8')).decode('utf-8')
         except Exception as e:
             logger.error(f"Errore cifratura: {e}")
@@ -63,10 +62,8 @@ class SecureVault:
         """Decifra i dati. Accetta stringhe o bytes (massima compatibilità)."""
         if not encrypted_data: return ""
         try:
-            # Assicuriamoci di avere bytes per la decifratura
             if isinstance(encrypted_data, str):
                 encrypted_data = encrypted_data.encode('utf-8')
-            
             return self.cipher.decrypt(encrypted_data).decode('utf-8')
         except InvalidToken:
             logger.error("⚠️ ALERT SICUREZZA: Chiave non valida o dati manomessi!")
@@ -81,7 +78,6 @@ if __name__ == "__main__":
     test_msg = "Azienda_Segreta_123"
     criptato = vault.encrypt_data(test_msg)
     decriptato = vault.decrypt_data(criptato)
-    
     print(f"Originale: {test_msg}")
     print(f"Criptato: {criptato}")
     print(f"Decriptato correttamente: {test_msg == decriptato}")
