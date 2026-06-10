@@ -33,12 +33,13 @@ def mostra_interfaccia_4_aree():
     Genera l'interfaccia visiva pulita per la War Room.
     Sostituisce i vecchi menu doppi con una selezione singola professionale.
     """
-    st.subheader("🏢 Area Focus dell'Analisi")
+    st.subheader("🏢 Seleziona Dipartimento")
     aree = list(STRUTTURA_AZIENDALE.keys())
     
+
     # Selezione singola dell'area (Più chiara per l'utente)
     area_scelta = st.selectbox(
-        "Seleziona il Reparto / Area Focus per calibrare l'algoritmo Alpha:", 
+        "Dipartimento:", 
         aree,
         help="L'area scelta cambierà i parametri di calcolo del rischio."
     )
@@ -47,8 +48,7 @@ def mostra_interfaccia_4_aree():
     st.info(f"📍 **Area Attiva:** {area_scelta}\n\n🎯 **Focus:** {info_area['descrizione']}")
     
     return {
-        "macro_area": area_scelta,
-        "reparto": area_scelta, # In questa versione semplificata coincidono
+        "Dipartimento": area_scelta,
         "config": info_area
     }
 

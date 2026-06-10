@@ -324,18 +324,18 @@ elif scelta == "📊 War Room Strategica":
     st.markdown(f"""
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
-            <p>Analisi in tempo reale e Analisi predettiva<strong>{azienda}</strong></p>
+            <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
         </div>
     """, unsafe_allow_html=True)
 
     # --- NUOVA SEZIONE: GUIDA PROFESSIONALE (Inserita qui per chiarezza) ---
-    with st.expander("📋 GUIDA: Selezione Dipartimento", expanded=True):
+    with st.expander("📋 GUIDA: Selezione Reparto / Area Focus", expanded=True):
         st.markdown("""
         Prima di caricare il file, seleziona il **Dipartimento** per poter calibrare l'algoritmo RGD-Alfa specifico.:
-        1. **Administration & Finance:**
+        1. **Administration & Finance:** 
         2. **Production & Logistic:**
         3. **Sales & Marketing:**
-        4. **Human Resources & Facilities:**
+        4. **Human Resources & Facilities:** 
         """)
 
     st.markdown("---")
@@ -343,11 +343,12 @@ elif scelta == "📊 War Room Strategica":
     # --- 2. SELEZIONE REPARTO (UNA SOLA VOLTA) ---
     # Questa funzione ora gestisce i menu a tendina. Rimuovi ogni altro selectbox manuale!
     struttura = mostra_interfaccia_4_aree()
-    Dipartimento_scelto = struttura['Dipartimento']
+    macro_scelta = struttura['macro_area']
+    reparto_scelto = struttura['reparto']
 
     # --- 3. CARICAMENTO FILE (SPOSTATO AL CENTRO) ---
-    st.subheader(f"📂 Upload Files: {dipartimento_scelto}")
-    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {dipartimento_scelto}", type=["csv", "xlsx"])
+    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
+    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", type=["csv", "xlsx"])
 
     # --- 4. CALIBRAZIONE EMA E STRESS TEST (In Sidebar) ---
     with st.sidebar:
