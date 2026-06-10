@@ -21,6 +21,68 @@ from core.engine import DataGateway
 from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
+from core.experimental_modules.warroom_engine import assegna_categoria_warroom
+from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
+# --- 1. CONFIGURAZIONE PAGINA (Deve essere la prima funzione Streamlit chiamata) ---
+st.set_page_config(
+    page_title="War Room Strategica | RGandja",
+    page_icon="🚀",
+    layout="wide",  # Questo rende il progetto "degno" occupando tutto lo spazio
+    initial_sidebar_state="expanded"
+)
+
+# --- 2. CENTRALIZZAZIONE DELLO STILE (RGANDJA PREMIUM LOOK) ---
+st.markdown("""
+<style>
+    /* Sfondo e Font */
+    .stApp { background-color: #f4f7f9; }
+    
+    /* Header Professionale */
+    .warroom-header {
+        background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        border-bottom: 5px solid #d4af37; /* Oro RGandja */
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        color: white;
+    }
+
+    /* Griglia KPI */
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        text-align: center;
+        border-top: 5px solid #3498db;
+        transition: transform 0.3s ease;
+    }
+    .metric-card:hover { transform: translateY(-5px); }
+    .metric-card h3 { color: #627d98; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; }
+    .metric-card .value { font-size: 2.2rem; font-weight: bold; color: #102a43; }
+
+    /* Barra Aree Aziendali */
+    .area-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 2rem;
+    }
+    .area-box {
+        flex: 1;
+        background: #e1e7ec;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        color: #243b53;
+        border: 1px solid #cbd5e0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 3. INIZIALIZZAZIONE SESSIONE ---
+inizializza_sessione() 
 
 # --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
@@ -46,83 +108,17 @@ UPLOAD_DIR = Path(upload_path)
 # Crea la cartella se non esiste
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-st.set_page_config(
-    page_title="RGD-Alpha | War Room Strategica",
-    layout="wide",
-    page_icon="🛡️"
-)
-
 inizializza_sessione()
 
-# =========================
-#   CSS ENTERPRISE POTENZIATO
-# =========================
-st.markdown("""
-    <style>
-    .kpi-box { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #007BFF; margin-bottom: 15px; }
-    .kpi-box-critical { background-color: #fff5f5; padding: 20px; border-radius: 10px; border-left: 5px solid #dc3545; margin-bottom: 15px; }
-    .ai-reasoning { background: #0e1117; border: 1px solid #d4af37; padding: 25px; border-radius: 15px; color: #e2e8f0; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .crew-box { padding:15px; border-radius:10px; background:rgba(255,255,255,0.02); margin-bottom:10px; border-left: 5px solid #ccc; }
-    
-    /* NUOVI STILI PER WAR ROOM */
-    .warroom-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 2rem;
-        border-radius: 1rem;
-        margin-bottom: 2rem;
-        border-left: 5px solid #e74c3c;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .warroom-header h1 {
-        color: white;
-        margin: 0 0 0.5rem 0;
-        font-size: 2.5rem;
-    }
-    .warroom-header p {
-        color: #ecf0f1;
-        margin: 0;
-        font-size: 1.1rem;
-    }
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center;
-        border-top: 4px solid #3498db;
-    }
-    .metric-card h3 {
-        margin: 0 0 0.5rem 0;
-        color: #7f8c8d;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-    }
-    .metric-card .value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-    .metric-card .delta {
-        font-size: 0.9rem;
-        margin-top: 0.5rem;
-    }
-    .welcome-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 1rem;
-        color: white;
-        margin: 2rem 0;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .step-box {
-        background: rgba(255,255,255,0.1);
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1rem 0;
-        border-left: 4px solid #ffd700;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ========================================================
+#   CSS CENTRALIZZATO (Richiama il file style.css)
+# ========================================================
+try:
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    # Se il file non viene trovato (es. primo deploy), usa uno stile di backup
+    st.warning("⚠️ File style.css non trovato. Caricamento stile di base.")
 
 db = DatabaseAziendale()
 
@@ -324,15 +320,21 @@ if scelta == "🏠 Home":
 #   WAR ROOM STRATEGICA
 # =========================
 elif scelta == "📊 War Room Strategica":
-    # Header War Room migliorato
-    st.markdown("""
+    # 1. HEADER
+    st.markdown(f"""
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
-            <p>Analisi in tempo reale della solidità operativa di <strong>{}</strong></p>
+            <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
         </div>
-    """.format(azienda), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-    # Metriche in evidenza di default (prima dell'elaborazione file)
+    # 2. POSIZIONE CORRETTA: Fuori dalla sidebar, al centro della pagina!
+    st.markdown("### 🏢 Seleziona Destinazione Documento") # Aggiungi il testo tra parentesi
+    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
+    
+    st.markdown("---") # Linea di separazione
+
+    # 3. METRICHE (Le 4 colonne con i numeri)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -381,30 +383,47 @@ elif scelta == "📊 War Room Strategica":
         with st.expander("🚨 STRESS TEST", expanded=True):
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
-
-    uploaded_file = st.file_uploader("📁 Carica inventario CSV", type=["csv"])
-    if uploaded_file:
-        path = UPLOAD_DIR / azienda / uploaded_file.name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f: 
-            f.write(uploaded_file.getbuffer())
-
-        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-            ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_file(str(path), azienda)
             
-            if lista_asset:
-                engine = DataGateway()
+        # Corretto: Ora queste righe sono IDENTATE DENTRO 'with st.sidebar'
+        # Chiamiamo la grafica a 4 schede (Tab) dal file esterno in modo isolato
+
+        uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
+        if uploaded_file:
+            # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
+            path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+                
+            with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+                ingestor = IngestoreDati()
+                lista_asset = ingestor.elabora_file(str(path), azienda)
+                
+                if lista_asset:
+                    engine = DataGateway()
+
                 # RIPRISTINATO: Uso di user_id come richiesto
-                db.registra_caricamento(user_id, "UNIVERSAL", uploaded_file.name)
+                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
                 
                 # Calcolo con Stress Test e Pesi EMA
-                report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress, weights=(w1, w2))
+                report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
                 
                 # --- CICLO COMPILAZIONE DATABASE ---
                 for r in report_analisi:
                     db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+
+                # --- NUOVA ANALISI AUTONOMA WAR ROOM ---
+                risultato_wr = assegna_categoria_warroom(uploaded_file)
+                if "errore" not in risultato_wr:
+                    st.markdown(f"""
+                    <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                        <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">🎯 Classificazione Macro-Categoria War Room</h4>
+                        <p style="margin: 5px 0;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
+                        <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
                 sim = SimulatoreRischio()
