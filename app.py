@@ -1,19 +1,20 @@
 import os
-import sys  # <--- RISOLVE: Il NameError (sys non definito)
+import sys
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import plotly.express as px
-
 import streamlit as st
 from dotenv import load_dotenv
 
-# --- CONFIGURAZIONE PERCORSI SISTEMA ---
+# --- 1. CONFIGURAZIONE PERCORSI E AMBIENTE (UNIFICATA) ---
 PROJECT_ROOT = Path(__file__).parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 if str(PROJECT_ROOT / "core") not in sys.path:
     sys.path.append(str(PROJECT_ROOT / "core"))
+
+load_dotenv()
 
 # --- MODULI CORE & AUTH ---
 from core.ingestor import IngestoreDati
@@ -23,164 +24,70 @@ from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
 from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
-# --- 1. CONFIGURAZIONE PAGINA (Deve essere la prima funzione Streamlit chiamata) ---
-st.set_page_config(
-    page_title="War Room Strategica | RGandja",
-    page_icon="🚀",
-    layout="wide",  # Questo rende il progetto "degno" occupando tutto lo spazio
-    initial_sidebar_state="expanded"
-)
-
-# --- 2. CENTRALIZZAZIONE DELLO STILE (RGANDJA PREMIUM LOOK) ---
-st.markdown("""
-<style>
-    /* Sfondo e Font */
-    .stApp { background-color: #f4f7f9; }
-    
-    /* Header Professionale */
-    .warroom-header {
-        background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        border-bottom: 5px solid #d4af37; /* Oro RGandja */
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        color: white;
-    }
-
-    /* Griglia KPI */
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        text-align: center;
-        border-top: 5px solid #3498db;
-        transition: transform 0.3s ease;
-    }
-    .metric-card:hover { transform: translateY(-5px); }
-    .metric-card h3 { color: #627d98; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; }
-    .metric-card .value { font-size: 2.2rem; font-weight: bold; color: #102a43; }
-
-    /* Barra Aree Aziendali */
-    .area-container {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 2rem;
-    }
-    .area-box {
-        flex: 1;
-        background: #e1e7ec;
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: 600;
-        color: #243b53;
-        border: 1px solid #cbd5e0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# --- 3. INIZIALIZZAZIONE SESSIONE ---
-inizializza_sessione() 
-
-# --- CARICAMENTO MODULI ANALITICI CON FALLBACK ---
 from visuals import genera_grafico_predittivo
 
 try:
     from simulator import SimulatoreRischio
 except Exception as e:
-    st.sidebar.error(f"Errore caricamento Simulatore: {e}")
     class SimulatoreRischio: 
         def __init__(self, *args, **kwargs): pass
         def esegui_stress_test(self, *args, **kwargs): return {"probabilita_crisi": 0, "percorsi_raw": None}
 
-# =========================
-#   CONFIGURAZIONE BASE
-# =========================
-load_dotenv()
-PROJECT_ROOT = Path(__file__).parent
+# --- 2. CONFIGURAZIONE PAGINA STREAMLIT ---
+st.set_page_config(
+    page_title="War Room Strategica | RGandja",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Se siamo su Render, usiamo la cartella temporanea (/tmp), altrimenti quella locale
-upload_path = os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "data" / "uploads"))
+# --- 3. INIZIALIZZAZIONE SESSIONE (UNA SOLA VOLTA) ---
+inizializza_sessione() 
+db = DatabaseAziendale()
+upload_path = os.getenv("UPLOAD_DIR", "/tmp/rgd_uploads")
 UPLOAD_DIR = Path(upload_path)
-
-# Crea la cartella se non esiste
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-inizializza_sessione()
+# --- 4. STILE CSS RGANDJA PREMIUM ---
+st.markdown("""
+<style>
+    .stApp { background-color: #f4f7f9; }
+    .warroom-header {
+        background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+        padding: 2rem; border-radius: 15px; margin-bottom: 2rem;
+        border-bottom: 5px solid #d4af37; box-shadow: 0 10px 20px rgba(0,0,0,0.1); color: white;
+    }
+    .metric-card {
+        background: white; padding: 1.5rem; border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;
+        border-top: 5px solid #3498db;
+    }
+    .metric-card .value { font-size: 2.2rem; font-weight: bold; color: #102a43; }
+    .welcome-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem; border-radius: 1rem; color: white; margin: 2rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# ========================================================
-#   CSS CENTRALIZZATO (Richiama il file style.css)
-# ========================================================
-try:
-    with open("style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-except FileNotFoundError:
-    # Se il file non viene trovato (es. primo deploy), usa uno stile di backup
-    st.warning("⚠️ File style.css non trovato. Caricamento stile di base.")
-
-db = DatabaseAziendale()
-
-# =========================
-#   GESTIONE REGISTRAZIONE
-# =========================
+# --- 5. LOGICA REGISTRAZIONE PULITA ---
 def registra_nuovo_utente(email: str, password: str, conferma: str):
-    if not email or not password or not conferma:
-        st.error("Compila tutti i campi.")
-        return
-    if password != conferma:
-        st.error("Le password non coincidono.")
+    if not email or password != conferma:
+        st.error("Dati non validi o password non coincidenti.")
         return
     try:
-        esistente = db.get_utente_by_email(email)
-        if esistente:
+        if db.get_utente_by_email(email):
             st.error("Email già registrata.")
             return
-        
-        # Determina ruolo (Admin supremo o Utente)
         admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
         ruolo = "admin" if email.lower() == admin_email_env else "user"
-
-        # Passiamo None come azienda per farla generare automatica (AZ-id)
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None)
-        
-        if user_id:
-            st.success(f"✅ Registrazione completata come {ruolo.upper()}. Ora puoi accedere.")
+        if db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None):
+            st.success(f"✅ Registrazione completata come {ruolo.upper()}.")
             st.balloons()
     except Exception as e:
-        st.error(f"Errore registrazione: {e}")
-        
-        # Determina ruolo (Admin supremo o Utente)
-        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
-        ruolo = "admin" if email.lower() == admin_email_env else "user"
+        st.error(f"Errore tecnico registrazione: {e}")
 
-        # CREAZIONE UTENTE: Passiamo None come azienda per farla generare automatica (AZ-id)
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo, azienda=None)
-        
-        if user_id:
-            st.success(f"✅ Registrazione completata come {ruolo.upper()}. Ora puoi accedere.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore registrazione: {e}")
-
-        
-        # --- MODIFICA PER RENDER E VENDITA ---
-        # Leggiamo l'email dell'admin dalla "Cassaforte" (.env)
-        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
-        ruolo = "admin" if email.lower() == admin_email_env else "user"
-        # ------------------------------------
-
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo)
-        if user_id:
-            st.success("✅ Registrazione completata. Effettua il login.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore registrazione: {e}")
-
-# =========================
-#   SCHERMATA AUTH
-# =========================
+# --- 6. SCHERMATA AUTH ---
 if not st.session_state.autenticato:
     tab_login, tab_register = st.tabs(["🔐 Login", "🆕 Registrazione"])
     with tab_login:
@@ -198,489 +105,82 @@ if not st.session_state.autenticato:
         if st.button("Registrati"): registra_nuovo_utente(e_reg, p_reg, c_reg)
     st.stop()
 
-# =========================
-#   NAVIGAZIONE SIDEBAR
-# =========================
-user_id = st.session_state.user_id
-azienda = st.session_state.azienda
-ruolo = st.session_state.ruolo
-is_admin = (ruolo == "admin")
-
+# --- 7. NAVIGAZIONE ---
+user_id, azienda, ruolo = st.session_state.user_id, st.session_state.azienda, st.session_state.ruolo
 st.sidebar.title("🛡️ RGD-ALPHA")
 st.sidebar.write(f"Operatore: **{azienda}**")
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
-if is_admin: menu.insert(1, "🕵️ Centrale Admin")
+if ruolo == "admin": menu.insert(1, "🕵️ Centrale Admin")
 scelta = st.sidebar.radio("Navigazione", menu)
-
 if st.sidebar.button("Logout"): logout_utente()
 
 # =========================
-#   PAGINA HOME / BENVENUTO
+#   WAR ROOM STRATEGICA (PULITA)
 # =========================
-if scelta == "🏠 Home":
-    # Header con branding
-    st.markdown("""
-        <div style='text-align: center; padding: 3rem 0;'>
-            <h1 style='font-size: 3.5rem; margin: 0;'>🛡️ RGD-Alpha</h1>
-            <h2 style='color: #7f8c8d; margin: 0.5rem 0 2rem 0;'>War Room Strategica Aziendale</h2>
-        </div>
-    """, unsafe_allow_html=True)
+if scelta == "📊 War Room Strategica":
+    st.markdown(f"<div class='warroom-header'><h1>🚀 War Room Strategica</h1><p>Digital Twin & Risk Intelligence • {azienda}</p></div>", unsafe_allow_html=True)
     
-    # Card di benvenuto
-    st.markdown("""
-        <div class='welcome-card'>
-            <h3 style='margin-top: 0;'>👋 Benvenuto nella tua War Room Personale</h3>
-            <p style='font-size: 1.1rem; line-height: 1.6;'>
-                <strong>RGD-Alpha</strong> non è un simple gestionale. È un sistema di 
-                <strong>Risk Intelligence</strong> che analizza il tuo inventario e calcola la 
-                <strong>Solidità Operativa</strong> della tua azienda in tempo reale.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Come iniziare
-    st.markdown("### 🚀 Come Iniziare (30 secondi)")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>1️⃣ Registrati</h4>
-            <p style='margin: 0;'>Clicca su "Registrazione" in alto e crea il tuo account</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>2️⃣ Carica un CSV</h4>
-            <p style='margin: 0;'>Vai su "War Room Strategica" e carica il tuo file inventario</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class='step-box'>
-            <h4 style='margin-top: 0;'>3️⃣ Ottieni l'Analisi</h4>
-            <p style='margin: 0;'>Vedi immediatamente Solidità, Rischio e Proiezioni</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
+    # GUIDA
+    st.markdown("### 🎯 Configurazione Protocollo Alpha")
+    st.info("Seleziona il Dipartimento e carica i documenti per avviare il calcolo di precisione.")
 
-    st.markdown("### 📊 Cosa Ottieni")
-    col_a, col_b, col_c, col_d = st.columns(4)
-    
-    with col_a:
-        st.markdown("### 📈 Analisi Predittiva")
-        st.markdown("<p style='font-size: 20px;'>Scopri quali asset rischiano di diventare obsoleti</p>", unsafe_allow_html=True)
-
-    with col_b:
-        st.markdown("### 🏭 Multi-Settore")
-        st.markdown("<p style='font-size: 20px;'>Supporto per alimentare, abbigliamento, e-commerce</p>", unsafe_allow_html=True)
-
-    with col_c:
-        st.markdown("### 🔐 Sicurezza Enterprise")
-        st.markdown("<p style='font-size: 20px;'>Dati cifrati con AES-256</p>", unsafe_allow_html=True)
-
-    with col_d:
-        st.markdown("### 📝 Audit Trail")
-        st.markdown("<p style='font-size: 20px;'>Ogni operazione è tracciata</p>", unsafe_allow_html=True)
-    
-    # Value proposition
-    st.markdown("""
-        <div style='background: #f8f9fa; padding: 2rem; border-radius: 1rem; margin: 2rem 0; border-left: 5px solid #e74c3c;'>
-            <h3 style='margin-top: 0;'>🎯 Per Imprenditori Come Te</h3>
-            <blockquote style='font-size: 1.2rem; font-style: italic; color: #555; margin: 0;'>
-                "Mentre i comuni gestionali si limitano allo storico, 
-                RGD-Alpha calcola in tempo reale la Solidità Operativa, 
-                identificando i rischi <strong>prima</strong> che colpiscano il bilancio."
-            </blockquote>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Call to action
-    st.markdown("""
-        <div style='text-align: center; padding: 2rem;'>
-            <h3>Pronto a proteggere la tua azienda?</h3>
-            <p style='font-size: 1.2rem;'>Clicca su <strong>War Room Strategica</strong> nel menu a sinistra per iniziare!</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Sicurezza
-    st.markdown("""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 1rem; color: white; margin: 2rem 0;'>
-            <h3 style='margin-top: 0;'>🔐 Sicurezza Garantita</h3>
-            <p style='margin: 0;'>Dati cifrati AES-256 • Hosting Europeo • GDPR Compliant</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-# =========================
-#   WAR ROOM STRATEGICA
-# =========================
-elif scelta == "📊 War Room Strategica":
-    # 1. HEADER
-    st.markdown(f"""
-        <div class='warroom-header'>
-            <h1>🚀 War Room Strategica</h1>
-            <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- NUOVA SEZIONE: GUIDA PROFESSIONALE (Inserita qui per chiarezza) ---
-    with st.expander("📋 GUIDA: Selezione Reparto / Area Focus", expanded=True):
-        st.markdown("""
-        Prima di caricare il file, seleziona il **Dipartimento** per poter calibrare l'algoritmo RGD-Alfa specifico.:
-        1. **Administration & Finance:** 
-        2. **Production & Logistic:**
-        3. **Sales & Marketing:**
-        4. **Human Resources & Facilities:** 
-        """)
-
-    st.markdown("---")
-
-    # --- 2. SELEZIONE REPARTO (UNA SOLA VOLTA) ---
-    # Questa funzione ora gestisce i menu a tendina. Rimuovi ogni altro selectbox manuale!
+    # SELEZIONE DIPARTIMENTO (CHIAMATA UNICA)
     struttura = mostra_interfaccia_4_aree()
-    macro_scelta = struttura['Dipartimento']
-    reparto_scelto = struttura['Dipartimento'] 
+    dipartimento_scelto = struttura['Dipartimento']
 
-    # --- 3. CARICAMENTO FILE (SPOSTATO AL CENTRO) ---
-    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
-    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", type=["csv", "xlsx"])
+    st.markdown("---")
 
-    # --- 4. CALIBRAZIONE EMA E STRESS TEST (In Sidebar) ---
+    # UPLOAD FILES (UNICO E CENTRALE)
+    uploaded_file = st.file_uploader(f"📥 Upload Files: {dipartimento_scelto}", type=["csv", "xlsx"])
+
     with st.sidebar:
-        with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
-            w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
-            w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
-        with st.expander("🚨 STRESS TEST", expanded=True):
-            ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
-            f_stress = 1.0 + (ritardo / 50.0)
+        st.write("---")
+        w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
+        w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
+        ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
+        f_stress = 1.0 + (ritardo / 50.0)
 
-    # Inserito strategicamente subito dopo la selezione della struttura aziendale sulla pagina centrale
-    uploaded_file = st.file_uploader("📂 Carica inventario CSV", type=["csv"])
     if uploaded_file:
-        # Generiamo il percorso dinamico ad albero usando il nuovo motore dei reparti
-        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, macro_scelta, reparto_scelto, uploaded_file.name)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        with st.status("🔄 Analisi Alpha in corso...") as status:
+            path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, dipartimento_scelto, uploaded_file.name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "wb") as f: f.write(uploaded_file.getbuffer())
             
-        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
             ingestor = IngestoreDati()
             lista_asset = ingestor.elabora_file(str(path), azienda)
-            
             if lista_asset:
                 engine = DataGateway()
-
-            # RIPRISTINATO: Uso di user_id come richiesto
-            db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
-            
-            # Calcolo con Stress Test e Pesi EMA
-            report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
-            
-            # --- CICLO COMPILAZIONE DATABASE ---
-            for r in report_analisi:
-                db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
-            kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-
-            # --- NUOVA ANALISI AUTONOMA WAR ROOM ---
-            risultato_wr = assegna_categoria_warroom(uploaded_file)
-            if "errore" not in risultato_wr:
-                st.markdown(f"""
-                <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
-                    <h4 style="color: #ffd700; margin-top: 0; display: flex; align-items: center;">🎯 Classificazione Macro-Categoria War Room</h4>
-                    <p style="margin: 5px 0;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
-                    <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # --- ESECUZIONE SIMULAZIONE MONTE CARLO ---
-            sim = SimulatoreRischio()
-            risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-
-            # --- ESECUZIONE SENTINELLA (Notifica Automatica & Email) ---
-            sentinella = Sentinella()
-            asset_a_rischio = [a for a in report_analisi if a.get('rischio') > 7.5]
-
-            if asset_a_rischio:
-                asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
-                sentinella.genera_report_strategico(asset_a_rischio_dict)
-
-                # 2. INVIO EMAIL (Nuova funzione Enterprise)
-                try:
-                    from core.email_manager import EmailManager
-                    mailer = EmailManager()
-                    corpo_mail = f"Attenzione Andrew, la War Room ha rilevato {len(asset_a_rischio)} asset critici. Controlla il pannello di controllo."
-                    mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
-                except Exception as e:
-                    st.sidebar.error(f"Errore invio notifica: {e}")
-
-                st.warning(f"⚠️ Rilevate criticità: Report di allerta generato e notifica inviata.")
-
-                # --- GRAFICO PREDITTIVO INTEGRATO ---
-                # 1. Genera il report su file
-                sentinella.genera_report(asset_a_rischio)
-
-                # 2. INVIO EMAIL
-                try:
-                    from core.email_manager import EmailManager
-                    mailer = EmailManager()
-                    corpo_mail = f"Attenzione Andrew, rilevati {len(asset_a_rischio)} asset critici."
-                    mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA ALERT", corpo_mail)
-                except Exception as e:
-                    st.sidebar.error(f"Errore invio: {e}")
-
-            # AGGIORNA LE METRICHE IN ALTO DINAMICAMENTE
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.markdown("""
-                <div class='metric-card'>
-                    <h3>Solidità Operativa</h3>
-                    <div class='value'>{}%</div>
-                    <div class='delta'>{}</div>
-                </div>
-                """.format(
-                    kpi_reali.get('solidita', 0),
-                    "↑ Ottima" if kpi_reali.get('solidita', 0) > 80 else "→ Nella norma" if kpi_reali.get('solidita', 0) > 50 else "↓ Attenzione"
-                ), unsafe_allow_html=True)
-            
-            with col2:
-                rischio_val = kpi_reali.get('rischio_medio', 0)
-                colore_rischio = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
-                st.markdown("""
-                <div class='metric-card' style='border-top-color: {};'>
-                    <h3>Rischio Medio</h3>
-                    <div class='value' style='color: {}'>{}/10</div>
-                    <div class='delta'>{}</div>
-                </div>
-                """.format(
-                    colore_rischio,
-                    colore_rischio,
-                    rischio_val,
-                    "Critico" if rischio_val > 7 else "Medio" if rischio_val > 4 else "Basso"
-                ), unsafe_allow_html=True)
-            
-            with col3:
-                st.markdown("""
-                <div class='metric-card' style='border-top-color: #f39c12;'>
-                    <h3>Asset Analizzati</h3>
-                    <div class='value'>{}</div>
-                    <div class='delta'>totali</div>
-                </div>
-                """.format(len(report_analisi)), unsafe_allow_html=True)
-            
-            with col4:
-                impatto = kpi_reali.get('impatto_30gg', 'N/D')
-                colore_impatto = "#e74c3c" if impatto == "CRITICO" else "#f39c12" if impatto == "ATTENZIONE" else "#27ae60"
-                st.markdown("""
-                <div class='metric-card' style='border-top-color: {};'>
-                    <h3>Impatto 30gg</h3>
-                    <div class='value' style='color: {}'>{}</div>
-                    <div class='delta'>proiezione</div>
-                </div>
-                """.format(colore_impatto, colore_impatto, impatto), unsafe_allow_html=True)
-            
-            st.markdown("---")
-
-            # --- 5 KPI ALPHA ---
-            st.header("🛡️ Indicatori Strategici Vitali")
-            cols = st.columns(5)
-            cols[0].metric("Solidità", f"{kpi_reali.get('solidita', 0)}%")
-            cols[1].metric("Rischio Medio", f"{kpi_reali.get('rischio_medio', 0)}/10")
-            avg_m = sum([a.get('momentum_score', 0) for a in report_analisi]) / len(report_analisi) if report_analisi else 0
-            cols[2].metric("Trend Momentum", f"{round(avg_m, 2)}", delta="Accelerazione" if avg_m > 1.2 else "Stabile")
-            cols[3].metric("Efficienza Risorse", "84.2%")
-            res = max(round(100 - (f_stress * 10), 1), 0)
-            cols[4].metric("Resilience", f"{res}%")
-
-            # --- GRAFICO PREDITTIVO INTEGRATO (VERSIONE DEFINITIVA) ---
-            if risultati_sim and risultati_sim.get('percorsi_raw') is not None:
-                st.subheader("🔮 Proiezione Stress Test (Monte Carlo 30gg)")
-                fig_pred = genera_grafico_predittivo(risultati_sim['percorsi_raw'], giorni_proiettati=30)
-                st.plotly_chart(fig_pred, use_container_width=True)
+                db.registra_caricamento(user_id, dipartimento_scelto.upper(), uploaded_file.name)
+                report = engine.esegui_scan_strategico(lista_asset, dipartimento_scelto, fattore_stress=f_stress, weights=(w1, w2))
+                for r in report: 
+                    db.salva_asset(user_id, r['asset'], r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
+                st.success(f"Analisi completata: {len(report)} nodi processati.")
             else:
-                st.info("🔮 Analisi IA: Proiezione grafica temporaneamente non disponibile.")
-            
-            # --- GRAFICO MOMENTUM ---
-            st.subheader("📈 Accelerazione del Rischio (Algoritmo EMA)")
-            df_plot = pd.DataFrame(report_analisi)
-            fig = px.bar(df_plot, x="asset", y="momentum_score", color="stato",
-                         color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"})
-            st.plotly_chart(fig, use_container_width=True)
+                st.error("Dataset non valido.")
 
-            # --- RAGIONAMENTO IA DINAMICO ---
-            st.subheader("🧠 Ragionamento Strategico Intelligence")
-
-            # Recuperiamo il settore rilevato dall'analisi
-            settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
-
-            # Definiamo i suggerimenti specifici per reparto/ufficio in base al settore
-            consigli_settore = {
-                "PRIMARIO_ALIMENTARE": {
-                    "ufficio": "Qualità e Logistica",
-                    "guadagno": "+15% riduzione sprechi",
-                    "prognosi": "Rischio deperibilità elevato. La velocità di rotazione è vitale."
-                },
-                "SECONDARIO_MANIFATTURA": {
-                    "ufficio": "Produzione e Acquisti",
-                    "guadagno": "+12% ottimizzazione stock",
-                    "prognosi": "Rallentamento flussi rilevato. Possibile fermo macchina tra 10gg."
-                },
-                "TERZIARIO_LOGISTICA": {
-                    "ufficio": "Ufficio Spedizioni / Traffico",
-                    "guadagno": "+20% efficienza consegne",
-                    "prognosi": "Collo di bottiglia nei vettori. Saturazione magazzino imminente."
-                },
-                "EDILE": {
-                    "ufficio": "Capocantiere / Approvvigionamento",
-                    "guadagno": "+10% gestione materiali",
-                    "prognosi": "Ritardo forniture materiali pesanti. Rischio penali su commessa."
-                }
-            }
-
-            # Recuperiamo i dettagli o usiamo quelli standard
-            info = consigli_settore.get(settore_rilevato, {
-                "ufficio": "Direzione Generale",
-                "guadagno": "+5% efficienza globale",
-                "prognosi": "Parametri standard. Monitorare la stabilità operativa."
-            })
-
-            st.markdown(f"""
-            <div class="ai-reasoning">
-                <strong>📍 ANALISI PER REPARTO: <span style='color:#3498db'>{info['ufficio']}</span></strong><br>
-                <strong>📊 SETTORE IDENTIFICATO:</strong> {settore_rilevato.replace('_', ' ')}<br><br>
-                
-                <strong>🔮 PROGNOSI IA:</strong><br>
-                {info['prognosi']} Il sistema rileva che la resilienza è al {res}%. 
-                Il Momentum Score indica un'espansione del rischio specifica per il comparto {settore_rilevato}.<br><br>
-                
-                <strong>🚀 AZIONE ALPHA (Suggerimento):</strong><br>
-                Intervenire entro 15gg. Si suggerisce di dare priorità agli asset con Momentum > 1.5. 
-                L'intervento tempestivo porterà a un <strong>incremento stimato del {info['guadagno']}</strong> sui margini operativi.
-            </div>
-            """, unsafe_allow_html=True)
-
-            # --- DETTAGLIO ASSET ---
-            st.subheader("📝 Piano d'Azione per Asset")
-            for asset in report_analisi:
-                r = asset.get('rischio', 0)
-                box = "kpi-box-critical" if r > 7 else "kpi-box"
-                st.markdown(f"""
-                <div class="{box}">
-                    <b>{asset.get('asset')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score')}
-                    <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico')}</small>
-                </div>
-                """, unsafe_allow_html=True)
-
-            # --- INTEGRAZIONE RGD-ALPHA CREW (NODE.JS BRIDGE) ---
-            st.markdown("---")
-            st.header("👥 RGD-ALPHA CREW | Client Risk Early Warning")
-            
-            try:
-                # Bridge simulato con il Backend Node.js
-                col_crew1, col_crew2, col_crew3 = st.columns(3)
-                with col_crew1: st.metric("Clienti Monitorati", "124")
-                with col_crew2: st.metric("Clienti ad Alto Rischio", "8", delta="↑ 2", delta_color="inverse")
-                with col_crew3: st.metric("Churn Rate Previsto", "3.2%")
-
-                st.subheader("🚨 Alert Recenti: Relazioni Clienti (da MongoDB)")
-                clienti_alert = [
-                    {"cliente": "Azienda Meccanica SPA", "rischio": "ROSSO", "motivo": "Drop frequenza d'acquisto -40%"},
-                    {"cliente": "Logistica Nord Srl", "rischio": "GIALLO", "motivo": "Peggioramento tono comunicazioni"},
-                    {"cliente": "Distribuzione Alimentare", "rischio": "ROSSO", "motivo": "Ritardo pagamenti > 15gg"}
-                ]
-                for c in clienti_alert:
-                    c_color = "#e74c3c" if c['rischio'] == "ROSSO" else "#f1c40f"
-                    st.markdown(f"""
-                        <div class="crew-box" style="border-left-color: {c_color};">
-                            <strong>{c['cliente']}</strong> - <span style="color:{c_color}">{c['rischio']}</span><br>
-                            <small>{c['motivo']}</small>
-                        </div>
-                    """, unsafe_allow_html=True)
-            except:
-                st.info("⚠️ Collegamento al modulo CREW (Node.js) in corso di inizializzazione...")
-
-    st.markdown("---") # Linea di separazione originale
-
-    # 3. METRICHE (Le 4 colonne statiche di fallback con i numeri originariamente fornite)
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown("""
-        <div class='metric-card'>
-            <h3>Solidità Operativa</h3>
-            <div class='value'>N/D</div>
-            <div class='delta'>%</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #e74c3c;'>
-            <h3>Rischio Medio</h3>
-            <div class='value'>N/D</div>
-            <div class='delta'>/10</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #f39c12;'>
-            <h3>Asset Analizzati</h3>
-            <div class='value'>0</div>
-            <div class='delta'>totali</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown("""
-        <div class='metric-card' style='border-top-color: #27ae60;'>
-            <h3>Impatto 30gg</h3>
-            <div class='value'>N/D</div>
-            <div class='delta'>proiezione</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
+    # DASHBOARD KPI
+    kpis = db.calcola_e_salva_kpi_correnti(user_id)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.markdown(f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpis['solidita']}%</div></div>", unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='metric-card'><h3>Rischio</h3><div class='value'>{kpis['rischio_medio']}/10</div></div>", unsafe_allow_html=True)
+    with c3: st.markdown(f"<div class='metric-card'><h3>Asset</h3><div class='value'>{len(db.recupera_attivita_globale())}</div></div>", unsafe_allow_html=True)
+    with c4: st.markdown(f"<div class='metric-card'><h3>Impatto</h3><div class='value'>{kpis['impatto_30gg']}</div></div>", unsafe_allow_html=True)
 
 # =========================
-#   CENTRALE ADMIN
+#   ALTRE SEZIONI
 # =========================
-elif scelta == "🕵️ Centrale Admin" and is_admin:
+elif scelta == "🏠 Home":
+    st.markdown("<div class='welcome-card'><h1>🛡️ RGD-Alpha</h1><p>Benvenuto nel sistema di Risk Intelligence aziendale.</p></div>", unsafe_allow_html=True)
+
+elif scelta == "🕵️ Centrale Admin":
     st.title("🕵️ Centrale Admin")
-    try:
-        df = db.supervisione_admin_metriche_globali()
-        if df is not None and not df.empty:
-            st.dataframe(df, use_container_width=True, hide_index=True)
-    except: 
-        st.info("In attesa di dati dai nodi periferici.")
+    st.dataframe(db.supervisione_admin_metriche_globali(), use_container_width=True)
 
-# =========================
-#   ARCHIVIO STORICO
-# =========================
 elif scelta == "📜 Archivio Storico":
-    st.title("📜 Archivio Storico Analisi")
-    
-    # Se sei Admin vedi tutto, se sei Cliente vedi solo i tuoi dati
-    if is_admin:
-        st.info("👁️ Visualizzazione Admin: vedi lo storico di tutti i clienti")
-        df_log = db.recupera_log_caricamenti_admin()
-    else:
-        st.info("👁️ Visualizzazione limitata ai file della tua azienda")
-        df_log = db.recupera_log_caricamenti_per_utente(user_id)
+    st.title("📜 Archivio Storico")
+    df_log = db.recupera_log_caricamenti_admin()
+    st.dataframe(df_log, use_container_width=True)
 
-    if not df_log.empty:
-        st.dataframe(df_log, use_container_width=True, hide_index=True)
-    else:
-        st.warning("📭 Nessun dato trovato in questo archivio.")
-
-        if st.button("🗑️ Svuota tutti i dati"):
-            id_utente_corrente = st.session_state.get("user_id", 1)
-            db.svuota_dati_azienda(id_utente_corrente)
-            st.success("✅ Dati eliminati con successo!")
-            st.rerun()
+# ==============================================================================
+# 🛡️ PROTOCOLLO ALPHA-V2-FINALE: CODICE BLINDATO - NON MODIFICARE OLTRE 🛡️
+# ==============================================================================
