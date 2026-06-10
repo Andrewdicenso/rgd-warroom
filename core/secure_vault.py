@@ -10,36 +10,43 @@ class SecureVault:
     Gestisce automaticamente la persistenza della Master Key.
     """
     def __init__(self, key_path="core/security/vault.key"):
-        # Normalizziamo il percorso per evitare errori su Windows/Linux
+        # Normalizziamo il percorso per evitare errori su Windows
         self.key_path = os.path.abspath(key_path)
         self.key = self._load_or_create_key()
         self.cipher = Fernet(self.key)
 
     def _load_or_create_key(self) -> bytes:
-        """Carica o genera la Master Key con verifica permessi."""
+        """Carica la chiave da Environment Variable (Render) o da File (Locale)."""
         try:
-            folder = os.path.dirname(self.key_path)
-            if not os.path.exists(folder):
-                os.makedirs(folder, exist_ok=True)
-            
+            # 1. TENTATIVO: Cerca nelle variabili d'ambiente (per Render)
+            env_key = os.getenv("VAULT_KEY_CONTENT")
+            if env_key:
+                logger.info("🛡️ Chiave caricata con successo da variabile d'ambiente.")
+                # Assicuriamoci che sia in bytes
+                return env_key.encode('utf-8') if isinstance(env_key, str) else env_key
+
+            # 2. TENTATIVO: Cerca nel file locale (per VS Code)
             if os.path.exists(self.key_path):
                 with open(self.key_path, "rb") as key_file:
-                    key_data = key_file.read()
-                    if not key_data:
-                        raise ValueError("File chiave vuoto.")
-                    return key_data
-            else:
-                # Generazione nuova chiave se non esiste
+                    key_data = key_file.read().strip()
+                    if key_data:
+                        logger.info("🛡️ Chiave caricata con successo da file locale.")
+                        return key_data
+
+            # 3. FALLBACK: Genera nuova (solo se siamo in locale e manca tutto)
+            if not os.getenv("DATABASE_URL"): # Se non siamo su Render
                 key = Fernet.generate_key()
+                folder = os.path.dirname(self.key_path)
+                os.makedirs(folder, exist_ok=True)
                 with open(self.key_path, "wb") as key_file:
                     key_file.write(key)
-                logger.info(f"🛡️ Master Key generata con successo: {self.key_path}")
+                logger.warning("⚠️ Nuova chiave generata (Locale).")
                 return key
-        except PermissionError:
-            logger.critical(f"❌ ERRORE PERMESSI: Impossibile scrivere in {self.key_path}")
-            raise
+            else:
+                raise ValueError("ERRORE CRITICO: Chiave mancante su Render! Aggiungi VAULT_KEY_CONTENT nelle variabili.")
+
         except Exception as e:
-            logger.critical(f"❌ FALLIMENTO CRITICO SECURITY: {e}")
+            logger.critical(f"❌ FALLIMENTO SECURITY: {e}")
             raise
 
     def encrypt_data(self, data: str) -> str:

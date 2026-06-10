@@ -50,3 +50,28 @@ def genera_percorso_salvataggio(base_dir, azienda, macro_area, reparto, nome_fil
     # Costruiamo il percorso ad albero completo
     percorso_completo = Path(base_dir) / azienda / macro_pulita / reparto_pulito / nome_file
     return percorso_completo
+    import streamlit as st
+
+def mostra_interfaccia_4_aree():
+    """
+    Genera l'interfaccia visiva in Streamlit per la selezione 
+    della Macro-Area e del relativo Reparto.
+    """
+    st.subheader("🏢 Selezione Struttura Aziendale")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        macro_aree = ottieni_macro_aree()
+        macro_scelta = st.selectbox("Seleziona la Macro-Area:", macro_aree)
+        
+    with col2:
+        reparti_disponibili = ottieni_reparti_per_macro_area(macro_scelta)
+        reparto_scelto = st.selectbox("Seleziona il Reparto/Ufficio:", reparti_disponibili)
+        
+    st.info(f"📍 Destinazione analisi: **{macro_scelta}** > **{reparto_scelto}**")
+    
+    return {
+        "macro_area": macro_scelta,
+        "reparto": reparto_scelto
+    }
