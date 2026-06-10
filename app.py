@@ -327,13 +327,30 @@ elif scelta == "📊 War Room Strategica":
             <p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # 2. POSIZIONE CORRETTA: Fuori dalla sidebar, al centro della pagina!
-    st.markdown("### 🏢 Seleziona Destinazione Documento") # Aggiungi il testo tra parentesi
-    macro_scelta, reparto_scelto = mostra_interfaccia_4_aree() 
-    
-    # --- ESECUZIONE E CARICAMENTO DEL BACKEND ESTRATTI DALLA SIDEBAR E SPOSTATI QUI ---
-    # Calibrazione e stress test (rimangono agganciati a variabili lette più giù dalla sidebar)
+
+    # --- NUOVA SEZIONE: GUIDA PROFESSIONALE (Inserita qui per chiarezza) ---
+    with st.expander("📋 GUIDA: Selezione Reparto / Area Focus", expanded=True):
+        st.markdown("""
+        Prima di caricare il file, seleziona il **Reparto / Area Focus** per calibrare l'algoritmo Alpha:
+        1. **Amministrazione:** Flussi finanziari, tempistiche di incasso, indici di liquidità e stabilità di bilancio.
+        2. **Magazzino:** Rotazione delle scorte, asset obsoleti, giacenze critiche e indici di deperibilità.
+        3. **Acquisti e Logistica:** Stress test sui tempi di consegna dei fornitori e colli di bottiglia nei vettori.
+        4. **Produzione / Vendite:** Saturazione della capacità operativa, efficienza delle risorse e previsione del Churn Rate.
+        """)
+
+    st.markdown("---")
+
+    # --- 2. SELEZIONE REPARTO (UNA SOLA VOLTA) ---
+    # Questa funzione ora gestisce i menu a tendina. Rimuovi ogni altro selectbox manuale!
+    struttura = mostra_interfaccia_4_aree()
+    macro_scelta = struttura['macro_area']
+    reparto_scelto = struttura['reparto']
+
+    # --- 3. CARICAMENTO FILE (SPOSTATO AL CENTRO) ---
+    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
+    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", type=["csv", "xlsx"])
+
+    # --- 4. CALIBRAZIONE EMA E STRESS TEST (In Sidebar) ---
     with st.sidebar:
         with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
             w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
