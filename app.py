@@ -175,16 +175,16 @@ if scelta == "🏠 Home":
     col_a, col_b, col_c, col_d = st.columns(4)
     with col_a:
         st.markdown("##### 📈 Analisi Predittiva")
-        st.small("Simulazioni probabilistiche basate su motori stocastici a 30 giorni.")
+        st.markdown("<small>Simulazioni probabilistiche basate su motori stocastici a 30 giorni.</small>", unsafe_allow_html=True)
     with col_b:
         st.markdown("##### 🏭 Bilanciamento Multi-Settore")
-        st.small("Algoritmi ricalibrati automaticamente per comparti specifici.")
+        st.markdown("<small>Algoritmi ricalibrati automaticamente per comparti specifici.</small>", unsafe_allow_html=True)
     with col_c:
         st.markdown("##### 🔐 Sicurezza Asset")
-        st.small("Flussi informativi protetti, conformità e segregazione dei database.")
+        st.markdown("<small>Flussi informativi protetti, conformità e segregazione dei database.</small>", unsafe_allow_html=True)
     with col_d:
         st.markdown("##### 📝 Tracciamento Log")
-        st.small("Audit log completo dei caricamenti storici per finalità ispettive.")
+        st.markdown("<small>Audit log completo dei caricamenti storici per finalità ispettive.</small>", unsafe_allow_html=True)
 
 # ==========================================
 # 📊 SEZIONE 2: WAR ROOM STRATEGICA
@@ -201,37 +201,51 @@ elif scelta == "📊 War Room Strategica":
         4. **Human Resources & Facilities**
         """)
 
-    st.markdown("---")
+st.markdown("---")
 
-    # Selezione Struttura Dipartimentale (Unica ed evitanti conflitti di duplicazione)
-    struttura = mostra_interfaccia_4_aree()
-    reparto_scelto = struttura['Dipartimento']
+# Selezione Struttura Dipartimentale (Unica ed evitanti conflitti di duplicazione)
+struttura = mostra_interfaccia_4_aree()
+reparto_scelto = struttura['Dipartimento']
 
-    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
-    uploaded_file = st.file_uploader(f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", type=["csv", "xlsx"], key="warroom_uploader")
+st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
+uploaded_file = st.file_uploader(
+    f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}",
+    type=["csv", "xlsx"],
+    key="warroom_uploader"
+)
 
-    # Controlli di calibrazione e Stress Test in Sidebar
-    with st.sidebar:
-        with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
+# Controlli di calibrazione e Stress Test in Sidebar (Versione PRO)
+with st.sidebar:
+    if is_admin:
+        with st.expander("⚙️ CALIBRAZIONE EMA (Admin)", expanded=True):
             w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7)
             w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3)
-        with st.expander("🚨 STRESS TEST", expanded=True):
+
+        with st.expander("🚨 STRESS TEST (Admin)", expanded=True):
             ritardo = st.slider("Ritardo Fornitori (Giorni)", 0, 30, 0)
             f_stress = 1.0 + (ritardo / 50.0)
 
-    # Variabili di stato dell'elaborazione per evitare NameError fuori dai blocchi condizionali
-    report_analisi = None
-    risultati_sim = None
-    risultato_wr = None
+    else:
+        # Valori fissi per utenti normali (non modificabili)
+        w1 = 0.7
+        w2 = 0.3
+        ritardo = 0
+        f_stress = 1.0
 
-    if uploaded_file:
-        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, reparto_scelto, uploaded_file.name)
-        
-        # Prima di aprire il file, assicuriamoci che la cartella esista
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+# Variabili di stato dell'elaborazione per evitare NameError fuori dai blocchi condizionali
+report_analisi = None
+risultati_sim = None
+risultato_wr = None
 
-        with open(path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+if uploaded_file:
+    path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, reparto_scelto, uploaded_file.name)
+
+    # Prima di aprire il file, assicuriamoci che la cartella esista
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    with open(path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
 
             
         with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:

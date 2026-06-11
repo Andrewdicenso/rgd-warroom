@@ -70,7 +70,7 @@ class DataGateway:
         if lista_asset:
             colonne = list(lista_asset[0].keys()) if isinstance(lista_asset[0], dict) else list(vars(lista_asset[0]).keys())
         
-        config_settore = analizza_e_configura_motore(colonne)
+        config_settore = analizza_e_configura_motore(area_focus)
         settore_rilevato = config_settore.get("settore", "GENERAL")
         soglia = config_settore.get("soglia", 7.0)
         moltiplicatore = config_settore.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
