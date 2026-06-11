@@ -225,8 +225,7 @@ elif scelta == "📊 War Room Strategica":
     risultato_wr = None
 
     if uploaded_file:
-        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, reparto_scelto, reparto_scelto, uploaded_file.name)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, reparto_scelto, uploaded_file.name)
         
         with open(path, "wb") as f:
             f.write(uploaded_file.getbuffer())
