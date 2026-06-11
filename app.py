@@ -238,13 +238,16 @@ risultati_sim = None
 risultato_wr = None
 
 if uploaded_file:
-    path = genera_percorso_salvataggio(UPLOAD_DIR, azienda, reparto_scelto, uploaded_file.name)
+    # 🔥 Salvataggio sicuro su Render
+    temp_path = f"/tmp/{uploaded_file.name}"
 
-    # Prima di aprire il file, assicuriamoci che la cartella esista
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    with open(path, "wb") as f:
+    with open(temp_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
+
+    with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+        ingestor = IngestoreDati()
+        lista_asset = ingestor.elabora_file(temp_path, azienda)
+
 
 
             
