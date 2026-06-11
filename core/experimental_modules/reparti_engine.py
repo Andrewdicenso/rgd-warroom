@@ -54,13 +54,24 @@ def mostra_interfaccia_4_aree():
 
 def genera_percorso_salvataggio(base_dir, azienda, area_focus, nome_file):
     """
-    Genera il percorso sicuro per il salvataggio ad albero.
-    Esempio: data/uploads/AZ-1/Production_And_Logistic/file.csv
+    Genera un percorso sicuro e compatibile con Render per salvare i file.
+    Esempio finale:
+    /tmp/rgd_uploads/AZ-1/Production_And_Logistic/file.csv
     """
+
     # Pulizia nomi per compatibilità Linux/Render
+    azienda_pulita = str(azienda).replace(" ", "_").replace("&", "And")
     area_pulita = str(area_focus).replace(" ", "_").replace("&", "And")
-    percorso = Path(base_dir) / str(azienda) / area_pulita / nome_file
-    return percorso
+
+    # Costruzione percorso
+    percorso = Path(base_dir) / azienda_pulita / area_pulita
+
+    # Creazione cartelle (Render non le crea da solo)
+    percorso.mkdir(parents=True, exist_ok=True)
+
+    # Percorso finale completo
+    return percorso / nome_file
+
 
 def analizza_e_configura_motore(area_focus):
     """
