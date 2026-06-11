@@ -1,3 +1,13 @@
+from supabase import create_client
+import os
+
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
+
+print(supabase.table("utenti").select("*").execute())
+
 import sqlite3
 import datetime
 import os
