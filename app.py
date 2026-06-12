@@ -139,6 +139,106 @@ scelta = st.sidebar.radio("Navigazione", menu)
 if st.sidebar.button("Logout"): 
     logout_utente()
 
+# ========================================================
+# GESTIONE DELLE PAGINE (Sposta il codice qui sotto!)
+# ========================================================
+
+if scelta == "🏠 Home":
+    st.title("🏠 Dashboard Principale")
+    st.write("Benvenuto nel pannello di controllo RGD-ALPHA.")
+    # Inserisci qui solo i grafici o le informazioni della Home
+
+elif scelta == "🕵️ Centrale Admin" and is_admin:
+    st.title("🕵️ Centrale Admin")
+    st.write("Pannello di controllo amministrativo.")
+    # Inserisci qui il codice visibile solo agli amministratori
+
+elif scelta == "📊 War Room Strategica":
+    # 🎯 IL CARICAMENTO DEI FILE DEVE STARE SOLO ED ESCLUSIVAMENTE QUI
+    st.title("📂 Analisi di Rischio Alpha: Production & Logistic")
+    
+    uploaded_file = st.file_uploader(
+        "Trascina qui il file Excel/CSV relativo a: Production & Logistic", 
+        type=["csv", "xlsx"]
+    )
+    
+    if uploaded_file:
+        # Il codice di elaborazione sicuro e pulito che abbiamo sistemato prima
+        temp_path = f"/tmp/{uploaded_file.name}"
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
+            ingestor = IngestoreDati()
+            lista_asset = ingestor.elabora_file(temp_path, azienda)
+            
+            if lista_asset:
+                engine = DataGateway()
+                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
+                # ... (tutto il resto del backend che esegue lo scan strategico, Monte Carlo, email, ecc.) ...
+                
+                status.update(label="✅ Elaborazione completata con successo!", state="complete")
+            else:
+                status.update(label="❌ Errore: Dataset caricato non valido.", state="error")
+                st.error("Il file inserito non ha superato i controlli di integrità dell'ingestore.")
+
+elif scelta == "📜 Archivio Storico":
+    st.title("📜 Archivio Storico")
+    st.write("Consultazione dei report passati e storici caricamenti.")
+    
+    elif scelta == "📜 Archivio Storico":
+    st.title("📜 Archivio Storico Report")
+    st.write("Consultazione dei file Excel e CSV elaborati nel sistema RGD-ALPHA.")
+    
+    import os
+    from datetime import datetime
+    
+    # Definiamo i percorsi esatti basati sulla struttura reale del tuo progetto
+    cartella_uploads = os.path.join("core", "data", "uploads")
+    cartella_history = os.path.join("core", "data", "history_import")
+    
+    lista_file_storico = []
+    
+    # Funzione interna per scansionare una cartella specifica se esiste
+    def scansiona_cartella(percorso_base, tipo_archivio):
+        if os.path.exists(percorso_base):
+            for root, dirs, files in os.walk(percorso_base):
+                for file in files:
+                    # Consideriamo solo i file di dati validi
+                    if file.endswith(('.csv', '.xlsx', '.xls')) and not file.startswith('.'):
+                        filepath = os.path.join(root, file)
+                        
+                        # Recupero metadati del file
+                        stat_info = os.stat(filepath)
+                        data_modifica = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                        dimensione = f"{stat_info.st_size / 1024:.1f} KB"
+                        
+                        # Determiniamo il comparto o sotto-cartella aziendale (es. AZIENDA_001 o Magazzino)
+                        nome_cartella = os.path.basename(root)
+                        
+                        lista_file_storico.append({
+                            "Data Origine": data_modifica,
+                            "Nome Dataset": file,
+                            "Sorgente/Sotto-cartella": nome_cartella,
+                            "Dimensione": dimensione,
+                            "Tipo Archivio": tipo_archivio
+                        })
+
+    # Eseguiamo la scansione di entrambe le cartelle reali
+    scansiona_cartella(cartella_uploads, "Caricamento Utente (Uploads)")
+    scansiona_cartella(cartella_history, "Storico Importazioni (History)")
+    
+    # Mostriamo i risultati
+    if lista_file_storico:
+        # Ordina dal più recente
+        lista_file_storico.sort(key=lambda x: x["Data Origine"], reverse=True)
+        
+        # Mostra la tabella interattiva su Streamlit
+        st.dataframe(lista_file_storico, use_container_width=True)
+        st.success(f"📂 Rilevati con successo {len(lista_file_storico)} file archiviati nelle cartelle di sistema.")
+    else:
+        st.info("📭 Al momento non sono presenti file CSV o Excel nelle cartelle `uploads` o `history_import`.")
+
 # ==========================================
 # 🏠 SEZIONE 1: HOME PAGE
 # ==========================================
