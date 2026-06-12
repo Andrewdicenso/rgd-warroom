@@ -186,7 +186,7 @@ elif scelta == "📜 Archivio Storico":
     st.title("📜 Archivio Storico")
     st.write("Consultazione dei report passati e storici caricamenti.")
     
-    elif scelta == "📜 Archivio Storico":
+elif scelta == "📜 Archivio Storico":
     st.title("📜 Archivio Storico Report")
     st.write("Consultazione dei file Excel e CSV elaborati nel sistema RGD-ALPHA.")
     
