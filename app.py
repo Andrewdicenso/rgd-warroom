@@ -244,57 +244,51 @@ if uploaded_file:
     with open(temp_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
+    # Unico blocco status (nessun annidamento)
     with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
         ingestor = IngestoreDati()
+        # Usiamo temp_path che contiene il percorso del file appena salvato
         lista_asset = ingestor.elabora_file(temp_path, azienda)
-
-
-
+        
+        if lista_asset:
+            engine = DataGateway()
+            db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
             
-        with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-            ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_file(str(path), azienda)
+            report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
             
-            if lista_asset:
-                engine = DataGateway()
-                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
+            for r in report_analisi:
+                db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
+            
+            kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+            
+            # Classificazione Macro-Categoria
+            risultato_wr = assegna_categoria_warroom(uploaded_file)
+            
+            # Simulazione Monte Carlo
+            sim = SimulatoreRischio()
+            risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
+            
+            # Sistema di notifica Sentinella
+            sentinella = Sentinella()
+            asset_a_rischio = [a for a in report_analisi if a.get('rischio', 0) > 7.5]
+            
+            if asset_a_rischio:
+                asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
+                sentinella.genera_report_strategico(asset_a_rischio_dict)
+                sentinella.genera_report(asset_a_rischio)
                 
-                report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
-                
-                for r in report_analisi:
-                    db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
-                
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                
-                # Classificazione Macro-Categoria
-                risultato_wr = assegna_categoria_warroom(uploaded_file)
-                
-                # Simulazione Monte Carlo
-                sim = SimulatoreRischio()
-                risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-                
-                # Sistema di notifica Sentinella
-                sentinella = Sentinella()
-                asset_a_rischio = [a for a in report_analisi if a.get('rischio', 0) > 7.5]
-                
-                if asset_a_rischio:
-                    asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
-                    sentinella.genera_report_strategico(asset_a_rischio_dict)
-                    sentinella.genera_report(asset_a_rischio)
-                    
-                    try:
-                        from core.email_manager import EmailManager
-                        mailer = EmailManager()
-                        corpo_mail = f"Attenzione, la War Room RGD-ALPHA ha rilevato {len(asset_a_rischio)} asset critici nel comparto {reparto_scelto}."
-                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
-                    except Exception as e:
-                        st.sidebar.error(f"Errore invio notifica email: {e}")
-                
-                status.update(label="✅ Elaborazione completata con successo!", state="complete")
-            else:
-                status.update(label="❌ Errore: Dataset caricato non valido.", state="error")
-                st.error("Il file inserito non ha superato i controlli di integrità dell'ingestore.")
-
+                try:
+                    from core.email_manager import EmailManager
+                    mailer = EmailManager()
+                    corpo_mail = f"Attenzione, la War Room RGD-ALPHA ha rilevato {len(asset_a_rischio)} asset critici nel comparto {reparto_scelto}."
+                    mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
+                except Exception as e:
+                    st.sidebar.error(f"Errore invio notifica email: {e}")
+            
+            status.update(label="✅ Elaborazione completata con successo!", state="complete")
+        else:
+            status.update(label="❌ Errore: Dataset caricato non valido.", state="error")
+            st.error("Il file inserito non ha superato i controlli di integrità dell'ingestore.")
     # --- RENDERING DEGLI OUTPUT (FUORI DAL BLOCCO STATUS PER PRESERVARE IL LAYOUT WIDE) ---
     kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
 
