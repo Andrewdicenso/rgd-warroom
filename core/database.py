@@ -6,6 +6,10 @@ import bcrypt
 import pandas as pd
 from supabase import create_client
 from core.secure_vault import SecureVault
+from dotenv import load_dotenv
+
+# Carica le variabili d'ambiente
+load_dotenv()
 
 # Inizializzazione centralizzata del client Supabase
 supabase = create_client(
