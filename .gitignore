@@ -35,3 +35,5 @@ Desktop.ini
 # --- FILE DI TEST E DEBUG ---
 test_*.py
 debug.log
+
+node_modules/
