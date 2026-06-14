@@ -194,15 +194,6 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 
 elif scelta == "📊 War Room Strategica":
     st.markdown(f"<div class='warroom-header'><h1>🚀 War Room Strategica</h1><p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p></div>", unsafe_allow_html=True)
-    
-    with st.expander("📋 GUIDA: Selezione Reparto / Area Focus", expanded=False):
-        st.markdown("""
-        Seleziona il **Dipartimento** corretto per calibrare i parametri interni dell'algoritmo RGD-Alfa:
-        1. **Administration & Finance**
-        2. **Production & Logistic**
-        3. **Sales & Marketing**
-        4. **Human Resources & Facilities**
-        """)
         
     st.markdown("---")
     
