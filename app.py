@@ -23,7 +23,6 @@ from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
-from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
 from visuals import genera_grafico_predittivo
 
 try:
@@ -50,7 +49,7 @@ upload_path = os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "data" / "uploads"))
 UPLOAD_DIR = Path(upload_path)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- 4. STILE CSS RGANDJA PREMIUM (UNIFICATO) ---
+# --- 4. STILE CSS RGANDJA PREMIUM ---
 try:
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -79,7 +78,7 @@ except FileNotFoundError:
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. LOGICA REGISTRAZIONE PULITA ---
+# --- 5. LOGICA REGISTRAZIONE ---
 def registra_nuovo_utente(email: str, password: str, conferma: str):
     if not email or not password or not conferma:
         st.error("Compila tutti i campi richiesti.")
@@ -103,7 +102,7 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
         st.error(f"Errore tecnico durante la registrazione: {e}")
 
 # --- 6. SCHERMATA DI AUTENTICAZIONE ---
-if not st.session_state.autenticato:
+if not st.session_state.get("autenticato", False):
     tab_login, tab_register = st.tabs(["🔐 Login", "🆕 Registrazione"])
     with tab_login:
         st.title("🔐 Accesso Utente")
@@ -131,6 +130,14 @@ is_admin = (ruolo == "admin")
 
 st.sidebar.title("🛡️ RGD-ALPHA")
 st.sidebar.write(f"Operatore: **{azienda}**")
+
+# Controlli dinamici in sidebar per parametri algoritmo (EMA e Stress)
+st.sidebar.markdown("### ⚙️ Parametri Algoritmo")
+f_stress = st.sidebar.slider("Fattore di Stress", 0.0, 10.0, 5.0, step=0.5)
+w1 = st.sidebar.slider("Peso Momentum (w1)", 0.0, 1.0, 0.6, step=0.1)
+w2 = round(1.0 - w1, 1)
+st.sidebar.caption(f"Peso Solidità (w2) ricalcolato: {w2}")
+
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
 if is_admin: 
     menu.insert(1, "🕵️ Centrale Admin")
@@ -138,9 +145,10 @@ scelta = st.sidebar.radio("Navigazione", menu)
 
 if st.sidebar.button("Logout"): 
     logout_utente()
+    st.rerun()
 
 # ========================================================
-# GESTIONE DELLE PAGINE (UNIFICATA E COMPATTA)
+# 8. GESTIONE DELLE PAGINE
 # ========================================================
 
 if scelta == "🏠 Home":
@@ -167,115 +175,99 @@ if scelta == "🏠 Home":
     with col1:
         st.markdown("<div class='step-box'><h4>1️⃣ Imposta i Parametri</h4><p>Regola i pesi dell'algoritmo EMA e i giorni di stress dal menu laterale.</p></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown("<div class='step-box'><h4>2️⃣ Carica un Dataset</h4><p>Vai su 'War Room Strategica', seleziona il reparto e trascina il tuo file.</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='step-box'><h4>2️⃣ Carica un Dataset</h4><p>Vai su 'War Room Strategica' e trascina il tuo file senza preoccuparti del reparto.</p></div>", unsafe_allow_html=True)
     with col3:
         st.markdown("<div class='step-box'><h4>3️⃣ Valuta le Criticità</h4><p>Ottieni immediatamente l'analisi di stabilità Monte Carlo e i suggerimenti predittivi.</p></div>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("### 📊 Funzionalità Integrate")
-    col_a, col_b, col_c, col_d = st.columns(4)
-    with col_a:
-        st.markdown("##### 📈 Analisi Predittiva")
-        st.markdown("<small>Simulazioni probabilistiche basate su motori stocastici a 30 giorni.</small>", unsafe_allow_html=True)
-    with col_b:
-        st.markdown("##### 🏭 Bilanciamento Multi-Settore")
-        st.markdown("<small>Algoritmi ricalibrati automaticamente for comparti specifici.</small>", unsafe_allow_html=True)
-    with col_c:
-        st.markdown("##### 🔐 Sicurezza Asset")
-        st.markdown("<small>Flussi informativi protetti, conformità e segregazione dei database.</small>", unsafe_allow_html=True)
-    with col_d:
-        st.markdown("##### 📝 Tracciamento Log")
-        st.markdown("<small>Audit log completo dei caricamenti storici per finalità ispettive.</small>", unsafe_allow_html=True)
 
 elif scelta == "🕵️ Centrale Admin" and is_admin:
     st.title("🕵️ Centrale Admin")
-    st.write("Pannello di controllo amministrativo.")
-    # Inserisci qui il codice visibile solo agli amministratori
+    st.dataframe(db.supervisione_admin_metriche_globali(), use_container_width=True)
 
 elif scelta == "📊 War Room Strategica":
     st.markdown(f"<div class='warroom-header'><h1>🚀 War Room Strategica</h1><p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p></div>", unsafe_allow_html=True)
     
-    
-# ==========================================
-# 📊 SEZIONE 2: WAR ROOM STRATEGICA
-# ==========================================
-elif scelta == "📊 War Room Strategica":
-    st.markdown(f"<div class='warroom-header'><h1>🚀 War Room Strategica</h1><p>Analisi in tempo reale della solidità operativa di <strong>{azienda}</strong></p></div>", unsafe_allow_html=True)
-    
-    # 1. CARICAMENTO FILE (SPOSTATO IN ALTO)
+    # 1. CARICAMENTO FILE
     st.subheader("📂 Caricamento Dataset Operativo")
     uploaded_file = st.file_uploader("Trascina qui il file Excel/CSV da analizzare", type=["csv", "xlsx"])
     
     if uploaded_file:
-        # Salvataggio temporaneo
         temp_path = f"/tmp/{uploaded_file.name}"
         with open(temp_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
             
+        # Inizializzazione variabili per evitare NameError fuori dallo status
+        report_analisi = None
+        risultato_wr = None
+        risultati_sim = None
+        reparto_rilevato = "GENERALE"
+        
         with st.status("🔄 Protocollo RGD-Alpha in corso...") as status:
-            # 2. L'INGESTORE LEGGE IL FILE
-            ingestor = IngestoreDati()
-            df_raw = pd.read_csv(temp_path) if uploaded_file.name.endswith('.csv') else pd.read_excel(temp_path)
-            
-            # 3. IDENTIFICAZIONE AUTOMATICA (Invece del selettore manuale)
-            # Qui usiamo la funzione intelligente che avevi già nel core
-            reparto_rilevato = assegna_categoria_warroom(df_raw) 
-            st.write(f"🔍 Sistema ha rilevato automaticamente l'area: **{reparto_rilevato}**")
-            
-            # 4. ESECUZIONE FUNZIONI
-            lista_asset = ingestor.elabora_file(temp_path, azienda)
-            
-            if lista_asset:
-                engine = DataGateway()
-                # Registriamo il caricamento con il reparto rilevato automaticamente
-                db.registra_caricamento(user_id, reparto_rilevato.upper(), uploaded_file.name)
+            # 2. ANTICIPAZIONE LETTURA CON PANDAS PER ISPEZIONE IA
+            try:
+                df_raw = pd.read_csv(temp_path) if uploaded_file.name.endswith('.csv') else pd.read_excel(temp_path)
                 
-                status.update(label="✅ Analisi Completata!", state="complete")
+                # 3. IDENTIFICAZIONE AUTOMATICA DEL REPARTO
+                reparto_rilevato = assegna_categoria_warroom(df_raw)
+                st.write(f"🔍 Il sistema ha rilevato automaticamente l'area: **{reparto_rilevato}**")
                 
-                # MOSTRA I RISULTATI QUI
-                st.success(f"Analisi conclusa per il comparto {reparto_rilevato}")
-            
-            if lista_asset:
-                engine = DataGateway()
-                db.registra_caricamento(user_id, reparto_scelto.upper(), uploaded_file.name)
+                ingestor = IngestoreDati()
+                lista_asset = ingestor.elabora_file(temp_path, azienda)
                 
-                report_analisi = engine.esegui_scan_strategico(lista_asset, reparto_scelto.upper(), fattore_stress=f_stress, weights=(w1, w2))
-                
-                for r in report_analisi:
-                    db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
-                
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                
-                # Classificazione Macro-Categoria
-                risultato_wr = assegna_categoria_warroom(uploaded_file)
-                
-                # Simulazione Monte Carlo
-                sim = SimulatoreRischio()
-                risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
-                
-                # Sistema di notifica Sentinella
-                sentinella = Sentinella()
-                asset_a_rischio = [a for a in report_analisi if a.get('rischio', 0) > 7.5]
-                
-                if asset_a_rischio:
-                    asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
-                    sentinella.genera_report_strategico(asset_a_rischio_dict)
-                    sentinella.genera_report(asset_a_rischio)
+                if lista_asset:
+                    engine = DataGateway()
                     
-                    try:
-                        from core.email_manager import EmailManager
-                        mailer = EmailManager()
-                        corpo_mail = f"Attenzione, la War Room RGD-ALPHA ha rilevato {len(asset_a_rischio)} asset critici nel comparto {reparto_scelto}."
-                        mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
-                    except Exception as e:
-                        st.sidebar.error(f"Errore invio notifica email: {e}")
-                
-                status.update(label="✅ Elaborazione completata con successo!", state="complete")
-            else:
-                status.update(label="❌ Errore: Dataset caricato non valido.", state="error")
-                st.error("Il file inserito non ha superato i controlli di integrità dell'ingestore.")
+                    # Tracciamento log sul database aziendale
+                    db.registra_caricamento(user_id, reparto_rilevato.upper(), uploaded_file.name)
+                    
+                    # Esecuzione scansione con i parametri della sidebar
+                    report_analisi = engine.esegui_scan_strategico(
+                        lista_asset, 
+                        reparto_rilevato.upper(), 
+                        fattore_stress=f_stress, 
+                        weights=(w1, w2)
+                    )
+                    
+                    # Salvataggio persistente degli asset
+                    for r in report_analisi:
+                        db.salva_asset(user_id=user_id, nome_asset=r['asset'], rischio=r['rischio'], tipo=r['settore'], momentum=r['momentum_score'])
+                    
+                    # Calcolo KPI aggiornati
+                    kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+                    
+                    # Classificazione Macro-Categoria (passando df_raw per coerenza strutturale dell'ispezione)
+                    risultato_wr = assegna_categoria_warroom(df_raw) 
+                    
+                    # Simulazione Monte Carlo
+                    sim = SimulatoreRischio()
+                    risultati_sim = sim.esegui_stress_test(kpi_reali.get('solidita', 50), volatilita=0.5)
+                    
+                    # Sistema di notifica Sentinella ed Email Alert
+                    sentinella = Sentinella()
+                    asset_a_rischio = [a for a in report_analisi if a.get('rischio', 0) > 7.5]
+                    
+                    if asset_a_rischio:
+                        asset_a_rischio_dict = [a if isinstance(a, dict) else (vars(a) if hasattr(a, '__dict__') else {}) for a in asset_a_rischio]
+                        sentinella.genera_report_strategico(asset_a_rischio_dict)
+                        sentinella.genera_report(asset_a_rischio)
+                        
+                        try:
+                            from core.email_manager import EmailManager
+                            mailer = EmailManager()
+                            corpo_mail = f"Attenzione, la War Room RGD-ALPHA ha rilevato {len(asset_a_rischio)} asset critici nel comparto {reparto_rilevato}."
+                            mailer.invia_alert_critico("andrewdicenso@libero.it", "⚠️ RGD-ALPHA: Alert Criticità Rilevata", corpo_mail)
+                        except Exception as mail_err:
+                            st.sidebar.error(f"Errore invio notifica email: {mail_err}")
+                            
+                    status.update(label="✅ Elaborazione e Analisi completate!", state="complete")
+                else:
+                    status.update(label="❌ Errore: Dataset non valido.", state="error")
+                    st.error("Il file inserito non ha superato i controlli di integrità dell'ingestore.")
+            
+            except Exception as processing_error:
+                status.update(label="❌ Errore critico durante l'elaborazione.", state="error")
+                st.error(f"Dettaglio errore: {processing_error}")
 
-        # --- RENDERING DEGLI OUTPUT (FUORI DAL BLOCCO STATUS PER PRESERVARE IL LAYOUT WIDE) ---
+        # --- RENDERING DEGLI OUTPUT (FUORI DAL BLOCCO STATUS PER IL LAYOUT WIDE) ---
         kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
 
         # 1. Dashboard KPI Principali
@@ -324,14 +316,13 @@ elif scelta == "📊 War Room Strategica":
         st.markdown("---")
 
         if report_analisi:
-            if risultato_wr and "errore" not in risultato_wr:
-                st.markdown(f"""
-                <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
-                    <h4 style="color: #ffd700; margin-top: 0;">🎯 Classificazione Macro-Categoria War Room</h4>
-                    <p style="margin: 5px 0; color: white;">La tua azienda è stata mappata come: <b><span style="color: #27c93f; font-size: 1.2rem;">{risultato_wr['categoria']}</span></b></p>
-                    <small style="color: #a0aec0;">💡 {risultato_wr['dettaglio']}</small>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="background: #0e1117; border: 2px solid #ffd700; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                <h4 style="color: #ffd700; margin-top: 0;">🎯 Classificazione Macro-Categoria War Room</h4>
+                <p style="margin: 5px 0; color: white;">La tua azienda opera nel comparto: <b><span style="color: #27c93f; font-size: 1.2rem;">{reparto_rilevato.upper()}</span></b></p>
+                <small style="color: #a0aec0;">💡 Calibrazione automatica dei motori stocastici RGD-Alpha eseguita con successo.</small>
+            </div>
+            """, unsafe_allow_html=True)
 
             # Indicatori Strategici Vitali
             st.header("🛡️ Indicatori Strategici Vitali")
@@ -358,7 +349,7 @@ elif scelta == "📊 War Room Strategica":
                          color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"})
             st.plotly_chart(fig, use_container_width=True)
 
-            # Ragionamento IA Dinamico Completato
+            # Ragionamento IA Dinamico
             st.subheader("🧠 Ragionamento Strategico Intelligence")
             settore_rilevato = report_analisi[0].get('settore', 'GENERALE') if report_analisi else 'GENERALE'
 
@@ -394,27 +385,56 @@ elif scelta == "📊 War Room Strategica":
             st.success(f"**Ufficio di Riferimento:** {dettaglio_consiglio['ufficio']} | **Ottimizzazione Attesa:** {dettaglio_consiglio['guadagno']}")
             st.markdown(f"> **Prognosi Strategica RGD:** {dettaglio_consiglio['prognosi']}")
 
-# ==========================================
-# 🕵️ SEZIONE 3: CENTRALE ADMIN
-# ==========================================
-elif scelta == "🕵️ Centrale Admin":
-    st.title("🕵️ Centrale Admin")
-    st.dataframe(db.supervisione_admin_metriche_globali(), use_container_width=True)
-
-# ==========================================
-# 📜 SEZIONE 4: ARCHIVIO STORICO
-# ==========================================
 elif scelta == "📜 Archivio Storico":
-    st.title("📜 Archivio Storico")
-    df_log = db.recupera_log_caricamenti_admin()
+    st.title("📜 Archivio Storico Report")
     
-    if not df_log.empty:
-        st.dataframe(df_log, use_container_width=True, hide_index=True)
+    tab_scansione, tab_db_log = st.tabs(["📁 Scansione File System (OS)", "📊 Audit Log Database"])
+    
+    with tab_scansione:
+        st.write("Consultazione fisica dei file Excel e CSV presenti sui percorsi di sistema di RGD-ALPHA.")
         
-        # Pulsante compare solo se l'archivio ha dei log da svuotare
-        if st.button("🗑️ Svuota tutti i dati"):
-            db.svuota_tabelle_totale()
-            st.success("Tutti i log storici e gli asset sono stati rimossi dal database.")
-            st.rerun()
-    else:
-        st.warning("📭 Nessun dato trovato in questo archivio storico.")
+        cartella_uploads = os.path.join("core", "data", "uploads")
+        cartella_history = os.path.join("core", "data", "history_import")
+        lista_file_storico = []
+        
+        def scansiona_cartella(percorso_base, tipo_archivio):
+            if os.path.exists(percorso_base):
+                for root, dirs, files in os.walk(percorso_base):
+                    for file in files:
+                        if file.endswith(('.csv', '.xlsx', '.xls')) and not file.startswith('.'):
+                            filepath = os.path.join(root, file)
+                            stat_info = os.stat(filepath)
+                            data_modifica = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                            dimensione = f"{stat_info.st_size / 1024:.1f} KB"
+                            nome_cartella = os.path.basename(root)
+                            
+                            lista_file_storico.append({
+                                "Data Origine": data_modifica,
+                                "Nome Dataset": file,
+                                "Sorgente/Sotto-cartella": nome_cartella,
+                                "Dimensione": dimensione,
+                                "Tipo Archivio": tipo_archivio
+                            })
+
+        scansiona_cartella(cartella_uploads, "Caricamento Utente (Uploads)")
+        scansiona_cartella(cartella_history, "Storico Importazioni (History)")
+        
+        if lista_file_storico:
+            lista_file_storico.sort(key=lambda x: x["Data Origine"], reverse=True)
+            st.dataframe(lista_file_storico, use_container_width=True)
+            st.success(f"📂 Rilevati con successo {len(lista_file_storico)} file archiviati nelle cartelle di sistema.")
+        else:
+            st.info("📭 Al momento non sono presenti file CSV o Excel nelle cartelle `uploads` o `history_import`.")
+
+    with tab_db_log:
+        st.write("Registri di caricamento estratti direttamente dalla tabella relazionale.")
+        df_log = db.recupera_log_caricamenti_admin()
+        
+        if not df_log.empty:
+            st.dataframe(df_log, use_container_width=True, hide_index=True)
+            if st.button("🗑️ Svuota tutti i dati", key="btn_clear_db"):
+                db.svuota_tabelle_totale()
+                st.success("Tutti i log storici e gli asset sono stati rimossi dal database.")
+                st.rerun()
+        else:
+            st.warning("📭 Nessun dato trovato nell'archivio dei log del database.")
