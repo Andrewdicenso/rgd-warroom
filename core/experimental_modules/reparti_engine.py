@@ -59,7 +59,7 @@ def genera_percorso_salvataggio(base_dir, azienda, area_focus, nome_file):
     /tmp/rgd_uploads/AZ-1/Production_And_Logistic/file.csv
     """
 
-    # Pulizia nomi per compatibilità Linux/Render
+    # Pulizia nomi per compatibilità Render
     azienda_pulita = str(azienda).replace(" ", "_").replace("&", "And")
     area_pulita = str(area_focus).replace(" ", "_").replace("&", "And")
 
