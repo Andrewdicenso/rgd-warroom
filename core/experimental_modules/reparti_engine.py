@@ -75,12 +75,18 @@ def genera_percorso_salvataggio(base_dir, azienda, area_focus, nome_file):
 
 def analizza_e_configura_motore(area_focus):
     """
-    Restituisce la configurazione di rischio specifica per l'area scelta.
-    Questa funzione sostituisce la vecchia logica di engine_settori.py.
+    Restituisce la configurazione di rischio. 
+    Se l'area non è riconosciuta, usa valori di fallback (7.0, 1.0).
     """
-    config = STRUTTURA_AZIENDALE.get(area_focus, {"soglia": 7.0, "moltiplicatore": 1.0})
+    # Se area_focus è None o non è nelle chiavi, usa il get con default
+    config = STRUTTURA_AZIENDALE.get(area_focus, {
+        "soglia": 7.0,          # Soglia media di sicurezza
+        "moltiplicatore": 1.0,  # Nessun aumento di impatto
+        "descrizione": "Area Generica / Non Identificata"
+    })
+    
     return {
-        "settore": area_focus,
+        "settore": area_focus if area_focus else "Generale",
         "soglia": config["soglia"],
         "moltiplicatore": config["moltiplicatore"]
     }
