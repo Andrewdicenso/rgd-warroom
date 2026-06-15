@@ -1,4 +1,5 @@
 import os
+from groq import Groq
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -327,19 +328,61 @@ elif scelta == "📊 War Room Strategica":
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-                # --- RAGIONAMENTO IA ---
+                                # --- RAGIONAMENTO IA CON GROQ ---
                 st.subheader("🧠 Diagnostica Strategica IA")
-                st.markdown(
-                    f"""
-                <div class="ai-reasoning">
-                    <strong>SINTESI DIREZIONALE:</strong> Analisi oraria su base {int(ore_totale)}h completata. 
-                    Il sistema rileva un Momentum Score di {round(df_p['momentum_score'].mean(), 2)}.<br><br>
-                    <strong>AZIONE ALPHA:</strong> Dare priorità ai reparti in rosso. L'erosione del margine orario 
-                    è superiore alla soglia di guardia del 15%.
-                </div>
-                """,
-                    unsafe_allow_html=True,
-                )
+                
+                api_key = os.getenv("GROQ_API_KEY")
+
+                if not api_key:
+                    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
+                else:
+                    client = Groq(api_key=api_key)
+                    media_momentum = round(df_p['momentum_score'].mean(), 2)
+                    
+                    settore_scelto = st.selectbox(
+                        "In quale settore opera l'azienda?",
+                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
+                        key="settore_ia"
+                    )
+
+                    if st.button("🚀 Genera Diagnostica IA Professionale"):
+                        with st.spinner("L'IA sta analizzando i file..."):
+                            try:
+                                prompt_config = f"""
+                                Analizza i dati per l'azienda {azienda} (Settore: {settore_scelto}):
+                                - Solidità attuale: {kpi_reali.get('solidita', 0)}%
+                                - Rischio rilevato: {rischio_val}/10
+                                - Ore lavorate analizzate: {int(ore_totale)}
+                                - Accelerazione Inefficienze: {media_momentum}
+
+                                Rispondi seguendo questo schema:
+                                1. Conferma analisi documenti.
+                                2. Diagnosi basata sui numeri.
+                                3. Soglie ottimali per il settore {settore_scelto}.
+                                4. Azione 'Opzionale' specifica.
+                                5. Conclusione sul monitoraggio futuro.
+                                """
+
+                                chat_completion = client.chat.completions.create(
+                                    messages=[
+                                        {"role": "system", "content": "Sei un analista strategico esperto."},
+                                        {"role": "user", "content": prompt_config},
+                                    ],
+                                    model="llama3-8b-8192",
+                                )
+
+                                risposta_testo = chat_completion.choices[0].message.content
+
+                                st.markdown(
+                                    f"""
+                                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #2ecc71; color: #1f1f1f;">
+                                        {risposta_testo}
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            except Exception as e:
+                                st.error(f"Errore IA: {e}")
 
                 # --- DETTAGLIO ASSET ---
                 st.subheader("📝 Piano d'Azione per Reparto")
