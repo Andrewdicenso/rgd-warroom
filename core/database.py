@@ -56,46 +56,43 @@ class DatabaseAziendale:
                 cursor = conn.cursor()
 
                 # 1. Tabella Utenti (MASTER)
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS utenti (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        email TEXT UNIQUE NOT NULL,
-                        password_hash TEXT NOT NULL,
-                        ruolo TEXT NOT NULL,
-                        azienda TEXT,
-                        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
+                conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS utenti (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        ruolo TEXT NOT NULL,
+        azienda TEXT,
+        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+"""))
 
-                # 2. Tabella Asset Logs
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS asset_logs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL,
-                        company_id TEXT NOT NULL,
-                        nome TEXT NOT NULL,
-                        tipo TEXT,
-                        rischio REAL NOT NULL,
-                        momentum TEXT,
-                        volatilita REAL,
-                        valore_extra REAL,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES utenti(id)
-                    )
-                """)
+conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS asset_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        company_id TEXT NOT NULL,
+        nome TEXT NOT NULL,
+        tipo TEXT,
+        rischio REAL NOT NULL,
+        momentum TEXT,
+        volatilita REAL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE CASCADE
+    )
+"""))
 
-                # 3. Tabella Storico KPI
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS storico_kpi (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL,
-                        company_id TEXT NOT NULL,
-                        kpi_nome TEXT NOT NULL,
-                        valore REAL NOT NULL,
-                        data_rilevazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES utenti(id)
-                    )
-                """)
+conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS log_caricamenti (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        azienda TEXT,
+        contesto TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        nome_file TEXT,
+        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE SET NULL
+    )
+"""))
 
                 # 4. Log Caricamenti
                 cursor.execute("""
