@@ -71,7 +71,6 @@ class IngestoreDati:
     if not os.path.exists(file_path):
         logger.error(f"File {file_path} non trovato.")
         return asset_list
-
     try:
         # CONTROLLO ESTENSIONE: CSV o EXCEL?
         if file_path.endswith('.csv'):
@@ -114,7 +113,3 @@ class IngestoreDati:
         except Exception as e:
                     logger.debug(f"Salto riga per errore formato: {e}")
 
-        except Exception as e:
-            # Questo except ora chiude il "try" grande (quello dell'apertura file)
-            logger.error(f"Errore critico durante l'elaborazione del file: {e}")
-            return asset_list
