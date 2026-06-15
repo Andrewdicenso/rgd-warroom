@@ -23,7 +23,6 @@ from core.database import DatabaseAziendale
 from core.notifier import Sentinella
 from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.experimental_modules.warroom_engine import assegna_categoria_warroom
-from core.experimental_modules.reparti_engine import mostra_interfaccia_4_aree, genera_percorso_salvataggio
 from visuals import genera_grafico_predittivo
 
 try:
