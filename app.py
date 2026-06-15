@@ -345,7 +345,7 @@ elif scelta == "📊 War Room Strategica":
                         key="settore_ia"
                     )
 
-                    if st.button("🚀 Genera Diagnostica IA Professionale"):
+                    if st.button("🚀 Genera Diagnostica Approfondita"):
                         with st.spinner("L'IA sta analizzando i file..."):
                             try:
                                 prompt_config = f"""
