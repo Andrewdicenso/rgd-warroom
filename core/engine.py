@@ -14,7 +14,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from core.secure_vault import SecureVault
 from core.database import DatabaseAziendale
-from core.experimental_modules.reparti_engine import analizza_e_configura_motore
 
 logger = logging.getLogger("RGD-Alpha.Gateway.Enterprise")
 
