@@ -368,7 +368,7 @@ elif scelta == "📊 War Room Strategica":
                                         {"role": "system", "content": "Sei un analista strategico esperto."},
                                         {"role": "user", "content": prompt_config},
                                     ],
-                                    model="llama3-8b-8192",
+                                    model="llama-3.3-70b-versatile", # Modello aggiornato e funzionante
                                 )
 
                                 risposta_testo = chat_completion.choices[0].message.content
