@@ -172,16 +172,23 @@ if scelta == "📊 War Room Strategica":
                 """, unsafe_allow_html=True)
 
                 # --- DETTAGLIO ASSET ---
-                st.subheader("📝 Piano d'Azione per Asset")
-                for asset in report_analisi:
-                    r = asset.get('rischio', 0)
-                    box = "kpi-box-critical" if r > 7 else "kpi-box"
-                    st.markdown(f"""
-                    <div class="{box}">
-                        <b>{asset.get('asset')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score')}
-                        <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
+            st.subheader("📝 Piano d'Azione per Asset")
+            for asset in report_analisi:
+                # Se 'rischio' non esiste, usa 0
+                r = asset.get('rischio', 0) 
+                
+                box = "kpi-box-critical" if r > 7 else "kpi-box"
+                
+                st.markdown(f"""
+                <div class="{box}">
+                    <!-- Se 'asset' non esiste, scrive 'Asset Ignoto' -->
+                    <b>{asset.get('asset', 'Asset Ignoto')}</b> | 
+                    Rischio: {r} | 
+                    <!-- Se 'momentum_score' non esiste, scrive 0 -->
+                    Momentum: {asset.get('momentum_score', 0)}
+                    <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico', 'Analisi in corso...')}</small>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # ========================================================
                 # --- INTEGRAZIONE RGD-ALPHA CREW (NODE.JS BRIDGE) ---
