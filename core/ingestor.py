@@ -70,7 +70,7 @@ class IngestoreDati:
     
     if not os.path.exists(file_path):
         logger.error(f"File {file_path} non trovato.")
-        return asset_list
+        print(asset_list)
     try:
         # CONTROLLO ESTENSIONE: CSV o EXCEL?
         if file_path.endswith('.csv'):
