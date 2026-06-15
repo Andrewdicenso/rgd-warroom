@@ -247,7 +247,8 @@ elif scelta == "📊 War Room Strategica":
             )
 
     uploaded_file = st.file_uploader(
-        "📁 Carica file dati operativi CSV", type=["csv"]
+        "📁 Carica file dati operativi", 
+    type=["csv", "xlsx", "xls"]
     )
     if uploaded_file:
         path = UPLOAD_DIR / azienda / uploaded_file.name
