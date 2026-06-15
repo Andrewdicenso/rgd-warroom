@@ -166,7 +166,7 @@ if scelta == "🏠 Home":
     with col1:
         st.markdown("<div class='step-box'><h4>1️⃣ Imposta i Parametri</h4><p>Regola i pesi dell'algoritmo EMA e i giorni di stress dal menu laterale.</p></div>", unsafe_allow_html=True)
     with col2:
-        st.markdown("<div class='step-box'><h4>2️⃣ Carica un Dataset</h4><p>Vai su 'War Room Strategica', seleziona il reparto e trascina il tuo file.</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='step-box'><h4>2️⃣ Carica un Dataset</h4><p>Vai su 'War Room Strategica', upload o trascina il tuo file.</p></div>", unsafe_allow_html=True)
     with col3:
         st.markdown("<div class='step-box'><h4>3️⃣ Valuta le Criticità</h4><p>Ottieni immediatamente l'analisi di stabilità Monte Carlo e i suggerimenti predittivi.</p></div>", unsafe_allow_html=True)
 
@@ -180,11 +180,11 @@ elif scelta == "📊 War Room Strategica":
     
     st.markdown("---")
     
-    st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
+    st.subheader(f"📂 Analisi di Rischio Alpha")
     uploaded_file = st.file_uploader(
-        f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", 
+        f"Trascina qui il file Excel/CSV", 
         type=["csv", "xlsx"],
-        key="warroom_uploader"
+        help="Carica un file contenente l'inventario operativo della tua azienda. Formati supportati: CSV, XLSX."
     )
 
     # Sidebar Condizionale per Pesi/Stress
@@ -206,7 +206,7 @@ elif scelta == "📊 War Room Strategica":
     risultato_wr = None
     
     if uploaded_file:
-        temp_path = f"/tmp/{uploaded_file.name}"
+        temp_path = f/tmp/{uploaded_file}
         with open(temp_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
             
