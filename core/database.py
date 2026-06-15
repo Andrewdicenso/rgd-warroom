@@ -50,13 +50,10 @@ class DatabaseAziendale:
     #   CREAZIONE TABELLE
     # =========================
     def crea_tabelle(self):
-        """Inizializza lo schema garantendo l'integrità dei dati e l'isolamento per utente."""
+        """Inizializza lo schema garantendo l'integrità dei dati criptati e l'isolamento per utente."""
         try:
             with self._get_conn() as conn:
                 cursor = conn.cursor()
-                
-                # Abilita esplicitamente il supporto alle Foreign Key su SQLite
-                cursor.execute("PRAGMA foreign_keys = ON;")
 
                 # 1. Tabella Utenti (MASTER)
                 cursor.execute("""
@@ -81,26 +78,39 @@ class DatabaseAziendale:
                         rischio REAL NOT NULL,
                         momentum TEXT,
                         volatilita REAL,
-                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE CASCADE
+                        valore_extra REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES utenti(id)
                     )
                 """)
 
-                # 3. Tabella Log Caricamenti
+                # 3. Tabella Storico KPI
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS storico_kpi (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        company_id TEXT NOT NULL,
+                        kpi_nome TEXT NOT NULL,
+                        valore REAL NOT NULL,
+                        data_rilevazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES utenti(id)
+                    )
+                """)
+
+                # 4. Log Caricamenti
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS log_caricamenti (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
+                        user_id INTEGER NOT NULL,
                         azienda TEXT,
                         contesto TEXT,
-                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                         nome_file TEXT,
-                        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE SET NULL
+                        FOREIGN KEY (user_id) REFERENCES utenti(id)
                     )
                 """)
 
                 conn.commit()
-                
         except Exception as e:
             logger.error(f"❌ Errore creazione schema: {e}")
             raise
