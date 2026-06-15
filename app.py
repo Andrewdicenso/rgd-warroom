@@ -397,4 +397,3 @@ elif scelta == "📜 Archivio Storico":
     else:
         st.info(f"👁️ Visualizzazione limitata alla tua azienda: {azienda}")
         st.warning("📭 Archivio storico in fase di implementazione per utenti standard")
-
