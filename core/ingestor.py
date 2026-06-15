@@ -123,7 +123,6 @@ class IngestoreDati:
                 except Exception as e:
                     logger.debug(f"Salto riga per errore formato: {e}")
 
-        except Exception as e:
-            logger.error(f"Errore critico durante l'elaborazione del file: {e}")
-        
-        return asset_list
+                except Exception as e:
+                    logger.error(f"Errore critico durante l'elaborazione del file: {e}"); 
+                    return asset_list
