@@ -1,52 +1,80 @@
-import numpy as np
-import pandas as pd
+from cryptography.fernet import Fernet, InvalidToken
+import os
 import logging
 
-logger = logging.getLogger("RGD-Alpha.Simulator")
+logger = logging.getLogger("RGD-Alpha.Vault")
 
-class SimulatoreRischio:
-    def __init__(self, iterazioni=1000):
-        self.iterazioni = iterazioni
+class SecureVault:
+    """
+    Vault aziendale: Cifratura simmetrica AES per la protezione dei dati sensibili.
+    Gestisce automaticamente la persistenza della Master Key.
+    """
+    def __init__(self, key_path="core/security/vault.key"):
+        # Normalizziamo il percorso per evitare errori su Windows/Linux
+        self.key_path = os.path.abspath(key_path)
+        self.key = self._load_or_create_key()
+        self.cipher = Fernet(self.key)
 
-    def esegui_stress_test(self, valore_attuale, volatilita, giorni_proiettati=30):
-        """
-        Simulazione Monte Carlo Avanzata con logica di DRIFT (Tendenza).
-        Prevede il 'Punto di Rottura' aziendale sotto stress.
-        """
+    def _load_or_create_key(self) -> bytes:
+        """Carica o genera la Master Key con verifica permessi."""
         try:
-            # 1. Calcolo del Drift (Tendenza): Se il rischio è già alto (>5), 
-            # l'AI assume una tendenza naturale al peggioramento (0.02 al giorno)
-            drift = 0.02 if valore_attuale > 5.0 else 0.0
+            folder = os.path.dirname(self.key_path)
+            if not os.path.exists(folder):
+                os.makedirs(folder, exist_ok=True)
             
-            # 2. Generazione variazioni con distribuzione normale pesata
-            variazioni = np.random.normal(drift, volatilita, (giorni_proiettati, self.iterazioni))
-            
-            # 3. Costruzione dei percorsi cumulativi
-            percorsi_rischio = valore_attuale + variazioni.cumsum(axis=0)
-            
-            # Limite fisico del rischio (Scale 0-10)
-            percorsi_rischio = np.clip(percorsi_rischio, 0, 10)
-
-            # 4. Analisi dei risultati (Punto di rottura)
-            stato_finale = percorsi_rischio[-1, :]
-            # Probabilità di superare la soglia di allarme rosso (8.5)
-            prob_crisi = (stato_finale > 8.5).mean() * 100 
-            
-            # 5. Calcolo 'Day Zero' (Quando l'azienda collassa mediamente)
-            media_giornaliera = np.mean(percorsi_rischio, axis=1)
-            giorni_sopravvivenza = giorni_proiettati
-            for g, r in enumerate(media_giornaliera):
-                if r > 8.5:
-                    giorni_sopravvivenza = g
-                    break
-
-            return {
-                "probabilita_crisi": round(prob_crisi, 2),
-                "giorni_sopravvivenza_stimati": giorni_sopravvivenza,
-                "rischio_max_previsto": round(np.max(stato_finale), 2),
-                "media_finale": round(np.mean(stato_finale), 2),
-                "percorsi_raw": percorsi_rischio
-            }
+            if os.path.exists(self.key_path):
+                with open(self.key_path, "rb") as key_file:
+                    key_data = key_file.read()
+                    if not key_data:
+                        raise ValueError("File chiave vuoto.")
+                    return key_data
+            else:
+                # Generazione nuova chiave se non esiste
+                key = Fernet.generate_key()
+                with open(self.key_path, "wb") as key_file:
+                    key_file.write(key)
+                logger.info(f"🛡️ Master Key generata con successo: {self.key_path}")
+                return key
+        except PermissionError:
+            logger.critical(f"❌ ERRORE PERMESSI: Impossibile scrivere in {self.key_path}")
+            raise
         except Exception as e:
-            logger.error(f"Errore simulazione Monte Carlo: {e}")
-            return None
+            logger.critical(f"❌ FALLIMENTO CRITICO SECURITY: {e}")
+            raise
+
+    def encrypt_data(self, data: str) -> str:
+        """Cifra una stringa e restituisce una stringa sicura per il DB."""
+        if data is None: return None
+        try:
+            # Convertiamo in bytes, cifriamo e torniamo in stringa per SQLite
+            return self.cipher.encrypt(data.encode('utf-8')).decode('utf-8')
+        except Exception as e:
+            logger.error(f"Errore cifratura: {e}")
+            raise
+
+    def decrypt_data(self, encrypted_data: str) -> str:
+        """Decifra i dati. Accetta stringhe o bytes (massima compatibilità)."""
+        if not encrypted_data: return ""
+        try:
+            # Assicuriamoci di avere bytes per la decifratura
+            if isinstance(encrypted_data, str):
+                encrypted_data = encrypted_data.encode('utf-8')
+            
+            return self.cipher.decrypt(encrypted_data).decode('utf-8')
+        except InvalidToken:
+            logger.error("⚠️ ALERT SICUREZZA: Chiave non valida o dati manomessi!")
+            return "ERR_SEC_INVALID_TOKEN"
+        except Exception as e:
+            logger.error(f"Errore decifratura: {e}")
+            return "ERR_SEC_GENERIC"
+
+# --- TEST DI INTEGRITÀ RAPIDO ---
+if __name__ == "__main__":
+    vault = SecureVault()
+    test_msg = "Azienda_Segreta_123"
+    criptato = vault.encrypt_data(test_msg)
+    decriptato = vault.decrypt_data(criptato)
+    
+    print(f"Originale: {test_msg}")
+    print(f"Criptato: {criptato}")
+    print(f"Decriptato correttamente: {test_msg == decriptato}")

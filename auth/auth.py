@@ -18,28 +18,30 @@ def inizializza_sessione():
         st.session_state.azienda = None
 
 def login_utente(db, email, password):
+    """
+    Verifica le credenziali dell'utente ed effettua il login.
+    Ritorna True se il login ha successo, altrimenti False.
+    """
     try:
-        # 1. Recupero Robusto: la funzione get_utente_by_email decripta internamente
         utente = db.get_utente_by_email(email)
-        
         if not utente:
-            return False # Email non trovata o decriptazione fallita
+            logger.warning(f"Tentativo di login fallito: email non trovata.")
+            return False
         
-        # 2. Verifica password con Bcrypt (gestendo sia stringhe che byte)
-        stored_hash = utente["password_hash"]
-        if isinstance(stored_hash, str):
-            stored_hash = stored_hash.encode('utf-8')
-            
-        if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+        # Verifica della password hashata con bcrypt
+        if bcrypt.checkpw(password.encode(), utente["password_hash"].encode()):
             st.session_state.autenticato = True
             st.session_state.user_id = utente["id"]
             st.session_state.email = utente["email"]
             st.session_state.ruolo = utente["ruolo"]
             st.session_state.azienda = utente["azienda"]
+            logger.info(f"Utente {email} autenticato con successo. Ruolo: {utente['ruolo']}")
             return True
-        return False
+        else:
+            logger.warning(f"Tentativo di login fallito per {email}: password errata.")
+            return False
     except Exception as e:
-        st.error(f"Errore tecnico login: {e}")
+        logger.error(f"Errore durante la fase di login: {e}")
         return False
 
 def logout_utente():
