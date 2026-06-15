@@ -97,19 +97,24 @@ class IngestoreDati:
             # self.db.registra_caricamento(company_id, f"Ingestione {settore_nome}", os.path.basename(file_path))
 
             for _, row in df.iterrows():
-                dati_riga = row.to_dict()
-                
-                # Normalizzazione campi fondamentali per evitare crash in engine.py
-                dati_riga['id_asset'] = row.get('ID_Movimento', row.get('id', row.get('ID', 'N/D')))
-                dati_riga['nome'] = row.get('Descrizione_Asset', row.get('nome', row.get('prodotto', 'Asset_Generico')))
-                
-                # Pulizia rischio: assicuriamoci che sia un numero tra 0 e 10
-        try:
-                    nuovo_asset = ClasseAsset(**dati_riga)
-                    if hasattr(nuovo_asset, 'genera_kpi_strategici'):
-                        nuovo_asset.genera_kpi_strategici()
-                    
-                    asset_list.append(nuovo_asset)
-        except Exception as e:
-                    logger.debug(f"Salto riga per errore formato: {e}")
+              dati_riga = row.to_dict()
 
+            # Normalizzazione campi fondamentali per evitare crash in engine.py
+            dati_riga['id_asset'] = row.get('ID_Movimento', row.get('id', row.get('ID', 'N/D')))
+            dati_riga['nome'] = row.get('Descrizione_Asset', row.get('nome', row.get('prodotto')))
+
+            # Pulizia rischio: assicuriamoci che sia un numero tra 0 e 10
+            try:
+                nuovo_asset = ClasseAsset(**dati_riga)
+                if hasattr(nuovo_asset, 'genera_kpi_strategici'):
+                    nuovo_asset.genera_kpi_strategici()
+
+                asset_list.append(nuovo_asset)
+
+            except Exception as e:
+                logger.debug(f"Salto riga per errore formato: {e}")
+
+    except Exception as e:
+        logger.error(f"Errore critico durante l'elaborazione del file: {e}")
+
+    return asset_list
