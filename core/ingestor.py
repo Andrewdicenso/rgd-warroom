@@ -81,8 +81,7 @@ class IngestoreDati:
         else:
             logger.error(f"Formato file non supportato: {file_path}")
             return asset_list
-            
-        # Da qui in poi il resto del tuo codice rimane uguale...
+        
             
             # --- ESECUZIONE VALIDATORE ---
             valido, messaggio = self._valida_dati_critici(df)
