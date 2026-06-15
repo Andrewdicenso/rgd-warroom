@@ -1,4 +1,4 @@
-import sqlite3
+import supabase_py
 import datetime
 import os
 import logging
@@ -21,7 +21,7 @@ class DatabaseAziendale:
             raise
 
     def _get_conn(self):
-        return sqlite3.connect(self.db_path, check_same_thread=False)
+        return supabase_py.connect(self.db_path, check_same_thread=False)
 
     def crea_tabelle(self):
         try:
