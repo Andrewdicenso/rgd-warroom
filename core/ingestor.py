@@ -64,24 +64,22 @@ class IngestoreDati:
                 return val
         return default
 
-    
     def elabora_csv(self, file_path, company_id):
         asset_list = [] 
-    
-    if not os.path.exists(file_path):
-        logger.error(f"File {file_path} non trovato.")
-        return asset_list
-    try:
-        # CONTROLLO ESTENSIONE: CSV o EXCEL?
-        if file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
-        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-            # Legge Excel (richiede la libreria openpyxl nel requirements.txt)
-            df = pd.read_excel(file_path)
-        else:
-            logger.error(f"Formato file non supportato: {file_path}")
-            return asset_list
         
+        if not os.path.exists(file_path):
+            logger.error(f"File {file_path} non trovato.")
+            return asset_list
+
+        try:
+            # CONTROLLO ESTENSIONE: CSV o EXCEL?
+            if file_path.endswith('.csv'):
+                df = pd.read_csv(file_path)
+            elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+                df = pd.read_excel(file_path)
+            else:
+                logger.error(f"Formato file non supportato: {file_path}")
+                return asset_list
             
             # --- ESECUZIONE VALIDATORE ---
             valido, messaggio = self._valida_dati_critici(df)
@@ -92,28 +90,21 @@ class IngestoreDati:
             # Rilevamento automatico del reparto
             settore_nome, ClasseAsset = self._auto_rilevamento_settore(df.columns)
 
-            # ⚠️ Nota: la registrazione caricamento viene già fatta in app.py con user_id
-            # self.db.registra_caricamento(company_id, f"Ingestione {settore_nome}", os.path.basename(file_path))
-
             for _, row in df.iterrows():
-              dati_riga = row.to_dict()
+                dati_riga = row.to_dict()
+                # Normalizzazione campi
+                dati_riga['id_asset'] = row.get('ID_Movimento', row.get('id', row.get('ID', 'N/D')))
+                dati_riga['nome'] = row.get('Descrizione_Asset', row.get('nome', row.get('prodotto')))
 
-            # Normalizzazione campi fondamentali per evitare crash in engine.py
-            dati_riga['id_asset'] = row.get('ID_Movimento', row.get('id', row.get('ID', 'N/D')))
-            dati_riga['nome'] = row.get('Descrizione_Asset', row.get('nome', row.get('prodotto')))
+                try:
+                    nuovo_asset = ClasseAsset(**dati_riga)
+                    if hasattr(nuovo_asset, 'genera_kpi_strategici'):
+                        nuovo_asset.genera_kpi_strategici()
+                    asset_list.append(nuovo_asset)
+                except Exception as e:
+                    logger.debug(f"Salto riga per errore formato: {e}")
 
-            # Pulizia rischio: assicuriamoci che sia un numero tra 0 e 10
-            try:
-                nuovo_asset = ClasseAsset(**dati_riga)
-                if hasattr(nuovo_asset, 'genera_kpi_strategici'):
-                    nuovo_asset.genera_kpi_strategici()
+        except Exception as e:
+            logger.error(f"Errore critico durante l'elaborazione del file: {e}")
 
-                asset_list.append(nuovo_asset)
-
-            except Exception as e:
-                logger.debug(f"Salto riga per errore formato: {e}")
-
-    except Exception as e:
-        logger.error(f"Errore critico durante l'elaborazione del file: {e}")
-
-    return asset_list
+        return asset_list
