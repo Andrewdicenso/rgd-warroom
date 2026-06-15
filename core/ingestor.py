@@ -105,24 +105,16 @@ class IngestoreDati:
                 dati_riga['nome'] = row.get('Descrizione_Asset', row.get('nome', row.get('prodotto', 'Asset_Generico')))
                 
                 # Pulizia rischio: assicuriamoci che sia un numero tra 0 e 10
-                try:
-                    rischio_raw = self._estrai_dato(row, 'rischio', 5.0)
-                    dati_riga['rischio'] = float(rischio_raw)
-                except Exception:
-                    dati_riga['rischio'] = 5.0  # Fallback se il dato non è numerico
-
-                dati_riga['company_id'] = company_id
-                dati_riga['data'] = row.get('Data_Registrazione', row.get('data', datetime.now().strftime("%Y-%m-%d")))
-
-                try:
+        try:
                     nuovo_asset = ClasseAsset(**dati_riga)
                     if hasattr(nuovo_asset, 'genera_kpi_strategici'):
                         nuovo_asset.genera_kpi_strategici()
                     
                     asset_list.append(nuovo_asset)
-                except Exception as e:
+        except Exception as e:
                     logger.debug(f"Salto riga per errore formato: {e}")
 
-                except Exception as e:
-                    logger.error(f"Errore critico durante l'elaborazione del file: {e}"); 
-                    return asset_list
+        except Exception as e:
+            # Questo except ora chiude il "try" grande (quello dell'apertura file)
+            logger.error(f"Errore critico durante l'elaborazione del file: {e}")
+            return asset_list
