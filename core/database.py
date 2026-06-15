@@ -50,64 +50,57 @@ class DatabaseAziendale:
     #   CREAZIONE TABELLE
     # =========================
     def crea_tabelle(self):
-        """Inizializza lo schema garantendo l'integrità dei dati criptati e l'isolamento per utente."""
+        """Inizializza lo schema garantendo l'integrità dei dati e l'isolamento per utente."""
         try:
             with self._get_conn() as conn:
                 cursor = conn.cursor()
+                
+                # Abilita esplicitamente il supporto alle Foreign Key su SQLite
+                cursor.execute("PRAGMA foreign_keys = ON;")
 
                 # 1. Tabella Utenti (MASTER)
-                conn.execute(text("""
-    CREATE TABLE IF NOT EXISTS utenti (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        ruolo TEXT NOT NULL,
-        azienda TEXT,
-        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-"""))
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS utenti (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        email TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        ruolo TEXT NOT NULL,
+                        azienda TEXT,
+                        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
-conn.execute(text("""
-    CREATE TABLE IF NOT EXISTS asset_logs (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        company_id TEXT NOT NULL,
-        nome TEXT NOT NULL,
-        tipo TEXT,
-        rischio REAL NOT NULL,
-        momentum TEXT,
-        volatilita REAL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE CASCADE
-    )
-"""))
+                # 2. Tabella Asset Logs
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS asset_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        company_id TEXT NOT NULL,
+                        nome TEXT NOT NULL,
+                        tipo TEXT,
+                        rischio REAL NOT NULL,
+                        momentum TEXT,
+                        volatilita REAL,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE CASCADE
+                    )
+                """)
 
-conn.execute(text("""
-    CREATE TABLE IF NOT EXISTS log_caricamenti (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        azienda TEXT,
-        contesto TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        nome_file TEXT,
-        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE SET NULL
-    )
-"""))
-
-                # 4. Log Caricamenti
+                # 3. Tabella Log Caricamenti
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS log_caricamenti (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL,
+                        user_id INTEGER,
                         azienda TEXT,
                         contesto TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         nome_file TEXT,
-                        FOREIGN KEY (user_id) REFERENCES utenti(id)
+                        FOREIGN KEY (user_id) REFERENCES utenti(id) ON DELETE SET NULL
                     )
                 """)
 
                 conn.commit()
+                
         except Exception as e:
             logger.error(f"❌ Errore creazione schema: {e}")
             raise
