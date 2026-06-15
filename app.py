@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 # --- MODULI CORE & AUTH ---
 from core.ingestor import IngestoreDati
-from core.engine import DataGateway, salva_report_certificato
+from core.engine import DataGateway
 from core.database import DatabaseAziendale
 
 # Importiamo la logica centralizzata dal pacchetto auth

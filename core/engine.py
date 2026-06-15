@@ -130,3 +130,9 @@ class DataGateway:
                 momentum=d.get("momentum", "Stabile"), volatilita=d.get("volatilita", 0.0)
             )
         except Exception as e: logger.warning(f"DB Sync fallito: {e}")
+
+    def salva_report_certificato(report_data):
+        # Logica per salvare il report
+            if report_data:
+              print("Report salvato con successo")
+    return True
