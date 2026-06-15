@@ -180,9 +180,6 @@ elif scelta == "📊 War Room Strategica":
     
     st.markdown("---")
     
-    struttura = mostra_interfaccia_4_aree()
-    reparto_scelto = struttura['Dipartimento']
-    
     st.subheader(f"📂 Analisi di Rischio Alpha: {reparto_scelto}")
     uploaded_file = st.file_uploader(
         f"Trascina qui il file Excel/CSV relativo a: {reparto_scelto}", 
