@@ -329,7 +329,7 @@ elif scelta == "📊 War Room Strategica":
                 st.plotly_chart(fig, use_container_width=True)
 
                                 # --- RAGIONAMENTO IA CON GROQ ---
-                st.subheader("🧠 Diagnostica Strategica IA")
+                st.subheader("🧠 Diagnostica Strategica RGD + IA")
                 
                 api_key = os.getenv("GROQ_API_KEY")
 
@@ -346,7 +346,7 @@ elif scelta == "📊 War Room Strategica":
                     )
 
                     if st.button("🚀 Genera Diagnostica Approfondita"):
-                        with st.spinner("L'IA sta analizzando i file..."):
+                        with st.spinner("Stiamo analizzando i file..."):
                             try:
                                 prompt_config = f"""
                                 Analizza i dati per l'azienda {azienda} (Settore: {settore_scelto}):
