@@ -64,16 +64,26 @@ class IngestoreDati:
                 return val
         return default
 
+    
     def elabora_csv(self, file_path, company_id):
         asset_list = [] 
-        
-        if not os.path.exists(file_path):
-            logger.error(f"File {file_path} non trovato.")
-            return asset_list
+    
+    if not os.path.exists(file_path):
+        logger.error(f"File {file_path} non trovato.")
+        return asset_list
 
-        try:
-            # Lettura del file
+    try:
+        # CONTROLLO ESTENSIONE: CSV o EXCEL?
+        if file_path.endswith('.csv'):
             df = pd.read_csv(file_path)
+        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+            # Legge Excel (richiede la libreria openpyxl nel requirements.txt)
+            df = pd.read_excel(file_path)
+        else:
+            logger.error(f"Formato file non supportato: {file_path}")
+            return asset_list
+            
+        # Da qui in poi il resto del tuo codice rimane uguale...
             
             # --- ESECUZIONE VALIDATORE ---
             valido, messaggio = self._valida_dati_critici(df)
