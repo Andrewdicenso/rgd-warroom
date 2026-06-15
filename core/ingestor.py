@@ -35,7 +35,10 @@ class IngestoreDati:
         
         # Cerchiamo se esiste almeno una colonna che assomigli a un 'nome' o 'descrizione'
         nomi_possibili = ['nome', 'descrizione', 'prodotto', 'asset', 'Descrizione_Asset', 'SKU']
-        if not any(col in [c.lower() for c in df.columns] for col in nomi_possibili):
+        colonne_lower = [c.lower() for c in df.columns]
+        nomi_lower = [n.lower() for n in nomi_possibili]
+
+        if not any(n in colonne_lower for n in nomi_lower):
             return False, "Non trovo una colonna 'Nome' o 'Prodotto'. Controlla le intestazioni del file."
 
         return True, "Validazione superata."
@@ -76,12 +79,13 @@ class IngestoreDati:
             valido, messaggio = self._valida_dati_critici(df)
             if not valido:
                 logger.warning(f"Validazione fallita per {company_id}: {messaggio}")
-                # Potresti voler lanciare un'eccezione qui per mostrarla in Streamlit
                 return asset_list
 
             # Rilevamento automatico del reparto
             settore_nome, ClasseAsset = self._auto_rilevamento_settore(df.columns)
-            self.db.registra_caricamento(company_id, f"Ingestione {settore_nome}", os.path.basename(file_path))
+
+            # ⚠️ Nota: la registrazione caricamento viene già fatta in app.py con user_id
+            # self.db.registra_caricamento(company_id, f"Ingestione {settore_nome}", os.path.basename(file_path))
 
             for _, row in df.iterrows():
                 dati_riga = row.to_dict()
@@ -94,14 +98,13 @@ class IngestoreDati:
                 try:
                     rischio_raw = self._estrai_dato(row, 'rischio', 5.0)
                     dati_riga['rischio'] = float(rischio_raw)
-                except:
-                    dati_riga['rischio'] = 5.0 # Fallback se il dato non è numerico
+                except Exception:
+                    dati_riga['rischio'] = 5.0  # Fallback se il dato non è numerico
 
                 dati_riga['company_id'] = company_id
                 dati_riga['data'] = row.get('Data_Registrazione', row.get('data', datetime.now().strftime("%Y-%m-%d")))
 
                 try:
-                    # Inizializzazione della classe
                     nuovo_asset = ClasseAsset(**dati_riga)
                     if hasattr(nuovo_asset, 'genera_kpi_strategici'):
                         nuovo_asset.genera_kpi_strategici()

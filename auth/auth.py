@@ -13,9 +13,9 @@ def inizializza_sessione():
     if "email" not in st.session_state:
         st.session_state.email = None
     if "ruolo" not in st.session_state:
-        st.session_state.ruolo = None
+        st.session_state.ruolo = "user"   # FIX
     if "azienda" not in st.session_state:
-        st.session_state.azienda = None
+        st.session_state.azienda = "Sconosciuta"  # FIX
 
 def login_utente(db, email, password):
     """
@@ -25,7 +25,7 @@ def login_utente(db, email, password):
     try:
         utente = db.get_utente_by_email(email)
         if not utente:
-            logger.warning(f"Tentativo di login fallito: email non trovata.")
+            logger.warning(f"Tentativo di login fallito: email non trovata ({email}).")
             return False
         
         # Verifica della password hashata con bcrypt
@@ -40,6 +40,7 @@ def login_utente(db, email, password):
         else:
             logger.warning(f"Tentativo di login fallito per {email}: password errata.")
             return False
+
     except Exception as e:
         logger.error(f"Errore durante la fase di login: {e}")
         return False
@@ -49,8 +50,8 @@ def logout_utente():
     st.session_state.autenticato = False
     st.session_state.user_id = None
     st.session_state.email = None
-    st.session_state.ruolo = None
-    st.session_state.azienda = None
+    st.session_state.ruolo = "user"          # FIX
+    st.session_state.azienda = "Sconosciuta" # FIX
     st.rerun()
 
 def richiede_ruolo(ruolo_richiesto):

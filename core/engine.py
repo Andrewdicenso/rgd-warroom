@@ -46,7 +46,8 @@ class DataGateway:
 
     # --- MATRICE MATEMATICA CORE (EMA PROTOCOL) ---
     def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
-        if dt <= 0: dt = 1
+        if dt <= 0:
+            dt = 1
         return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
     def _genera_consiglio_azione(self, rischio, settore, m_score=0):
@@ -63,16 +64,44 @@ class DataGateway:
             return f"⚠️ MONITORAGGIO: Settore {settore} in allerta. Revisione parametri settimanale." + alert
         return "✅ NOMINALE: Proseguire secondo pianificazione."
 
+    # --- CONFIGURAZIONE SETTORE / SOGLIE ---
+    def _analizza_e_configura_motore(self, contesto, colonne):
+        """
+        Configura settore, soglia e moltiplicatore in base al contesto e alle colonne disponibili.
+        """
+        contesto_upper = str(contesto).upper()
+
+        if "EDILE" in contesto_upper:
+            return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
+        if "FASHION" in contesto_upper:
+            return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
+        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper:
+            return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
+        if "ALIMENT" in contesto_upper:
+            return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
+
+        # fallback generico
+        return {"settore": "GENERAL", "soglia": 7.0, "moltiplicatore": 1.0}
+
     # --- ANALISI STRATEGICA E WHAT-IF ---
     def esegui_scan_strategico(self, lista_asset, contesto, fattore_stress=1.0, weights=(0.7, 0.3)):
         colonne = []
         if lista_asset:
-            colonne = list(lista_asset[0].keys()) if isinstance(lista_asset[0], dict) else list(vars(lista_asset[0]).keys())
+            if isinstance(lista_asset[0], dict):
+                colonne = list(lista_asset[0].keys())
+            else:
+                colonne = list(vars(lista_asset[0]).keys())
         
-        config_settore = analizza_e_configura_motore(area_focus)
+        config_settore = self._analizza_e_configura_motore(contesto, colonne)
         settore_rilevato = config_settore.get("settore", "GENERAL")
         soglia = config_settore.get("soglia", 7.0)
-        moltiplicatore = config_settore.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
+        moltiplicatore_base = config_settore.get("moltiplicatore", 1.0)
+
+        moltiplicatore = (
+            moltiplicatore_base
+            * self.pesi_contesto.get(contesto, 1.0)
+            * fattore_stress
+        )
         
         report = []
         for asset in lista_asset:
@@ -86,27 +115,40 @@ class DataGateway:
                 r_base = min(10.0, round((ore_p / self.ORE_TEORICHE_ANNUE) * 10, 2))
             
             r_pesato = round(r_base * moltiplicatore, 2)
-            m_score = self._calcola_trend_momentum_alpha(r_pesato, r_base * 0.85, w1=weights[0], w2=weights[1])
+            m_score = self._calcola_trend_momentum_alpha(
+                r_pesato,
+                r_base * 0.85,
+                w1=weights[0],
+                w2=weights[1]
+            )
             
+            stato = "CRITICO" if r_pesato > soglia else "OTTIMALE" if r_pesato < 5 else "ATTENZIONE"
+
             report.append({
                 "asset": nome,
-                "stato": "CRITICO" if r_pesato > soglia else "OTTIMALE" if r_pesato < 5 else "ATTENZIONE",
+                "stato": stato,
                 "rischio": r_pesato,
                 "momentum_score": m_score,
                 "consiglio_strategico": self._genera_consiglio_azione(r_pesato, settore_rilevato, m_score),
                 "settore": settore_rilevato,
                 "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
             })
+
             self._archivia_asset(d, r_pesato)
+
         return report
 
     # --- MODULO INTELLIGENCE: RECUPERO LIQUIDITÀ (INCOMING) ---
     def analizza_giacenze_e_proponi_marketing(self, df):
         proposte = []
         oggi = datetime.now()
-        if df is None or df.empty: return proposte
+        if df is None or df.empty:
+            return proposte
             
         for _, row in df.iterrows():
+            if 'timestamp' not in row or pd.isna(row['timestamp']):
+                continue
+
             giorni = (oggi - pd.to_datetime(row['timestamp'])).days
             if giorni > 30:
                 rischio = row.get('rischio', 0.0)
@@ -125,14 +167,22 @@ class DataGateway:
     def _archivia_asset(self, d, rischio):
         try:
             self.db.salva_asset(
-                user_id=d.get("user_id", 1), nome_asset=d.get("nome"),
-                rischio=rischio, tipo=d.get("tipo", "Enterprise"),
-                momentum=d.get("momentum", "Stabile"), volatilita=d.get("volatilita", 0.0)
+                user_id=d.get("user_id", 1),
+                nome_asset=d.get("nome"),
+                rischio=rischio,
+                tipo=d.get("tipo", "Enterprise"),
+                momentum=d.get("momentum", "Stabile"),
+                volatilita=d.get("volatilita", 0.0)
             )
-        except Exception as e: logger.warning(f"DB Sync fallito: {e}")
+        except Exception as e:
+            logger.warning(f"DB Sync fallito: {e}")
 
-    def salva_report_certificato(report_data):
-        # Logica per salvare il report
-            if report_data:
-              print("Report salvato con successo")
-    return True
+    def salva_report_certificato(self, report_data):
+        """
+        Placeholder per salvataggio report certificato.
+        Puoi estenderlo per salvare su file, DB, o generare PDF.
+        """
+        if not report_data:
+            return False
+        logger.info("Report salvato con successo (stub).")
+        return True
