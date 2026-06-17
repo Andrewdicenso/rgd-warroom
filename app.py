@@ -1,16 +1,18 @@
+# 1. LIBRERIE STANDARD DI PYTHON (Native)
 import os
-from groq import Groq
 import sys
 from datetime import datetime
 from pathlib import Path
 
+# 2. LIBRERIE DI TERZE PARTI (Installate con pip)
+from dotenv import load_dotenv
+from groq import Groq
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from dotenv import load_dotenv
 
-# --- MODULI CORE & AUTH ---
-from auth.auth import inizializza_sessione, login_utente, logout_utente
+# 3. MODULI CORE & AUTH (I tuoi file locali)
+from auth.auth import inizializza_sessione, login_utente, logout
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
