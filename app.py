@@ -107,7 +107,6 @@ if not st.session_state.autenticato:
             registra_nuovo_utente(re, rp, rc)
     st.stop()
 
-py
 # ==========================================
 #   NAVIGAZIONE SIDEBAR POTENZIATA (CORRETTA)
 # ==========================================
