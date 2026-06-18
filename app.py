@@ -108,7 +108,7 @@ if not st.session_state.autenticato:
     st.stop()
 
 # ==========================================
-#   NAVIGAZIONE SIDEBAR EXECUTIVE
+#   NAVIGAZIONE SIDEBAR EXECUTIVE (MODIFICATA)
 # ==========================================
 user_id = st.session_state.user_id
 azienda = st.session_state.azienda
@@ -118,25 +118,17 @@ is_admin = ruolo == "admin"
 st.sidebar.title("🛡️ RGD-ALPHA")
 st.sidebar.write(f"Operatore: **{azienda}**")
 
-# Menu dinamico
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
 if is_admin:
     menu.insert(1, "🕵️ Centrale Admin")
 
 scelta = st.sidebar.radio("Navigazione", menu)
 
-# --- MODULO 3: STRESS TEST (Versione Pulita senza tendina) ---
+# --- STRESS TEST PULITO (Senza tendina vuota) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚨 Simulazione Stress Test")
-f_stress = st.sidebar.slider(
-    "Moltiplicatore Inefficienze", 
-    min_value=1.0, 
-    max_value=2.5, 
-    value=1.0, 
-    step=0.1,
-    help="Simula un aumento del rischio operativo."
-)
-st.sidebar.caption("Leva attiva per scenari di crisi.")
+f_stress = st.sidebar.slider("Moltiplicatore Inefficienze", 1.0, 2.5, 1.0, 0.1)
+st.sidebar.caption("Leva attiva per simulazione scenari.")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("Logout"):
@@ -223,14 +215,16 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 # ==========================================
 #   PAGINA 3: WAR ROOM STRATEGICA
 # ==========================================
-elif scelta == "📊 War Room Strategica":
     st.markdown(
         f"""
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
-            <p>Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per: <strong>{azienda}</strong></p>
+            <p style='color: white !important;'>
+                Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per: 
+                <strong style='color: white !important;'>{azienda}</strong>
+            </p>
         </div>
-    """,
+        """,
         unsafe_allow_html=True,
     )
 
@@ -291,6 +285,19 @@ elif scelta == "📊 War Room Strategica":
                     label="✅ Analisi Quantitativa Completata!",
                     state="complete",
                 )
+
+                # --- INIZIO BLOCCO CORREZIONE ---
+                # Calcoliamo le ore totali per evitare l'errore NameError nell'IA
+                ore_totale = sum(
+                    [a.get("ore_produttive_effettive", 0) for a in report_analisi]
+                ) if 'report_analisi' in locals() else 0
+                
+                # Recuperiamo il trend dal database (Modulo 2)
+                trend_testo = kpi_reali.get("trend", "Stabile")
+                # --- FINE BLOCCO CORREZIONE ---
+
+                # Aggiornamento Dashboard con Risultati Reali
+                st.markdown("### 📊 Risultati Elaborazione Corrente")
 
                 # ==========================================
                 # MODULO 2: RISULTATI CON TREND AUTO-ADATTIVO
@@ -357,10 +364,10 @@ elif scelta == "📊 War Room Strategica":
                     media_momentum = round(df_p['momentum_score'].mean(), 2)
                     
                     settore_scelto = st.selectbox(
-                        "In quale settore opera l'azienda?",
-                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
-                        key="settore_ia"
-                    )
+                    "In quale settore opera l'azienda?",
+                    ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
+                    key="settore_ia_unico_executive" 
+                )
 
                     if st.button("🚀 Genera Analisi Prescrittiva"):
                         with st.spinner("L'AI sta elaborando la strategia..."):
