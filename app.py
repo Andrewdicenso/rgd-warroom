@@ -213,29 +213,6 @@ elif scelta == "📊 War Room Strategica":
         unsafe_allow_html=True,
     )
 
-    # Placeholder iniziale Metriche (Visualizzate prima del caricamento)
-    col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-    with col_p1:
-        st.markdown(
-            "<div class='metric-card'><h3>Solidità</h3><div class='value'>N/D</div><div class='delta'>%</div></div>",
-            unsafe_allow_html=True,
-        )
-    with col_p2:
-        st.markdown(
-            "<div class='metric-card' style='border-top-color: #e74c3c;'><h3>Rischio</h3><div class='value'>N/D</div><div class='delta'>/10</div></div>",
-            unsafe_allow_html=True,
-        )
-    with col_p3:
-        st.markdown(
-            "<div class='metric-card' style='border-top-color: #f39c12;'><h3>Ore Effettive</h3><div class='value'>0</div><div class='delta'>H(prod)</div></div>",
-            unsafe_allow_html=True,
-        )
-    with col_p4:
-        st.markdown(
-            "<div class='metric-card' style='border-top-color: #27ae60;'><h3>Produttività</h3><div class='value'>N/D</div><div class='delta'>Indice Orario</div></div>",
-            unsafe_allow_html=True,
-        )
-
     st.markdown("---")
 
     uploaded_file = st.file_uploader(
