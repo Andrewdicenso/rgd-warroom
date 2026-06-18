@@ -108,7 +108,7 @@ if not st.session_state.autenticato:
     st.stop()
 
 # ==========================================
-#   NAVIGAZIONE SIDEBAR POTENZIATA (CORRETTA)
+#   NAVIGAZIONE SIDEBAR EXECUTIVE
 # ==========================================
 user_id = st.session_state.user_id
 azienda = st.session_state.azienda
@@ -125,19 +125,18 @@ if is_admin:
 
 scelta = st.sidebar.radio("Navigazione", menu)
 
-# --- MODULO 3: STRESS TEST (Corretto allineamento) ---
+# --- MODULO 3: STRESS TEST (Versione Pulita senza tendina) ---
 st.sidebar.markdown("---")
-with st.sidebar.expander("🚨 STRESS TEST (WHAT-IF)", expanded=True):
-    # Nota: qui servono esattamente 4 spazi di rientro
-    f_stress = st.sidebar.slider(
-        "Moltiplicatore Inefficienze", 
-        min_value=1.0, 
-        max_value=2.5, 
-        value=1.0, 
-        step=0.1,
-        help="Simula un aumento del rischio operativo su tutti i reparti."
-    )
-    st.sidebar.caption("Sposta la leva per simulare scenari di crisi.")
+st.sidebar.subheader("🚨 Simulazione Stress Test")
+f_stress = st.sidebar.slider(
+    "Moltiplicatore Inefficienze", 
+    min_value=1.0, 
+    max_value=2.5, 
+    value=1.0, 
+    step=0.1,
+    help="Simula un aumento del rischio operativo."
+)
+st.sidebar.caption("Leva attiva per scenari di crisi.")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("Logout"):
@@ -285,7 +284,7 @@ elif scelta == "📊 War Room Strategica":
                     lista_asset,
                     "Produttività",
                     fattore_stress=f_stress,
-                    weights=(w1, w2),
+                    weights=(0.7, 0.3),
                 )
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
                 status.update(
