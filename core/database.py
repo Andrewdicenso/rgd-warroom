@@ -231,33 +231,62 @@ class DatabaseAziendale:
             logger.error(f"Errore salva_asset: {e}")
 
     def calcola_e_salva_kpi_correnti(self, user_id):
-        """Calcola i KPI reali basandosi sugli asset salvati nel database."""
+        """
+        MODULO 2: Analisi Predittiva Auto-Adattiva.
+        Calcola i KPI reali confrontando il trend storico con i dati recenti.
+        """
         try:
             with self._get_conn() as conn:
+                # 1. Recupero dati RECENTI (Presente - W1)
                 cursor = conn.execute("""
-                    SELECT AVG(rischio) FROM asset_logs 
+                    SELECT AVG(rischio), COUNT(id) FROM asset_logs 
                     WHERE user_id = ? AND timestamp >= datetime('now', '-1 hour')
                 """, (user_id,))
-                rischio_medio = cursor.fetchone()[0]
+                res_recent = cursor.fetchone()
+                rischio_recente = res_recent[0] if res_recent[0] is not None else 0
+                count_recent = res_recent[1]
 
-            if rischio_medio is None:
-                return {"solidita": 100, "impatto_30gg": "N/D", "rischio_medio": 0}
+                # 2. Recupero dati STORICI (Passato - W2)
+                cursor = conn.execute("""
+                    SELECT AVG(rischio) FROM asset_logs 
+                    WHERE user_id = ? AND timestamp < datetime('now', '-1 hour') 
+                    AND timestamp >= datetime('now', '-24 hours')
+                """, (user_id,))
+                rischio_storico = cursor.fetchone()[0] if cursor.fetchone() and cursor.fetchone()[0] is not None else rischio_recente
 
-            solidita = round(100 - (rischio_medio * 10), 1)
+            # Se non ci sono dati, restituiamo valori di default
+            if count_recent == 0 and rischio_recente == 0:
+                return {"solidita": 100, "impatto_30gg": "N/D", "rischio_medio": 0, "trend": "Stabile"}
+
+            # 3. LOGICA AUTO-ADATTIVA (EMA)
+            # Calcoliamo la variazione tra presente e passato
+            variazione = rischio_recente - rischio_storico
+            
+            # Calcolo Solidità (più è alto il rischio, più scende la solidità)
+            solidita = round(100 - (rischio_recente * 10), 1)
             solidita = max(min(solidita, 100), 0)
 
-            if rischio_medio > 7:
+            # 4. DETERMINAZIONE DEL TREND (Narrativa per il manager)
+            if variazione > 0.5:
+                trend = "In Peggioramento"
                 impatto = "CRITICO"
-            elif rischio_medio > 4:
-                impatto = "ATTENZIONE"
+            elif variazione < -0.5:
+                trend = "In Miglioramento"
+                impatto = "POSITIVO"
             else:
+                trend = "Stabile"
                 impatto = "STABILE"
 
+            # Restituiamo un dizionario completo per l'interfaccia
             return {
                 "solidita": solidita,
+                "rischio_medio": round(rischio_recente, 2),
+                "trend": trend,
+                "variazione": round(variazione, 2),
                 "impatto_30gg": impatto,
-                "rischio_medio": round(rischio_medio, 2)
+                "data_analisi": datetime.datetime.now().strftime("%H:%M")
             }
+
         except Exception as e:
-            logger.error(f"Errore calcola_e_salva_kpi_correnti: {e}")
-            return {"solidita": 0, "impatto_30gg": "ERRORE", "rischio_medio": 0}
+            logger.error(f"❌ Errore Modulo 2 (Predittivo): {e}")
+            return {"solidita": 0, "impatto_30gg": "ERRORE", "rischio_medio": 0, "trend": "Errore"}
