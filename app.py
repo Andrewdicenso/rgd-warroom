@@ -239,15 +239,6 @@ elif scelta == "📊 War Room Strategica":
 
     st.markdown("---")
 
-    with st.sidebar:
-        with st.expander("⚙️ CALIBRAZIONE EMA", expanded=True):
-            w1 = st.slider("Peso Presente (W1)", 0.1, 1.0, 0.7, 0.1)
-            w2 = st.slider("Peso Storico (W2)", 0.1, 1.0, 0.3, 0.1)
-        with st.expander("🚨 STRESS TEST (WHAT-IF)", expanded=True):
-            f_stress = st.slider(
-                "Moltiplicatore Inefficienze", 1.0, 2.0, 1.0, 0.1
-            )
-
     uploaded_file = st.file_uploader(
         "📁 Carica file dati operativi", 
     type=["csv", "xlsx", "xls"]
@@ -281,37 +272,39 @@ elif scelta == "📊 War Room Strategica":
                     state="complete",
                 )
 
-                # Aggiornamento Dashboard con Risultati Reali
-                st.markdown("### 📊 Risultati Elaborazione Corrente")
+                # ==========================================
+                # MODULO 2: RISULTATI CON TREND AUTO-ADATTIVO
+                # ==========================================
+                st.markdown("### 📊 Intelligence Report: Analisi Strategica")
+                
+                # Usiamo le card potenziate per mostrare il Trend (Modulo 2)
                 c1, c2, c3, c4 = st.columns(4)
 
-                ore_totale = sum(
-                    [
-                        a.get("ore_produttive_effettive", 2080)
-                        for a in report_analisi
-                    ]
-                )
                 rischio_val = kpi_reali.get("rischio_medio", 0)
-                col_r = (
-                    "#e74c3c"
-                    if rischio_val > 7
-                    else "#f39c12" if rischio_val > 4 else "#27ae60"
-                )
-
+                trend_testo = kpi_reali.get("trend", "Stabile")
+                
+                # Colore dinamico basato sul rischio
+                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+                
+                # Card 1: Solidità con variazione (Delta)
                 c1.markdown(
-                    f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpi_reali.get('solidita', 0)}%</div></div>",
+                    f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpi_reali.get('solidita', 0)}%</div><small>Trend: {trend_testo}</small></div>",
                     unsafe_allow_html=True,
                 )
+                # Card 2: Rischio con colore dinamico
                 c2.markdown(
                     f"<div class='metric-card' style='border-top-color:{col_r};'><h3>Rischio</h3><div class='value' style='color:{col_r};'>{rischio_val}/10</div></div>",
                     unsafe_allow_html=True,
                 )
+                # Card 3: Trend (La novità del Modulo 2)
+                col_t = "#e74c3c" if "Peggioramento" in trend_testo else "#27ae60"
                 c3.markdown(
-                    f"<div class='metric-card' style='border-top-color:#f39c12;'><h3>Ore Effettive</h3><div class='value'>{int(ore_totale)} h</div></div>",
+                    f"<div class='metric-card' style='border-top-color:{col_t};'><h3>Trend AI</h3><div class='value' style='color:{col_t}; font-size:1.2rem;'>{trend_testo}</div></div>",
                     unsafe_allow_html=True,
                 )
+                # Card 4: Resilience
                 c4.markdown(
-                    f"<div class='metric-card' style='border-top-color:#27ae60;'><h3>Resilience</h3><div class='value'>{max(0, round(100-(rischio_val*8),1))}%</div></div>",
+                    f"<div class='metric-card' style='border-top-color:#3498db;'><h3>Resilience</h3><div class='value'>{max(0, round(100-(rischio_val*8),1))}%</div></div>",
                     unsafe_allow_html=True,
                 )
 
@@ -328,8 +321,66 @@ elif scelta == "📊 War Room Strategica":
                         "ATTENZIONE": "#ffbd2e",
                         "OTTIMALE": "#27c93f",
                     },
+                    title="Analisi Momentum per Reparto"
                 )
                 st.plotly_chart(fig, use_container_width=True)
+
+                # --- RAGIONAMENTO IA CON GROQ (VERSIONE PRESCRITTIVA) ---
+                st.subheader("🧠 Diagnostica Strategica RGD + IA")
+                
+                api_key = os.getenv("GROQ_API_KEY")
+
+                if not api_key:
+                    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
+                else:
+                    client = Groq(api_key=api_key)
+                    media_momentum = round(df_p['momentum_score'].mean(), 2)
+                    
+                    settore_scelto = st.selectbox(
+                        "In quale settore opera l'azienda?",
+                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
+                        key="settore_ia"
+                    )
+
+                    if st.button("🚀 Genera Analisi Prescrittiva"):
+                        with st.spinner("L'AI sta elaborando la strategia..."):
+                            try:
+                                # Prompt potenziato secondo i suggerimenti del mercato (Analisi Prescrittiva)
+                                prompt_config = f"""
+                                Sei un Senior Business Consultant. Analizza questi dati per l'azienda {azienda} ({settore_scelto}):
+                                - Solidità: {kpi_reali.get('solidita', 0)}% (Trend: {trend_testo})
+                                - Rischio: {rischio_val}/10
+                                - Momentum Medio: {media_momentum}
+
+                                Compito:
+                                1. Spiega brevemente perché il trend è {trend_testo}.
+                                2. Fornisci 3 AZIONI PRATICHE immediate (Prescriptive Actions) per migliorare la solidità.
+                                3. Indica il rischio di 'Dashboard Fatigue' se i dati non vengono corretti entro 7 giorni.
+                                Usa un tono professionale e diretto.
+                                """
+
+                                chat_completion = client.chat.completions.create(
+                                    messages=[
+                                        {"role": "system", "content": "Sei un analista strategico esperto in Digital Twin aziendali."},
+                                        {"role": "user", "content": prompt_config},
+                                    ],
+                                    model="llama-3.3-70b-versatile",
+                                )
+
+                                risposta_testo = chat_completion.choices[0].message.content
+
+                                # Visualizzazione con la classe CSS ai-reasoning che hai definito
+                                st.markdown(
+                                    f"""
+                                    <div class="ai-reasoning">
+                                        <h4 style='color:#d4af37;'>📋 Resoconto Esecutivo AI</h4>
+                                        <div style='color:#e2e8f0;'>{risposta_testo}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            except Exception as e:
+                                st.error(f"Errore IA: {e}")
 
                                 # --- RAGIONAMENTO IA CON GROQ ---
                 st.subheader("🧠 Diagnostica Strategica RGD + IA")
