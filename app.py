@@ -412,12 +412,6 @@ elif scelta == "📊 War Room Strategica":
                 else:
                     client = Groq(api_key=api_key)
                     media_momentum = round(df_p['momentum_score'].mean(), 2)
-                    
-                    settore_scelto = st.selectbox(
-                        "In quale settore opera l'azienda?",
-                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
-                        key="settore_ia"
-                    )
 
                     if st.button("🚀 Genera Diagnostica Approfondita"):
                         with st.spinner("Stiamo analizzando i file..."):
