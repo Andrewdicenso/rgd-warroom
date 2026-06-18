@@ -36,32 +36,65 @@ st.set_page_config(
 
 inizializza_sessione()
 
+py
 # ==========================================
-#   CSS ENTERPRISE POTENZIATO
+#   CSS ENTERPRISE POTENZIATO (VERSIONE FINALE)
 # ==========================================
 st.markdown(
     """
     <style>
-    .kpi-box { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #007BFF; margin-bottom: 15px; }
-    .kpi-box-critical { background-color: #fff5f5; padding: 20px; border-radius: 10px; border-left: 5px solid #dc3545; margin-bottom: 15px; }
-    .ai-reasoning { background: #0e1117; border: 1px solid #d4af37; padding: 25px; border-radius: 15px; color: #e2e8f0; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .crew-box { padding:15px; border-radius:10px; background:rgba(255,255,255,0.02); margin-bottom:10px; border-left: 5px solid #ccc; }
-    
+    /* Sfondo e Font */
+    .stApp { background-color: #f4f7f9; }
+
+    /* WAR ROOM HEADER - Oro e Bianco */
     .warroom-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; border-left: 5px solid #e74c3c;
+        background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border-bottom: 4px solid #d4af37; /* Tocco Oro */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        text-align: center;
     }
-    .warroom-header h1 { color: white; margin: 0; }
+    .warroom-header h1 {
+        color: white !important;
+        margin: 0 0 5px 0 !important;
+        font-size: 2.2rem !important;
+    }
+    .warroom-header p {
+        color: #cbd5e0 !important; /* Grigio chiaro/Bianco molto leggibile */
+        font-size: 1.1rem !important;
+        margin: 0 !important;
+    }
+
+    /* KPI E AI REASONING */
+    .kpi-box { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #007BFF; margin-bottom: 15px; }
+    .ai-reasoning { background: #0e1117; border: 1px solid #d4af37; padding: 25px; border-radius: 15px; color: #e2e8f0; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    
+    /* METRIC CARD */
     .metric-card {
         background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center; border-top: 4px solid #3498db;
+        text-align: center; border-top: 5px solid #d4af37; /* Barra Oro sopra le card */
+    }
+    .metric-card h3 { color: #486581; font-size: 0.9rem; margin-bottom: 5px; }
+    .metric-card .value { font-size: 1.8rem; color: #102a43; font-weight: bold; }
+
+    /* BOTTONI PROFESSIONALI */
+    .stButton > button {
+        border-radius: 10px !important;
+        border: 1px solid #d4af37 !important;
+        color: #102a43 !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton > button:hover {
+        background-color: #d4af37 !important;
+        color: white !important;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
-
-db = DatabaseAziendale()
 
 
 # ==========================================
