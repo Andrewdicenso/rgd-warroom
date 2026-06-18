@@ -36,7 +36,6 @@ st.set_page_config(
 
 inizializza_sessione()
 
-py
 # ==========================================
 #   CSS ENTERPRISE POTENZIATO (VERSIONE FINALE)
 # ==========================================
