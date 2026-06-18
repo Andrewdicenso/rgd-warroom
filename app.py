@@ -215,6 +215,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 # ==========================================
 #   PAGINA 3: WAR ROOM STRATEGICA
 # ==========================================
+elif scelta == "📊 War Room Strategica":
     st.markdown(
         f"""
         <div class='warroom-header'>
@@ -255,7 +256,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 
     uploaded_file = st.file_uploader(
         "📁 Carica file dati operativi", 
-    type=["csv", "xlsx", "xls"]
+        type=["csv", "xlsx", "xls"]
     )
     if uploaded_file:
         path = UPLOAD_DIR / azienda / uploaded_file.name
@@ -364,10 +365,10 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
                     media_momentum = round(df_p['momentum_score'].mean(), 2)
                     
                     settore_scelto = st.selectbox(
-                    "In quale settore opera l'azienda?",
-                    ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
-                    key="settore_ia_unico_executive" 
-                )
+                        "In quale settore opera l'azienda?",
+                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
+                        key="settore_ia_unico_executive" 
+                    )
 
                     if st.button("🚀 Genera Analisi Prescrittiva"):
                         with st.spinner("L'AI sta elaborando la strategia..."):
@@ -409,7 +410,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
                             except Exception as e:
                                 st.error(f"Errore IA: {e}")
 
-                                # --- RAGIONAMENTO IA CON GROQ ---
+                # --- RAGIONAMENTO IA CON GROQ ---
                 st.subheader("🧠 Diagnostica Strategica RGD + IA")
                 
                 api_key = os.getenv("GROQ_API_KEY")
@@ -466,11 +467,11 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
                     box = "kpi-box-critical" if r > 7 else "kpi-box"
                     st.markdown(
                         f"""
-                    <div class="{box}">
-                        <b>{asset.get('asset', 'Reparto Ignoto')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score', 0)}
-                        <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico', 'In attesa di dati...')}</small>
-                    </div>
-                    """,
+                        <div class="{box}">
+                            <b>{asset.get('asset', 'Reparto Ignoto')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score', 0)}
+                            <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico', 'In attesa di dati...')}</small>
+                        </div>
+                        """,
                         unsafe_allow_html=True,
                     )
 
