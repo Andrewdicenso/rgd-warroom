@@ -95,6 +95,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+db = DatabaseAziendale()
 
 # ==========================================
 #   GESTIONE REGISTRAZIONE & AUTH
