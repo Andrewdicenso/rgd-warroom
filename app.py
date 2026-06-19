@@ -280,7 +280,7 @@ elif scelta == "📊 War Room Strategica":
                 df_raw = pd.read_excel(uploaded_file)
             
             # Manovra Smart Mapper (Dal tuo Engine)
-            df_mapped = engine.mappa_colonne_universal(df_raw)
+            df_mapped = engine.mappa_colonne_universale(df_raw)
             path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
             df_mapped.to_csv(str(path_mapped), index=False)
 
