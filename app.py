@@ -318,12 +318,32 @@ if uploaded_file:
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
-        # ==========================================
-        #   PAGINA 4: ARCHIVIO STORICO
-        # ==========================================
+    # ==========================================
+#   PAGINA 4: ARCHIVIO STORICO (VERSIONE EXECUTIVE)
+# ==========================================
 elif scelta == "📜 Archivio Storico":
-                st.title("📜 Archivio Storico Caricamenti")
-try:   
-           if is_admin:
-                st.info("👁️ Vista Admin: Storico Globale")
-                df_logs = db.recupera_log_caricamenti_admin():
+    st.title("📜 Archivio Storico Caricamenti")
+    
+    try:
+        # 1. Recupero dati dal database
+        df_logs = db.recupera_log_caricamenti_admin()
+        
+        if df_logs is not None and not df_logs.empty:
+            if is_admin:
+                st.info("👁️ Vista Admin: Monitoraggio Globale del Sistema")
+                st.dataframe(df_logs, use_container_width=True, hide_index=True)
+            else:
+                st.info(f"📁 Registro Analisi Strategiche per: **{azienda}**")
+                # FILTRO DI SICUREZZA: Mappatura chirurgica per azienda
+                df_filtrato = df_logs[df_logs["azienda"] == azienda]
+                
+                if not df_filtrato.empty:
+                    # Mostriamo i dati in modo elegante
+                    st.dataframe(df_filtrato, use_container_width=True, hide_index=True)
+                else:
+                    st.warning(f"Nessuna operazione registrata per l'azienda {azienda}.")
+        else:
+            st.warning("L'archivio centrale è attualmente vuoto. Carica un file nella War Room per iniziare.")
+            
+    except Exception as e:
+        st.error(f"❌ Errore critico di sincronizzazione archivio: {e}")
