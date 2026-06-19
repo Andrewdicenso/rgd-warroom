@@ -118,7 +118,6 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Logout"):
     logout_utente()
 
-py
 # ==========================================
 #   PAGINA 1: HOME EXECUTIVE
 # ==========================================

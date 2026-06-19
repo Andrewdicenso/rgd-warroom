@@ -1,4 +1,3 @@
-py
 import sys
 import logging
 import pandas as pd
