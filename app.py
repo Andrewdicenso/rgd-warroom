@@ -197,7 +197,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
         st.error(f"Errore caricamento dati Admin: {e}")
 
 # ==========================================
-#   PAGINA 3: WAR ROOM STRATEGICA
+#   PAGINA 3: WAR ROOM STRATEGICA (VERSIONE CORRETTA)
 # ==========================================
 elif scelta == "📊 War Room Strategica":
     st.markdown(
@@ -219,15 +219,14 @@ elif scelta == "📊 War Room Strategica":
         "📁 Carica file dati operativi", 
         type=["csv", "xlsx", "xls"]
     )
+
     if uploaded_file:
         path = UPLOAD_DIR / azienda / uploaded_file.name
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
-        with st.status(
-            "🔄 Protocollo Analitico RGD-Alpha in corso..."
-        ) as status:
+        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
             ingestor = IngestoreDati()
             lista_asset = ingestor.elabora_csv(str(path), azienda)
 
@@ -243,25 +242,40 @@ elif scelta == "📊 War Room Strategica":
                     weights=(0.7, 0.3),
                 )
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+                
                 status.update(
                     label="✅ Analisi Quantitativa Completata!",
                     state="complete",
                 )
 
-                # --- 📊 ANALISI TECNICA MOMENTUM (Modulo di Approfondimento) ---
-            with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
-                st.info("Questo grafico evidenzia la velocità di propagazione dei rischi. Valori alti di Momentum indicano criticità che richiedono intervento immediato.")
-                df_p = pd.DataFrame(report_analisi)
-                fig = px.bar(
-                    df_p,
-                    x="asset",
-                    y="momentum_score",
-                    color="stato",
-                    color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
-                    template="plotly_white", 
-                    title="Dettaglio Momentum per Reparto"
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                # --- 📊 ANALISI TECNICA MOMENTUM (Correttamente Allineato) ---
+                with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
+                    st.info("Questo grafico evidenzia la velocità di propagazione dei rischi.")
+                    df_p = pd.DataFrame(report_analisi)
+                    fig = px.bar(
+                        df_p,
+                        x="asset",
+                        y="momentum_score",
+                        color="stato",
+                        color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
+                        template="plotly_white", 
+                        title="Dettaglio Momentum per Reparto"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # --- CALCOLI FINALI E DASHBOARD ---
+                ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
+                rischio_val = kpi_reali.get("rischio_medio", 0)
+                trend_testo = kpi_reali.get("trend", "Stabile")
+
+                st.markdown("### 📊 Risultati Intelligence Report")
+                c1, c2, c3, c4 = st.columns(4)
+                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+
+                c1.markdown(f'<div class="metric-card"><h3>Solidità</h3><div class="value">{kpi_reali.get("solidita")}%</div></div>', unsafe_allow_html=True)
+                c2.markdown(f'<div class="metric-card" style="border-top-color:{col_r}"><h3>Rischio</h3><div class="value" style="color:{col_r}">{rischio_val}/10</div></div>', unsafe_allow_html=True)
+                c3.markdown(f'<div class="metric-card"><h3>Trend AI</h3><div class="value" style="font-size:1.2rem">{trend_testo}</div></div>', unsafe_allow_html=True)
+                c4.markdown(f'<div class="metric-card"><h3>Ore Analizzate</h3><div class="value">{int(ore_totale)} h</div></div>', unsafe_allow_html=True)
 
                 # --- CALCOLI FINALI ---
                 ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
