@@ -300,7 +300,7 @@ elif scelta == "📊 War Room Strategica":
                 # Aggiornamento Dashboard con Risultati Reali
                 st.markdown("### 📊 Risultati Elaborazione Corrente")
 
-                py
+                
                 # ==========================================
                 # MODULO 2: RISULTATI CON TREND AUTO-ADATTIVO
                 # ==========================================
