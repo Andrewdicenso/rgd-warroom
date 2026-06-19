@@ -307,23 +307,26 @@ elif scelta == "📊 War Room Strategica":
                     unsafe_allow_html=True,
                 )
 
-                # --- GRAFICO MOMENTUM ---
-                st.subheader("📈 Accelerazione Inefficienze (Algoritmo EMA)")
-                df_p = pd.DataFrame(report_analisi)
-                fig = px.bar(
-                    df_p,
-                    x="asset",
-                    y="momentum_score",
-                    color="stato",
-                    color_discrete_map={
-                        "CRITICO": "#ff5f56",
-                        "ATTENZIONE": "#ffbd2e",
-                        "OTTIMALE": "#27c93f",
-                    },
-                    title="Analisi Momentum per Reparto"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
+                py
+# --- GRAFICO MOMENTUM (Versione Executive Pulita) ---
+with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
+    st.info("Questo grafico evidenzia la velocità di propagazione dei rischi. Valori alti di Momentum indicano criticità che richiedono intervento immediato.")
+    
+    df_p = pd.DataFrame(report_analisi)
+    fig = px.bar(
+        df_p,
+        x="asset",
+        y="momentum_score",
+        color="stato",
+        color_discrete_map={
+            "CRITICO": "#ff5f56",
+            "ATTENZIONE": "#ffbd2e",
+            "OTTIMALE": "#27c93f",
+        },
+        template="plotly_white", # O plotly_dark se preferisci
+        title="Dettaglio Momentum per Reparto"
+    )
+    st.plotly_chart(fig, use_container_width=True)
                 # --- RAGIONAMENTO IA CON GROQ (VERSIONE PRESCRITTIVA) ---
                 st.subheader("🧠 Diagnostica Strategica RGD + IA")
                 
