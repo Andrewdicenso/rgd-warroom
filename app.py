@@ -426,7 +426,7 @@ for asset in report_ordinato:
 # ==========================================
 #   PAGINA 4: ARCHIVIO STORICO
 # ==========================================
-    scelta == ("📜 Archivio Storico")
+if scelta == "📜 Archivio Storico":
     st.title("📜 Archivio Storico Caricamenti")
     try:
         if is_admin:
