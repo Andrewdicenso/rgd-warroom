@@ -248,7 +248,6 @@ elif scelta == "📊 War Room Strategica":
                     state="complete",
                 )
 
-                py
                 # --- CALCOLI FINALI ---
                 ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
                 rischio_val = kpi_reali.get("rischio_medio", 0)
