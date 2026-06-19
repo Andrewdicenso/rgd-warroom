@@ -74,15 +74,10 @@ class DatabaseAziendale:
                     (email_enc, password_hash, ruolo, None)
                 )
                 user_id = cursor.lastrowid
-
                 if azienda is None:
                     azienda = f"AZ-{user_id}"
                 azienda_enc = self.vault.encrypt_data(azienda)
-
-                cursor.execute(
-                    "UPDATE utenti SET azienda = ? WHERE id = ?", 
-                    (azienda_enc, user_id)
-                )
+                cursor.execute("UPDATE utenti SET azienda = ? WHERE id = ?", (azienda_enc, user_id))
                 conn.commit()
                 return user_id
         except Exception as e:
@@ -97,22 +92,12 @@ class DatabaseAziendale:
             for row in rows:
                 try:
                     email_dec = self.vault.decrypt_data(row[1])
-                    if isinstance(email_dec, bytes):
-                        email_dec = email_dec.decode()
+                    if isinstance(email_dec, bytes): email_dec = email_dec.decode()
                     if email_dec.lower() == email.lower():
                         azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
-                        if isinstance(azienda_dec, bytes):
-                            azienda_dec = azienda_dec.decode()
-                        return {
-                            "id": row[0],
-                            "email": email_dec,
-                            "password_hash": row[2],
-                            "ruolo": row[3],
-                            "azienda": azienda_dec
-                        }
-                except Exception as e:
-                    logger.warning(f"Errore decrypt email/azienda: {e}")
-                    continue
+                        if isinstance(azienda_dec, bytes): azienda_dec = azienda_dec.decode()
+                        return {"id": row[0], "email": email_dec, "password_hash": row[2], "ruolo": row[3], "azienda": azienda_dec}
+                except: continue
             return None
         except Exception as e:
             logger.error(f"Errore get_utente_by_email: {e}")
@@ -121,172 +106,96 @@ class DatabaseAziendale:
     def get_utente_by_id(self, user_id: int):
         try:
             with self._get_conn() as conn:
-                cursor = conn.execute(
-                    "SELECT id, email, password_hash, ruolo, azienda FROM utenti WHERE id = ?",
-                    (user_id,)
-                )
+                cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti WHERE id = ?", (user_id,))
                 row = cursor.fetchone()
-            if not row:
-                return None
-
+            if not row: return None
             email_dec = self.vault.decrypt_data(row[1])
-            if isinstance(email_dec, bytes):
-                email_dec = email_dec.decode()
-
+            if isinstance(email_dec, bytes): email_dec = email_dec.decode()
             azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
-            if isinstance(azienda_dec, bytes):
-                azienda_dec = azienda_dec.decode()
-
-            return {
-                "id": row[0],
-                "email": email_dec,
-                "password_hash": row[2],
-                "ruolo": row[3],
-                "azienda": azienda_dec
-            }
+            if isinstance(azienda_dec, bytes): azienda_dec = azienda_dec.decode()
+            return {"id": row[0], "email": email_dec, "password_hash": row[2], "ruolo": row[3], "azienda": azienda_dec}
         except Exception as e:
             logger.error(f"Errore get_utente_by_id: {e}")
             return None
 
-    # --- FUNZIONI ADMIN PER SBLOCCARE IL PANNELLO ---
     def supervisione_admin_metriche_globali(self):
         try:
             with self._get_conn() as conn:
-                df = pd.read_sql_query(
-                    "SELECT email, ruolo, azienda, data_creazione FROM utenti", conn
-                )
-                if df.empty:
-                    return df
-
+                df = pd.read_sql_query("SELECT email, ruolo, azienda, data_creazione FROM utenti", conn)
+                if df.empty: return df
                 def _dec(v):
-                    if v is None:
-                        return None
+                    if v is None: return None
                     dec = self.vault.decrypt_data(v)
-                    if isinstance(dec, bytes):
-                        dec = dec.decode()
-                    return dec
-
+                    return dec.decode() if isinstance(dec, bytes) else dec
                 df["email"] = df["email"].apply(_dec)
                 df["azienda"] = df["azienda"].apply(_dec)
                 return df
         except Exception as e:
-            logger.error(f"Errore supervisione_admin_metriche_globali: {e}")
-            return pd.DataFrame()
+            logger.error(f"Errore Admin: {e}"); return pd.DataFrame()
 
-    def recupera_attivita_globale(self, solo_admin=False):
+    def recupera_attivita_globale(self):
         try:
             with self._get_conn() as conn:
-                df = pd.read_sql_query("SELECT * FROM asset_logs", conn)
-                return df
+                return pd.read_sql_query("SELECT * FROM asset_logs", conn)
         except Exception as e:
-            logger.error(f"Errore recupera_attivita_globale: {e}")
-            return pd.DataFrame()
+            logger.error(f"Errore: {e}"); return pd.DataFrame()
 
     def recupera_log_caricamenti_admin(self):
         try:
             with self._get_conn() as conn:
-                df = pd.read_sql_query("SELECT * FROM log_caricamenti", conn)
-                return df
+                return pd.read_sql_query("SELECT * FROM log_caricamenti", conn)
         except Exception as e:
-            logger.error(f"Errore recupera_log_caricamenti_admin: {e}")
-            return pd.DataFrame()
+            logger.error(f"Errore: {e}"); return pd.DataFrame()
 
     def registra_caricamento(self, user_id, contesto, nome_file):
         try:
             utente = self.get_utente_by_id(user_id)
-            if not utente:
-                return
-            azienda = utente["azienda"]
+            if not utente: return
             with self._get_conn() as conn:
-                conn.execute(
-                    "INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (?, ?, ?, ?)", 
-                    (user_id, azienda, contesto, nome_file)
-                )
+                conn.execute("INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file) VALUES (?, ?, ?, ?)", (user_id, utente["azienda"], contesto, nome_file))
                 conn.commit()
-        except Exception as e:
-            logger.error(f"Errore registra_caricamento: {e}")
+        except Exception as e: logger.error(f"Errore caricamento: {e}")
 
     def salva_asset(self, user_id, nome_asset, rischio, **kwargs):
         try:
             utente = self.get_utente_by_id(user_id)
-            if not utente:
-                return
-            azienda = utente["azienda"]
+            if not utente: return
             with self._get_conn() as conn:
-                conn.execute(
-                    "INSERT INTO asset_logs (user_id, company_id, nome, tipo, rischio, momentum, volatilita) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        user_id,
-                        azienda,
-                        nome_asset,
-                        kwargs.get('tipo'),
-                        rischio,
-                        kwargs.get('momentum'),
-                        kwargs.get('volatilita')
-                    )
-                )
+                conn.execute("INSERT INTO asset_logs (user_id, company_id, nome, tipo, rischio, momentum, volatilita) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (user_id, utente["azienda"], nome_asset, kwargs.get('tipo'), rischio, kwargs.get('momentum'), kwargs.get('volatilita')))
                 conn.commit()
-        except Exception as e:
-            logger.error(f"Errore salva_asset: {e}")
+        except Exception as e: logger.error(f"Errore salvataggio asset: {e}")
 
     def calcola_e_salva_kpi_correnti(self, user_id):
         """
         MODULO 2: Analisi Predittiva Auto-Adattiva.
-        Calcola i KPI reali confrontando il trend storico con i dati recenti.
         """
         try:
             with self._get_conn() as conn:
-                # 1. Recupero dati RECENTI (Presente - W1)
-                cursor = conn.execute("""
-                    SELECT AVG(rischio), COUNT(id) FROM asset_logs 
-                    WHERE user_id = ? AND timestamp >= datetime('now', '-1 hour')
-                """, (user_id,))
+                cursor = conn.execute("SELECT AVG(rischio), COUNT(id) FROM asset_logs WHERE user_id = ? AND timestamp >= datetime('now', '-1 hour')", (user_id,))
                 res_recent = cursor.fetchone()
                 rischio_recente = res_recent[0] if res_recent[0] is not None else 0
                 count_recent = res_recent[1]
 
-                # 2. Recupero dati STORICI (Passato - W2)
-                cursor = conn.execute("""
-                    SELECT AVG(rischio) FROM asset_logs 
-                    WHERE user_id = ? AND timestamp < datetime('now', '-1 hour') 
-                    AND timestamp >= datetime('now', '-24 hours')
-                """, (user_id,))
-                rischio_storico = cursor.fetchone()[0] if cursor.fetchone() and cursor.fetchone()[0] is not None else rischio_recente
+                cursor = conn.execute("SELECT AVG(rischio) FROM asset_logs WHERE user_id = ? AND timestamp < datetime('now', '-1 hour') AND timestamp >= datetime('now', '-24 hours')", (user_id,))
+                row_storico = cursor.fetchone()
+                rischio_storico = row_storico[0] if row_storico and row_storico[0] is not None else rischio_recente
 
-            # Se non ci sono dati, restituiamo valori di default
-            if count_recent == 0 and rischio_recente == 0:
-                return {"solidita": 100, "impatto_30gg": "N/D", "rischio_medio": 0, "trend": "Stabile"}
+            if count_recent == 0:
+                return {"solidita": 100, "impatto_30gg": "N/D", "rischio_medio": 0, "trend": "Stabile", "variazione": 0}
 
-            # 3. LOGICA AUTO-ADATTIVA (EMA)
-            # Calcoliamo la variazione tra presente e passato
-            variazione = rischio_recente - rischio_storico
-            
-            # Calcolo Solidità (più è alto il rischio, più scende la solidità)
-            solidita = round(100 - (rischio_recente * 10), 1)
-            solidita = max(min(solidita, 100), 0)
+            variazione = round(rischio_recente - rischio_storico, 2)
+            solidita = max(min(round(100 - (rischio_recente * 10), 1), 100), 0)
 
-            # 4. DETERMINAZIONE DEL TREND (Narrativa per il manager)
-            if variazione > 0.5:
-                trend = "In Peggioramento"
-                impatto = "CRITICO"
-            elif variazione < -0.5:
-                trend = "In Miglioramento"
-                impatto = "POSITIVO"
-            else:
-                trend = "Stabile"
-                impatto = "STABILE"
+            if variazione > 0.5: trend, impatto = "In Peggioramento", "CRITICO"
+            elif variazione < -0.5: trend, impatto = "In Miglioramento", "POSITIVO"
+            else: trend, impatto = "Stabile", "STABILE"
 
-            # Restituiamo un dizionario completo per l'interfaccia
             return {
-                "solidita": solidita,
-                "rischio_medio": round(rischio_recente, 2),
-                "trend": trend,
-                "variazione": round(variazione, 2),
-                "impatto_30gg": impatto,
+                "solidita": solidita, "rischio_medio": round(rischio_recente, 2), "trend": trend,
+                "variazione": variazione, "impatto_30gg": impatto,
                 "data_analisi": datetime.datetime.now().strftime("%H:%M")
             }
-
         except Exception as e:
-            logger.error(f"❌ Errore Modulo 2 (Predittivo): {e}")
-            return {"solidita": 0, "impatto_30gg": "ERRORE", "rischio_medio": 0, "trend": "Errore"}
+            logger.error(f"Errore Modulo 2: {e}")
+            return {"solidita": 0, "impatto_30gg": "ERRORE", "rischio_medio": 0, "trend": "Errore", "variazione": 0}

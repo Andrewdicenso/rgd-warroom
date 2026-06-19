@@ -209,215 +209,106 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 # ==========================================
 elif scelta == "📊 War Room Strategica":
     st.markdown(
-        f"""
-        <div class='warroom-header'>
-            <h1>🚀 War Room Strategica</h1>
-            <p style='color: white !important;'>
-                Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per: 
-                <strong style='color: white !important;'>{azienda}</strong>
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("---")
-
-    uploaded_file = st.file_uploader(
-        "📁 Carica file dati operativi", 
-        type=["csv", "xlsx", "xls"]
-    )
-
-    if uploaded_file:
-        path = UPLOAD_DIR / azienda / uploaded_file.name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f:
+        """
+    <div class='warroom-header'>
+            <h1>🚀 War Room Strategica</h1            <p style='color: white !important;'>
+            Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per: 
+            <strong style='color: white !important;'>{azienda}</strong>
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+            )
+st.markdown("---")
+uploaded_file = st.file_uploader(
+            "📁 Carica file dati operativi", 
+    type=["csv", "xlsx", "xls"]
+)   
+if uploaded_file:
+        # 1. SALVATAGGIO FISICO E MAPPATURA INTELLIGENTE
+        path_raw = UPLOAD_DIR / azienda / uploaded_file.name
+        path_raw.parent.mkdir(parents=True, exist_ok=True)
+        with open(path_raw, "wb") as f:
             f.write(uploaded_file.getbuffer())
-
         with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
-            ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_csv(str(path), azienda)
+            # --- MANOVRA SMART MAPPER (Cervello Engine) ---
+            engine = DataGateway()
+            df_raw = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+            df_mapped = engine.mappa_colonne_universale(df_raw)
+            
+            # Salviamo la versione mappata per l'Ingestore
+            path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
+            df_mapped.to_csv(str(path_mapped), index=False)
 
-            if lista_asset:
-                engine = DataGateway()
-                db.registra_caricamento(user_id, "WAR_ROOM", uploaded_file.name)
+        ingestor = IngestoreDati()
+        lista_asset = ingestor.elabora_csv(str(path_mapped), azienda)
+        if lista_asset:
+            db.registra_caricamento(user_id, "WAR_ROOM", uploaded_file.name)
+                # 2. ESECUZIONE LOGICA PREDITTIVA
+            report_analisi = engine.esegui_scan_strategico(
+                lista_asset,
+                    "UNIVERSAL",
+                fattore_stress=f_stress,
+                    weights=(0.7, 0.3)
+            )
+            kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
+               
+            status.update(label="✅ Analisi Quantitativa Completata!", state="complete")
+        # --- 📊 ANALISI TECNICA MOMENTUM ---
+        with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze"):
+                df_p = pd.DataFrame(report_analisi)
+                fig = px.bar(df_p, x="asset", y="momentum_score", color="stato", template="plotly_white")
+        st.plotly_chart(fig, use_container_width=True)
+                # --- 3. RISULTATI EXECUTIVE ---
+        rischio_val = kpi_reali.get("rischio_medio", 0)
+        trend_testo = kpi_reali.get("trend", "Stabile")
+        ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])                
+        st.markdown("### 📊 Intelligence Report: Analisi Strategica")
+        c1, c2, c3, c4 = st.columns(4)
+        col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"                
+        c1.markdown(f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpi_reali.get('solidita')}%</div></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='metric-card' style='border-top-color:{col_r}'><h3>Rischio</h3><div class='value' style='color:{col_r}'>{rischio_val}/10</div></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='metric-card'><h3>Trend AI</h3><div class='value' style='font-size:1.2rem'>{trend_testo}</div></div>", unsafe_allow_html=True)
+        c4.markdown(f"<div class='metric-card'><h3>Ore Analizzate</h3><div class='value'>{int(ore_totale)} h</div></div>", unsafe_allow_html=True)
 
-                # ESECUZIONE LOGICA PREDITTIVA (EMA + STRESS TEST)
-                report_analisi = engine.esegui_scan_strategico(
-                    lista_asset,
-                    "Produttività",
-                    fattore_stress=f_stress,
-                    weights=(0.7, 0.3),
-                )
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                
-                status.update(
-                    label="✅ Analisi Quantitativa Completata!",
-                    state="complete",
-                )
-
-                # --- 📊 ANALISI TECNICA MOMENTUM (Correttamente Allineato) ---
-                with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
-                    st.info("Questo grafico evidenzia la velocità di propagazione dei rischi.")
-                    df_p = pd.DataFrame(report_analisi)
-                    fig = px.bar(
-                        df_p,
-                        x="asset",
-                        y="momentum_score",
-                        color="stato",
-                        color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
-                        template="plotly_white", 
-                        title="Dettaglio Momentum per Reparto"
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-
-                # --- CALCOLI FINALI E DASHBOARD ---
-                ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
-                rischio_val = kpi_reali.get("rischio_medio", 0)
-                trend_testo = kpi_reali.get("trend", "Stabile")
-
-                st.markdown("### 📊 Risultati Intelligence Report")
-                c1, c2, c3, c4 = st.columns(4)
-                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
-
-                c1.markdown(f'<div class="metric-card"><h3>Solidità</h3><div class="value">{kpi_reali.get("solidita")}%</div></div>', unsafe_allow_html=True)
-                c2.markdown(f'<div class="metric-card" style="border-top-color:{col_r}"><h3>Rischio</h3><div class="value" style="color:{col_r}">{rischio_val}/10</div></div>', unsafe_allow_html=True)
-                c3.markdown(f'<div class="metric-card"><h3>Trend AI</h3><div class="value" style="font-size:1.2rem">{trend_testo}</div></div>', unsafe_allow_html=True)
-                c4.markdown(f'<div class="metric-card"><h3>Ore Analizzate</h3><div class="value">{int(ore_totale)} h</div></div>', unsafe_allow_html=True)
-
-
-                # --- NARRATIVA IA (Opzionale, sotto le card) ---
-                # Qui può seguire il tuo codice per la diagnostica con Groq
-
-                # Aggiornamento Dashboard con Risultati Reali
-                st.markdown("### 📊 Risultati Elaborazione Corrente")
-
-                
-                # ==========================================
-                # MODULO 2: RISULTATI CON TREND AUTO-ADATTIVO
-                # ==========================================
-                st.markdown("### 📊 Intelligence Report: Analisi Strategica")
-                
-                # Usiamo le card potenziate per mostrare il Trend (Modulo 2)
-                c1, c2, c3, c4 = st.columns(4)
-
-                rischio_val = kpi_reali.get("rischio_medio", 0)
-                trend_testo = kpi_reali.get("trend", "Stabile")
-                ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
-                
-                # Colore dinamico basato sul rischio
-                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
-                
-                # Card 1: Solidità con variazione
-                c1.markdown(
-                    f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpi_reali.get('solidita', 0)}%</div><small>Trend: {trend_testo}</small></div>",
-                    unsafe_allow_html=True,
-                )
-                # Card 2: Rischio con colore dinamico
-                c2.markdown(
-                    f"<div class='metric-card' style='border-top-color:{col_r};'><h3>Rischio</h3><div class='value' style='color:{col_r};'>{rischio_val}/10</div></div>",
-                    unsafe_allow_html=True,
-                )
-                # Card 3: Trend
-                col_t = "#e74c3c" if "Peggioramento" in trend_testo else "#27ae60"
-                c3.markdown(
-                    f"<div class='metric-card' style='border-top-color:{col_t};'><h3>Trend AI</h3><div class='value' style='color:{col_t}; font-size:1.2rem;'>{trend_testo}</div></div>",
-                    unsafe_allow_html=True,
-                )
-                # Card 4: Resilience
-                c4.markdown(
-                    f"<div class='metric-card' style='border-top-color:#3498db;'><h3>Resilience</h3><div class='value'>{max(0, round(100-(rischio_val*8),1))}%</div></div>",
-                    unsafe_allow_html=True,
-                )
-
-                # --- 📊 ANALISI TECNICA MOMENTUM (Modulo di Approfondimento) ---
-                with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
-                    st.info("Questo grafico evidenzia la velocità di propagazione dei rischi.")
-                    df_p = pd.DataFrame(report_analisi)
-                    fig = px.bar(
-                        df_p,
-                        x="asset",
-                        y="momentum_score",
-                        color="stato",
-                        color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
-                        template="plotly_white", 
-                        title="Dettaglio Momentum per Reparto"
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-
-                # --- 🧠 DIAGNOSTICA STRATEGICA RGD + IA (Il Cuore Decisionale) ---
-                st.subheader("🧠 Diagnostica Strategica RGD + IA")
-                api_key = os.getenv("GROQ_API_KEY")
-
-                if not api_key:
-                    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
-                else:
+        # --- 4. DIAGNOSTICA IA (VERSIONE LUNGA E PROFESSIONALE) ---
+        st.subheader("🧠 Diagnostica Strategica RGD + IA")
+        api_key = os.getenv("GROQ_API_KEY")
+        if api_key:
                     client = Groq(api_key=api_key)
-                    media_momentum = round(df_p['momentum_score'].mean(), 2) if 'df_p' in locals() else 0
-                    
-                    settore_scelto = st.selectbox(
-                        "Seleziona il settore operativo per una diagnosi mirata:",
-                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
-                        key="settore_ia_unico_exec"
-                    )
-
-                    if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
-                        with st.spinner("L'AI sta elaborando la strategia..."):
+                    media_momentum = round(df_p['momentum_score'].mean(), 2)
+                    settore_ia = st.selectbox("Seleziona Settore:", ["Marketing", "Logistica", "Produzione", "Retail"], key="settore_ia_exec")
+                        
+        if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
+                    with st.spinner("L'AI sta elaborando la strategia..."):
                             try:
                                 prompt_config = f"""
-                                Sei un Senior Business Consultant esperto in Digital Twin per l'azienda {azienda} (Settore: {settore_scelto}).
-                                DATI CORRENTI:
-                                - Solidità: {kpi_reali.get('solidita', 0)}% (Trend: {trend_testo})
-                                - Rischio: {rischio_val}/10 | Momentum Medio: {media_momentum}
-                                - Ore lavorate: {int(ore_totale)}
-
-                                COMPITO:
-                                Rispondi con un tono Executive seguendo questo schema:
-                                1. DIAGNOSI NUMERICA: Perché il trend è {trend_testo}.
-                                2. SOGLIE DI SETTORE: Compara con il settore {settore_scelto}.
-                                3. PIANO D'AZIONE (PRESCRIPTIVE): 3 AZIONI PRATICHE immediate.
-                                4. ALLERTA 'DASHBOARD FATIGUE': Rischio se non si agisce in 7gg.
-                                5. CONCLUSIONE: Una frase definitiva sulla resilienza.
+                                    Sei un Senior Business Consultant (CSO) per l'azienda {azienda} (Settore: {settore_ia}).
+                                    DATI: Solidità {kpi_reali.get('solidita')}% | Rischio {rischio_val}/10 | Trend {trend_testo} | Ore {int(ore_totale)}.
+                                    COMPITO: Rispondi con tono Executive:
+                                    1. DIAGNOSI NUMERICA: Perché il trend è {trend_testo}?
+                                    2. SOGLIE: Compara con il settore {settore_ia}.
+                                    3. PIANO D'AZIONE: 3 AZIONI PRATICHE immediate.
+                                    4. ALLERTA FATIGUE: Rischio se non si agisce in 7gg.
                                 """
-
-                                chat_completion = client.chat.completions.create(
-                                    messages=[
-                                        {"role": "system", "content": "Sei un CSO virtuale. Dai ordini esecutivi."},
-                                        {"role": "user", "content": prompt_config},
-                                    ],
-                                    model="llama-3.3-70b-versatile",
+                                chat = client.chat.completions.create(
+                                        messages=[{"role": "system", "content": "Sei un Chief Strategy Officer. Dai ordini esecutivi."},
+                                                {"role": "user", "content": prompt_config}],
+                                        model="llama-3.3-70b-versatile"
                                 )
-                                risposta_testo = chat_completion.choices[0].message.content
-                                st.markdown(
-                                    f"""
-                                    <div class="ai-reasoning">
-                                        <h4 style='color:#d4af37; border-bottom: 1px solid #d4af37; padding-bottom:10px;'>📋 RESOCONTO ESECUTIVO AI</h4>
-                                        <div style='color:#e2e8f0; font-size: 1rem; line-height: 1.6;'>
-                                            {risposta_testo.replace('1.', '<br><b>1.</b>').replace('2.', '<br><b>2.</b>').replace('3.', '<br><b>3.</b>').replace('4.', '<br><b>4.</b>').replace('5.', '<br><b>5.</b>')}
-                                        </div>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
+                                risposta = chat.choices[0].message.content
+                                st.markdown(f"""<div class="ai-reasoning"><h4 style='color:#d4af37; border-bottom: 1px solid #d4af37; padding-bottom:10px;'>📋 RESOCONTO ESECUTIVO AI</h4><div style='color:#e2e8f0;'>{risposta.replace('1.', '<br><b>1.</b>').replace('2.', '<br><b>2.</b>').replace('3.', '<br><b>3.</b>').replace('4.', '<br><b>4.</b>')}</div></div>""", unsafe_allow_html=True)
                             except Exception as e:
-                                st.error(f"Errore tecnico nel motore IA: {e}")
-
-                # --- 📝 PIANO D'AZIONE OPERATIVO INTELLIGENTE (Modulo Reparti) ---
-                st.subheader("📝 Piano d'Azione Operativo (Priorità)")
-                report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
-
-                for asset in report_ordinato:
-                    r = asset.get("rischio", 0)
-                    m = asset.get("momentum_score", 0)
-                    nome = asset.get('asset', 'Reparto Non Specificato')
-                    if r > 7 and m > 2:
-                        box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare le attività e avviare revisione."
-                    elif r > 5 or m > 1.5:
-                        box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare il monitoraggio."
-                    else:
-                        box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Mantenere gli standard attuali."
-
-                    st.markdown(f"""
+                                    st.error(f"Errore IA: {e}")
+                    # --- 5. PIANO D'AZIONE OPERATIVO INTELLIGENTE (Tieni questo!) ---
+        st.subheader("📝 Piano d'Azione Operativo (Priorità)")
+        report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
+        for asset in report_ordinato:
+                        r, m, nome = asset.get("rischio", 0), asset.get("momentum_score", 0), asset.get('asset', 'Reparto Non Specificato')
+                        if r > 7 and m > 2: box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare le attività e avviare revisione immediata."
+                        elif r > 5 or m > 1.5: box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare il monitoraggio e ottimizzare i turni."
+                        else: box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Mantenere gli standard attuali. Eseguire controlli di routine."
+        st.markdown(f"""
                         <div class="{box_style}" style="border-left: 10px solid {'#dc3545' if '🚨' in label else '#007BFF'};">
                             <span style="float: right; font-size: 0.8rem; background: #eee; padding: 2px 8px; border-radius: 10px; color: #333;">{label}</span>
                             <b style="font-size: 1.1rem; color: #102a43;">{nome}</b>
@@ -427,25 +318,12 @@ elif scelta == "📊 War Room Strategica":
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
-
-# ==========================================
-#   PAGINA 4: ARCHIVIO STORICO
-# ==========================================
+        # ==========================================
+        #   PAGINA 4: ARCHIVIO STORICO
+        # ==========================================
 elif scelta == "📜 Archivio Storico":
-    st.title("📜 Archivio Storico Caricamenti")
-    try:
-        if is_admin:
-            st.info("👁️ Vista Admin: Storico Globale")
-            df_logs = db.recupera_log_caricamenti_admin()
-        else:
-            st.info(f"📁 Archivio Caricamenti per: {azienda}")
-            df_logs = db.recupera_log_caricamenti_admin()
-            if not df_logs.empty:
-                df_logs = df_logs[df_logs["azienda"] == azienda]
-
-        if not df_logs.empty:
-            st.dataframe(df_logs, use_container_width=True, hide_index=True)
-        else:
-            st.warning("Nessun caricamento trovato in archivio.")
-    except Exception as e:
-        st.error(f"Errore recupero archivio: {e}")
+                st.title("📜 Archivio Storico Caricamenti")
+try:   
+           if is_admin:
+                st.info("👁️ Vista Admin: Storico Globale")
+                df_logs = db.recupera_log_caricamenti_admin():

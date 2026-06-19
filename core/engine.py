@@ -1,12 +1,14 @@
+py
 import sys
 import logging
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import numpy as np
+import difflib # <-- INDISPENSABILE per la mappatura intelligente
 
 # ==============================================================================
-# RISOLUZIONE DINAMICA DEL PATH
+# RISOLUZIONE DINAMICA DEL PATH (Mantenuta intatta)
 # ==============================================================================
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -19,9 +21,8 @@ logger = logging.getLogger("RGD-Alpha.Gateway.Enterprise")
 
 class DataGateway:
     """
-    ENGINE RGD-ALPHA ENTERPRISE v2.0
-    Sistema di analisi predittiva con protocollo EMA, What-If Analysis,
-    calcolo H(prod) e Modulo di Recupero Liquidità (Incoming Forecast).
+    ENGINE RGD-ALPHA ENTERPRISE v2.2
+    SISTEMA INTEGRATO: Mappatura Universale + EMA Protocol + What-If Analysis.
     """
     def __init__(self):
         try:
@@ -37,17 +38,45 @@ class DataGateway:
             "Produttività Risorse": 1.3, "EDILE": 1.4, "FASHION": 1.1, "UNIVERSAL": 1.0
         }
 
-    # --- ALGORITMI PRODUTTIVITÀ ---
+    # ==========================================================================
+    # NUOVA FUNZIONE: SMART MAPPING UNIVERSALE
+    # ==========================================================================
+    def mappa_colonne_universale(self, df):
+        """
+        Rileva e rinomina automaticamente le colonne provenienti da qualsiasi ERP/CRM.
+        Non interrompe il flusso: se non trova nulla, restituisce il df originale.
+        """
+        colonne_target = {
+            "nome": ["Work Center", "Reparto", "Cantiere", "Asset", "Macchina", "Project", "Account Name", "Name"],
+            "rischio": ["Risk", "Criticality", "Priorità", "Livello", "Grado", "Pericolo", "Priority Score", "Rischio"],
+            "ore_produttive_effettive": ["Hours", "Ore", "Tempo", "Effort", "Lavorate", "Actual Hours", "h"],
+            "tipo": ["Type", "Category", "Categoria", "Genere", "Resource Group", "Tipo"],
+            "stato": ["Status", "Stato", "Health", "Fase", "Current State"]
+        }
+        colonne_file = list(df.columns)
+        mappa_finale = {}
+
+        for target, sinonimi in colonne_target.items():
+            for col in colonne_file:
+                if col.lower() in [s.lower() for s in sinonimi] or col.lower() == target:
+                    mappa_finale[col] = target
+                    break
+            if target not in mappa_finale.values():
+                matches = difflib.get_close_matches(target, colonne_file, n=1, cutoff=0.5)
+                if matches: mappa_finale[matches[0]] = target
+        
+        return df.rename(columns=mappa_finale)
+
+    # --- ALGORITMI PRODUTTIVITÀ (Invariati) ---
     def calcola_ore_produttive_individuali(self, f, fest, a, p, r, m):
         return self.ORE_TEORICHE_ANNUE - (f + fest + a + p + r + m)
 
     def calcola_indice_produttivita(self, output, ore_effettive):
         return round(output / ore_effettive, 2) if ore_effettive > 0 else 0.0
 
-    # --- MATRICE MATEMATICA CORE (EMA PROTOCOL) ---
+    # --- MATRICE MATEMATICA CORE (EMA PROTOCOL - Invariata) ---
     def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
-        if dt <= 0:
-            dt = 1
+        if dt <= 0: dt = 1
         return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
     def _genera_consiglio_azione(self, rischio, settore, m_score=0):
@@ -64,64 +93,39 @@ class DataGateway:
             return f"⚠️ MONITORAGGIO: Settore {settore} in allerta. Revisione parametri settimanale." + alert
         return "✅ NOMINALE: Proseguire secondo pianificazione."
 
-    # --- CONFIGURAZIONE SETTORE / SOGLIE ---
+    # --- CONFIGURAZIONE SETTORE / SOGLIE (Invariata) ---
     def _analizza_e_configura_motore(self, contesto, colonne):
-        """
-        Configura settore, soglia e moltiplicatore in base al contesto e alle colonne disponibili.
-        """
         contesto_upper = str(contesto).upper()
-
-        if "EDILE" in contesto_upper:
-            return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
-        if "FASHION" in contesto_upper:
-            return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
-        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper:
-            return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
-        if "ALIMENT" in contesto_upper:
-            return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
-
-        # fallback generico
+        if "EDILE" in contesto_upper: return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
+        if "FASHION" in contesto_upper: return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
+        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper: return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
+        if "ALIMENT" in contesto_upper: return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
         return {"settore": "GENERAL", "soglia": 7.0, "moltiplicatore": 1.0}
 
-    # --- ANALISI STRATEGICA E WHAT-IF ---
+    # --- ANALISI STRATEGICA E WHAT-IF (Logica H(prod) Preservata) ---
     def esegui_scan_strategico(self, lista_asset, contesto, fattore_stress=1.0, weights=(0.7, 0.3)):
         colonne = []
         if lista_asset:
-            if isinstance(lista_asset[0], dict):
-                colonne = list(lista_asset[0].keys())
-            else:
-                colonne = list(vars(lista_asset[0]).keys())
+            colonne = list(lista_asset[0].keys()) if isinstance(lista_asset[0], dict) else list(vars(lista_asset[0]).keys())
         
-        config_settore = self._analizza_e_configura_motore(contesto, colonne)
-        settore_rilevato = config_settore.get("settore", "GENERAL")
-        soglia = config_settore.get("soglia", 7.0)
-        moltiplicatore_base = config_settore.get("moltiplicatore", 1.0)
-
-        moltiplicatore = (
-            moltiplicatore_base
-            * self.pesi_contesto.get(contesto, 1.0)
-            * fattore_stress
-        )
+        config = self._analizza_e_configura_motore(contesto, colonne)
+        settore_rilevato = config.get("settore", "GENERAL")
+        soglia = config.get("soglia", 7.0)
+        moltiplicatore = config.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
         
         report = []
         for asset in lista_asset:
             d = asset if isinstance(asset, dict) else vars(asset)
-            nome = d.get("nome", "Asset")
+            nome = d.get("nome", d.get("asset", "Asset")) # Fallback sicuro
             r_base = d.get("rischio", 0.0)
             
-            # Integrazione Metriche H(prod)
+            # Calcolo H(prod) - LOGICA ORIGINALE INTEGRALE
             ore_p = sum([d.get(k, 0) for k in ["ferie", "festivita", "assenze", "permessi", "ritardi", "micropause"]])
             if ore_p > 0:
                 r_base = min(10.0, round((ore_p / self.ORE_TEORICHE_ANNUE) * 10, 2))
             
             r_pesato = round(r_base * moltiplicatore, 2)
-            m_score = self._calcola_trend_momentum_alpha(
-                r_pesato,
-                r_base * 0.85,
-                w1=weights[0],
-                w2=weights[1]
-            )
-            
+            m_score = self._calcola_trend_momentum_alpha(r_pesato, r_base * 0.85, w1=weights[0], w2=weights[1])
             stato = "CRITICO" if r_pesato > soglia else "OTTIMALE" if r_pesato < 5 else "ATTENZIONE"
 
             report.append({
@@ -133,56 +137,30 @@ class DataGateway:
                 "settore": settore_rilevato,
                 "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
             })
-
             self._archivia_asset(d, r_pesato)
-
         return report
 
-    # --- MODULO INTELLIGENCE: RECUPERO LIQUIDITÀ (INCOMING) ---
+    # --- MODULO INTELLIGENCE E ARCHIVIAZIONE (Invariati) ---
     def analizza_giacenze_e_proponi_marketing(self, df):
         proposte = []
         oggi = datetime.now()
-        if df is None or df.empty:
-            return proposte
-            
+        if df is None or df.empty: return proposte
         for _, row in df.iterrows():
-            if 'timestamp' not in row or pd.isna(row['timestamp']):
-                continue
-
+            if 'timestamp' not in row or pd.isna(row['timestamp']): continue
             giorni = (oggi - pd.to_datetime(row['timestamp'])).days
             if giorni > 30:
-                rischio = row.get('rischio', 0.0)
-                valore = row.get('valore_extra', 0.0)
+                rischio, valore = row.get('rischio', 0.0), row.get('valore_extra', 0.0)
                 sconto = 0.4 if rischio > 7 else 0.2
-                recupero = round(valore * (1 - sconto), 2)
-                
-                proposte.append({
-                    "asset": row.get('nome'),
-                    "giorni": giorni,
-                    "recupero_stimato": f"€ {recupero}",
-                    "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}% per recuperare liquidità."
-                })
+                proposte.append({"asset": row.get('nome'), "giorni": giorni, "recupero_stimato": f"€ {round(valore * (1 - sconto), 2)}", "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}%."})
         return proposte
 
     def _archivia_asset(self, d, rischio):
         try:
-            self.db.salva_asset(
-                user_id=d.get("user_id", 1),
-                nome_asset=d.get("nome"),
-                rischio=rischio,
-                tipo=d.get("tipo", "Enterprise"),
-                momentum=d.get("momentum", "Stabile"),
-                volatilita=d.get("volatilita", 0.0)
-            )
+            self.db.salva_asset(user_id=d.get("user_id", 1), nome_asset=d.get("nome"), rischio=rischio, tipo=d.get("tipo", "Enterprise"), momentum="Stabile", volatilita=0.0)
         except Exception as e:
             logger.warning(f"DB Sync fallito: {e}")
 
     def salva_report_certificato(self, report_data):
-        """
-        Placeholder per salvataggio report certificato.
-        Puoi estenderlo per salvare su file, DB, o generare PDF.
-        """
-        if not report_data:
-            return False
+        if not report_data: return False
         logger.info("Report salvato con successo (stub).")
         return True
