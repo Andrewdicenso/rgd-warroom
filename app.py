@@ -248,6 +248,21 @@ elif scelta == "📊 War Room Strategica":
                     state="complete",
                 )
 
+                # --- 📊 ANALISI TECNICA MOMENTUM (Modulo di Approfondimento) ---
+            with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
+                st.info("Questo grafico evidenzia la velocità di propagazione dei rischi. Valori alti di Momentum indicano criticità che richiedono intervento immediato.")
+                df_p = pd.DataFrame(report_analisi)
+                fig = px.bar(
+                    df_p,
+                    x="asset",
+                    y="momentum_score",
+                    color="stato",
+                    color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
+                    template="plotly_white", 
+                    title="Dettaglio Momentum per Reparto"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
                 # --- CALCOLI FINALI ---
                 ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
                 rischio_val = kpi_reali.get("rischio_medio", 0)
@@ -307,21 +322,6 @@ elif scelta == "📊 War Room Strategica":
                     unsafe_allow_html=True,
                 )
 
-                py
-# --- 📊 ANALISI TECNICA MOMENTUM (Modulo di Approfondimento) ---
-with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
-    st.info("Questo grafico evidenzia la velocità di propagazione dei rischi. Valori alti di Momentum indicano criticità che richiedono intervento immediato.")
-    df_p = pd.DataFrame(report_analisi)
-    fig = px.bar(
-        df_p,
-        x="asset",
-        y="momentum_score",
-        color="stato",
-        color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
-        template="plotly_white", 
-        title="Dettaglio Momentum per Reparto"
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
 # --- 🧠 DIAGNOSTICA STRATEGICA RGD + IA (Il Cuore Decisionale) ---
 st.subheader("🧠 Diagnostica Strategica RGD + IA")
