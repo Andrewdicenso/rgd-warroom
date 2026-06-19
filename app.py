@@ -308,151 +308,125 @@ elif scelta == "📊 War Room Strategica":
                 )
 
                 py
-# --- GRAFICO MOMENTUM (Versione Executive Pulita) ---
+# --- 📊 ANALISI TECNICA MOMENTUM (Modulo di Approfondimento) ---
 with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze (Algoritmo EMA)"):
     st.info("Questo grafico evidenzia la velocità di propagazione dei rischi. Valori alti di Momentum indicano criticità che richiedono intervento immediato.")
-    
     df_p = pd.DataFrame(report_analisi)
     fig = px.bar(
         df_p,
         x="asset",
         y="momentum_score",
         color="stato",
-        color_discrete_map={
-            "CRITICO": "#ff5f56",
-            "ATTENZIONE": "#ffbd2e",
-            "OTTIMALE": "#27c93f",
-        },
-        template="plotly_white", # O plotly_dark se preferisci
+        color_discrete_map={"CRITICO": "#ff5f56", "ATTENZIONE": "#ffbd2e", "OTTIMALE": "#27c93f"},
+        template="plotly_white", 
         title="Dettaglio Momentum per Reparto"
     )
     st.plotly_chart(fig, use_container_width=True)
-                # --- RAGIONAMENTO IA CON GROQ (VERSIONE PRESCRITTIVA) ---
-                st.subheader("🧠 Diagnostica Strategica RGD + IA")
-                
-                api_key = os.getenv("GROQ_API_KEY")
 
-                if not api_key:
-                    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
-                else:
-                    client = Groq(api_key=api_key)
-                    media_momentum = round(df_p['momentum_score'].mean(), 2)
-                    
-                    settore_scelto = st.selectbox(
-                        "In quale settore opera l'azienda?",
-                        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
-                        key="settore_ia_unico_executive" 
-                    )
+# --- 🧠 DIAGNOSTICA STRATEGICA RGD + IA (Il Cuore Decisionale) ---
+st.subheader("🧠 Diagnostica Strategica RGD + IA")
 
-                    if st.button("🚀 Genera Analisi Prescrittiva"):
-                        with st.spinner("L'AI sta elaborando la strategia..."):
-                            try:
-                                # Prompt potenziato secondo i suggerimenti del mercato (Analisi Prescrittiva)
-                                prompt_config = f"""
-                                Sei un Senior Business Consultant. Analizza questi dati per l'azienda {azienda} ({settore_scelto}):
-                                - Solidità: {kpi_reali.get('solidita', 0)}% (Trend: {trend_testo})
-                                - Rischio: {rischio_val}/10
-                                - Momentum Medio: {media_momentum}
+api_key = os.getenv("GROQ_API_KEY")
 
-                                Compito:
-                                1. Spiega brevemente perché il trend è {trend_testo}.
-                                2. Fornisci 3 AZIONI PRATICHE immediate (Prescriptive Actions) per migliorare la solidità.
-                                3. Indica il rischio di 'Dashboard Fatigue' se i dati non vengono corretti entro 7 giorni.
-                                Usa un tono professionale e diretto.
-                                """
+if not api_key:
+    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
+else:
+    client = Groq(api_key=api_key)
+    media_momentum = round(df_p['momentum_score'].mean(), 2) if 'df_p' in locals() else 0
+    
+    # Unica selezione del settore
+    settore_scelto = st.selectbox(
+        "Seleziona il settore operativo per una diagnosi mirata:",
+        ["Marketing", "Logistica", "Produzione", "Servizi", "Retail"],
+        key="settore_ia_unico_exec"
+    )
 
-                                chat_completion = client.chat.completions.create(
-                                    messages=[
-                                        {"role": "system", "content": "Sei un analista strategico esperto in Digital Twin aziendali."},
-                                        {"role": "user", "content": prompt_config},
-                                    ],
-                                    model="llama-3.3-70b-versatile",
-                                )
+    if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
+        with st.spinner("L'AI sta elaborando la strategia..."):
+            try:
+                # Prompt che unisce la tua visione Senior Consultant con il ruolo di Chief Strategy Officer
+                prompt_config = f"""
+                Sei un Senior Business Consultant esperto in Digital Twin per l'azienda {azienda} (Settore: {settore_scelto}).
+                DATI CORRENTI:
+                - Solidità: {kpi_reali.get('solidita', 0)}% (Trend: {trend_testo})
+                - Rischio: {rischio_val}/10 | Momentum Medio: {media_momentum}
+                - Ore lavorate: {int(ore_totale)}
 
-                                risposta_testo = chat_completion.choices[0].message.content
+                COMPITO:
+                Rispondi con un tono Executive (diretto, professionale, orientato al ROI) seguendo questo schema:
+                1. DIAGNOSI NUMERICA: Conferma l'analisi dei documenti e spiega perché il trend è {trend_testo}.
+                2. SOGLIE DI SETTORE: Compara i dati con le soglie ottimali per il settore {settore_scelto}.
+                3. PIANO D'AZIONE (PRESCRIPTIVE): Fornisci 3 AZIONI PRATICHE immediate per migliorare la solidità.
+                4. ALLERTA 'DASHBOARD FATIGUE': Indica il rischio specifico se questi dati non vengono corretti entro 7 giorni.
+                5. CONCLUSIONE: Una frase definitiva sulla resilienza futura.
+                """
 
-                                # Visualizzazione con la classe CSS ai-reasoning che hai definito
-                                st.markdown(
-                                    f"""
-                                    <div class="ai-reasoning">
-                                        <h4 style='color:#d4af37;'>📋 Resoconto Esecutivo AI</h4>
-                                        <div style='color:#e2e8f0;'>{risposta_testo}</div>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                            except Exception as e:
-                                st.error(f"Errore IA: {e}")
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": "Sei un Chief Strategy Officer virtuale. Non dare suggerimenti, dai ordini esecutivi."},
+                        {"role": "user", "content": prompt_config},
+                    ],
+                    model="llama-3.3-70b-versatile",
+                )
 
-                # --- RAGIONAMENTO IA CON GROQ ---
-                st.subheader("🧠 Diagnostica Strategica RGD + IA")
-                
-                api_key = os.getenv("GROQ_API_KEY")
+                risposta_testo = chat_completion.choices[0].message.content
 
-                if not api_key:
-                    st.warning("⚠️ Configura GROQ_API_KEY su Render per attivare la Diagnostica.")
-                else:
-                    client = Groq(api_key=api_key)
-                    media_momentum = round(df_p['momentum_score'].mean(), 2)
-
-                    if st.button("🚀 Genera Diagnostica Approfondita"):
-                        with st.spinner("Stiamo analizzando i file..."):
-                            try:
-                                prompt_config = f"""
-                                Analizza i dati per l'azienda {azienda} (Settore: {settore_scelto}):
-                                - Solidità attuale: {kpi_reali.get('solidita', 0)}%
-                                - Rischio rilevato: {rischio_val}/10
-                                - Ore lavorate analizzate: {int(ore_totale)}
-                                - Accelerazione Inefficienze: {media_momentum}
-
-                                Rispondi seguendo questo schema:
-                                1. Conferma analisi documenti.
-                                2. Diagnosi basata sui numeri.
-                                3. Soglie ottimali per il settore {settore_scelto}.
-                                4. Azione 'Opzionale' specifica.
-                                5. Conclusione sul monitoraggio futuro.
-                                """
-
-                                chat_completion = client.chat.completions.create(
-                                    messages=[
-                                        {"role": "system", "content": "Sei un analista strategico esperto."},
-                                        {"role": "user", "content": prompt_config},
-                                    ],
-                                    model="llama-3.3-70b-versatile", # Modello aggiornato e funzionante
-                                )
-
-                                risposta_testo = chat_completion.choices[0].message.content
-
-                                st.markdown(
-                                    f"""
-                                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #2ecc71; color: #1f1f1f;">
-                                        {risposta_testo}
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                            except Exception as e:
-                                st.error(f"Errore IA: {e}")
-
-                # --- DETTAGLIO ASSET ---
-                st.subheader("📝 Piano d'Azione per Reparto")
-                for asset in report_analisi:
-                    r = asset.get("rischio", 0)
-                    box = "kpi-box-critical" if r > 7 else "kpi-box"
-                    st.markdown(
-                        f"""
-                        <div class="{box}">
-                            <b>{asset.get('asset', 'Reparto Ignoto')}</b> | Rischio: {r} | Momentum: {asset.get('momentum_score', 0)}
-                            <br><small>🎯 <b>IA ADVICE:</b> {asset.get('consiglio_strategico', 'In attesa di dati...')}</small>
+                # Visualizzazione Executive Card Nera e Oro (Style RGD)
+                st.markdown(
+                    f"""
+                    <div class="ai-reasoning">
+                        <h4 style='color:#d4af37; border-bottom: 1px solid #d4af37; padding-bottom:10px;'>📋 RESOCONTO ESECUTIVO AI</h4>
+                        <div style='color:#e2e8f0; font-size: 1rem; line-height: 1.6;'>
+                            {risposta_testo.replace('1.', '<br><b>1.</b>').replace('2.', '<br><b>2.</b>').replace('3.', '<br><b>3.</b>').replace('4.', '<br><b>4.</b>').replace('5.', '<br><b>5.</b>')}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            except Exception as e:
+                st.error(f"Errore tecnico nel motore IA: {e}")
+
+# --- 📝 PIANO D'AZIONE OPERATIVO INTELLIGENTE (Modulo Reparti) ---
+st.subheader("📝 Piano d'Azione Operativo (Priorità)")
+
+# Ordiniamo i reparti: prima i più rischiosi
+report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
+
+for asset in report_ordinato:
+    r = asset.get("rischio", 0)
+    m = asset.get("momentum_score", 0)
+    nome = asset.get('asset', 'Reparto Non Specificato')
+    
+    # Determiniamo il colore e il consiglio in base alla logica incrociata Rischio/Momentum
+    if r > 7 and m > 2:
+        box_style = "kpi-box-critical"
+        label = "🚨 EMERGENZA"
+        consiglio = "Bloccare le attività e avviare revisione immediata. Rischio critico in accelerazione."
+    elif r > 5 or m > 1.5:
+        box_style = "kpi-box"
+        label = "⚠️ ATTENZIONE"
+        consiglio = "Incrementare il monitoraggio e ottimizzare i turni per ridurre il momentum."
+    else:
+        box_style = "kpi-box"
+        label = "✅ NOMINALE"
+        consiglio = "Mantenere gli standard attuali. Eseguire controlli di routine."
+
+    st.markdown(f"""
+        <div class="{box_style}" style="border-left: 10px solid {'#dc3545' if '🚨' in label else '#007BFF'};">
+            <span style="float: right; font-size: 0.8rem; background: #eee; padding: 2px 8px; border-radius: 10px; color: #333;">{label}</span>
+            <b style="font-size: 1.1rem; color: #102a43;">{nome}</b>
+            <br><small>Rischio: <b>{r}/10</b> | Accelerazione: <b>{m}</b></small>
+            <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 5px;">
+                🎯 <b>LOGICA AI:</b> {consiglio}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
 
 # ==========================================
 #   PAGINA 4: ARCHIVIO STORICO
 # ==========================================
-elif scelta == "📜 Archivio Storico":
+    scelta == ("📜 Archivio Storico")
     st.title("📜 Archivio Storico Caricamenti")
     try:
         if is_admin:
