@@ -118,62 +118,70 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Logout"):
     logout_utente()
 
+py
 # ==========================================
-#   PAGINA 1: HOME / BENVENUTO
+#   PAGINA 1: HOME EXECUTIVE
 # ==========================================
 if scelta == "🏠 Home":
-    # Header con stile Enterprise
     st.markdown("""
         <div style="text-align: center; padding: 40px 0;">
-            <h1 style="color: #d4af37; font-size: 3rem; margin-bottom: 10px;">🛡️ RGD-WARROOM ALPHA</h1>
-            <p style="font-size: 1.2rem; color: #e2e8f0; opacity: 0.8;">
-                Advanced Business Intelligence & Predictive Risk Management System
+            <h1 style="color: #d4af37; font-size: 3.5rem; margin-bottom: 10px;">🛡️ RGD-WARROOM ALPHA</h1>
+            <p style="font-size: 1.3rem; color: #334e68; font-weight: 500;">
+                Il Digital Twin per la Governance Aziendale e il Risk Management Predittivo
             </p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Griglia di presentazione Funzioni
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown(f"""
-            <div class="ai-reasoning" style="height: 250px;">
-                <h3 style="color: #3498db;">📊 War Room Strategica</h3>
-                <p>Analisi in tempo reale della produttività e della solidità aziendale. 
-                Il sistema integra algoritmi <b>EMA Auto-Adattivi</b> per isolare i trend reali dalle oscillazioni temporanee.</p>
-                <small>➔ Carica i tuoi KPI per iniziare l'analisi.</small>
+        st.markdown("""
+            <div class="ai-reasoning" style="height: 280px;">
+                <h3 style="color: #3498db;">📊 Intelligence Hub</h3>
+                <p>Monitora la <b>Resilience Aziendale</b> con algoritmi EMA di nuova generazione. 
+                Isoliamo i trend critici dalle fluttuazioni operative per garantirti una visione cristallina della solidità.</p>
+                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
+                    <small style="color: #d4af37;">➔ FOCUS: PREVENZIONE DEL DECLINO OPERATIVO</small>
+                </div>
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown(f"""
-            <div class="ai-reasoning" style="height: 250px; margin-top:20px;">
-                <h3 style="color: #e74c3c;">🚨 Stress Test What-If</h3>
-                <p>Simula scenari macroeconomici e operativi complessi. 
-                Valuta l'impatto di inefficienze sulla <b>Resilience</b> complessiva prima che si verifichino nella realtà.</p>
+        st.markdown("""
+            <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
+                <h3 style="color: #e74c3c;">🚨 Scenario Simulation</h3>
+                <p>Anticipa il mercato con lo <b>Stress-Test Multivariabile</b>. 
+                Simula scenari di crisi e inefficienze per testare la tenuta dei tuoi margini in un ambiente Sandbox sicuro.</p>
+                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
+                    <small style="color: #d4af37;">➔ FOCUS: MITIGAZIONE PROATTIVA DEL RISCHIO</small>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
     with col2:
-        st.markdown(f"""
-            <div class="ai-reasoning" style="height: 250px;">
-                <h3 style="color: #2ecc71;">🧠 Diagnostica Prescrittiva</h3>
-                <p>Non solo dati, ma decisioni. L'integrazione con <b>LLM Llama-3.3 (Groq)</b> fornisce suggerimenti azionabili 
-                per ottimizzare i processi e prevenire la 'Dashboard Fatigue'.</p>
+        st.markdown("""
+            <div class="ai-reasoning" style="height: 280px;">
+                <h3 style="color: #2ecc71;">🧠 AI Advisory Board</h3>
+                <p>Supera la 'Dashboard Fatigue'. Il nostro motore basato su <b>LLM Llama-3.3</b> trasforma i dati complessi 
+                in <b>Protocolli Esecutivi</b> chiari e pronti all'azione.</p>
+                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
+                    <small style="color: #d4af37;">➔ FOCUS: DECISION-MAKING ASSISTITO DA IA</small>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-            <div class="ai-reasoning" style="height: 250px; margin-top:20px;">
-                <h3 style="color: #9b59b6;">📜 Archivio Storico</h3>
-                <p>Monitoraggio continuo delle performance nel tempo. 
-                Confronta i risultati attuali con i dati storici salvati nel <b>Database Criptato</b>.</p>
+        st.markdown("""
+            <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
+                <h3 style="color: #9b59b6;">📜 Governance Audit</h3>
+                <p>Mantieni un <b>Audit Trail</b> completo di ogni analisi. 
+                Monitora l'evoluzione della tua strategia nel tempo grazie al database criptato ad alta sicurezza.</p>
+                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
+                    <small style="color: #d4af37;">➔ FOCUS: COMPLIANCE E TRACCIABILITÀ STORICA</small>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
-    # Footer Informativo
     st.markdown("---")
-    st.info("💡 **Consiglio per il Manager:** Inizia dalla sezione 'War Room' caricando l'ultimo report operativo in formato CSV o Excel per ricevere la prima diagnosi AI.")
-
+    st.info("💡 **Executive Insight:** L'80% dei fallimenti aziendali deriva da una cattiva interpretazione dei trend. Inizia caricando i dati operativi nell'Intelligence Hub.")
 # ==========================================
 #   PAGINA 2: CENTRALE ADMIN (SOLO ADMIN)
 # ==========================================
