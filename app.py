@@ -238,12 +238,11 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
         st.error(f"❌ Errore critico nel caricamento del pannello Admin: {e}")
 
 # ==========================================
-#   PAGINA 3: WAR ROOM STRATEGICA (VERSIONE INTEGRALE CORRETTA)
+#   PAGINA 3: WAR ROOM STRATEGICA (BLOCCO CORRETTO)
 # ==========================================
 elif scelta == "📊 War Room Strategica":
-    # 1. Header corretto (Sistemata sintassi HTML e colori)
-            st.markdown(
-        """
+    st.markdown(
+        f"""
         <div class='warroom-header'>
             <h1 style='color: white !important;'>🚀 War Room Strategica</h1>
             <p style='color: white !important;'>
@@ -255,31 +254,33 @@ elif scelta == "📊 War Room Strategica":
         unsafe_allow_html=True,
     )
 
-            st.markdown("---")
+    st.markdown("---")
 
-            # 2. Upload del file (ORA CORRETTAMENTE INDENTATO SOTTO LA WAR ROOM)
-            uploaded_file = st.file_uploader(
-                "📁 Carica file dati operativi", 
-                type=["csv", "xlsx", "xls"]
-        )   
+    # 1. Il componente uploader viene renderizzato liberamente sulla pagina
+    uploaded_file = st.file_uploader(
+        "📁 Carica file dati operativi", 
+        type=["csv", "xlsx", "xls"]
+    )   
 
-            if uploaded_file:
-        # SALVATAGGIO FISICO E MAPPATURA INTELLIGENTE
-                path_raw = UPLOAD_DIR / azienda / uploaded_file.name
-                path_raw.parent.mkdir(parents=True, exist_ok=True)
-                with open(path_raw, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+    # 2. BLOCCO DI PROTEZIONE: Tutto ciò che è dentro questo "if" viene eseguito SOLO se l'utente carica un file
+    if uploaded_file:
+        path_raw = UPLOAD_DIR / azienda / uploaded_file.name
+        path_raw.parent.mkdir(parents=True, exist_ok=True)
+        with open(path_raw, "wb") as f:
+            f.write(uploaded_file.getbuffer())
 
-                with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
-                    engine = DataGateway()
-            # Lettura file
+        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
+            engine = DataGateway()
+            
+            # --- ORA CORRETTAMENTE INDENTATO ---
+            # Questa logica prima era fuori dall'if e cercava "uploaded_file.name" quando era None, mandando il sistema in crash
             if uploaded_file.name.endswith('.csv'):
                 df_raw = pd.read_csv(uploaded_file)
             else:
                 df_raw = pd.read_excel(uploaded_file)
             
             # Manovra Smart Mapper (Dal tuo Engine)
-            df_mapped = engine.mappa_colonne_universale(df_raw)
+            df_mapped = engine.mappa_colonne_universal(df_raw)
             path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
             df_mapped.to_csv(str(path_mapped), index=False)
 
@@ -299,13 +300,14 @@ elif scelta == "📊 War Room Strategica":
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
                 status.update(label="✅ Analisi Quantitativa Completata!", state="complete")
 
-                # --- 📊 ANALISI TECNICA MOMENTUM (Indentato correttamente) ---
+                # --- 📊 ANALISI TECNICA MOMENTUM ---
                 with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze"):
+                    variazione = kpi_reali.get("variazione_momentum", 0) if kpi_reali else 0
                     if variazione == 0:
                         st.info("ℹ️ **Nota per il Management:** Questo è il primo rilevamento per l'azienda. Il calcolo della velocità (Momentum) sarà disponibile a partire dal prossimo caricamento dati.")
                     
                     df_p = pd.DataFrame(report_analisi)
-                    # ... (resto del codice del grafico Plotly) ...
+                    
 
                 # --- 3. RISULTATI EXECUTIVE ---
                 rischio_val = kpi_reali.get("rischio_medio", 0)
