@@ -248,15 +248,26 @@ elif scelta == "📊 War Room Strategica":
                     state="complete",
                 )
 
-                # --- INIZIO BLOCCO CORREZIONE ---
-                # Calcoliamo le ore totali per evitare l'errore NameError nell'IA
-                ore_totale = sum(
-                    [a.get("ore_produttive_effettive", 0) for a in report_analisi]
-                ) if 'report_analisi' in locals() else 0
-                
-                # Recuperiamo il trend dal database (Modulo 2)
+                py
+                # --- CALCOLI FINALI ---
+                ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
+                rischio_val = kpi_reali.get("rischio_medio", 0)
                 trend_testo = kpi_reali.get("trend", "Stabile")
-                # --- FINE BLOCCO CORREZIONE ---
+
+                # --- DASHBOARD KPI EXECUTIVE (Orizzontale) ---
+                st.markdown("### 📊 Risultati Intelligence Report")
+                c1, c2, c3, c4 = st.columns(4)
+                
+                # Colore dinamico per il rischio
+                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+
+                c1.markdown(f'<div class="metric-card"><h3>Solidità</h3><div class="value">{kpi_reali.get("solidita")}%</div></div>', unsafe_allow_html=True)
+                c2.markdown(f'<div class="metric-card" style="border-top-color:{col_r}"><h3>Rischio</h3><div class="value" style="color:{col_r}">{rischio_val}/10</div></div>', unsafe_allow_html=True)
+                c3.markdown(f'<div class="metric-card"><h3>Trend AI</h3><div class="value" style="font-size:1.2rem">{trend_testo}</div></div>', unsafe_allow_html=True)
+                c4.markdown(f'<div class="metric-card"><h3>Ore Analizzate</h3><div class="value">{int(ore_totale)} h</div></div>', unsafe_allow_html=True)
+
+                # --- NARRATIVA IA (Opzionale, sotto le card) ---
+                # Qui può seguire il tuo codice per la diagnostica con Groq
 
                 # Aggiornamento Dashboard con Risultati Reali
                 st.markdown("### 📊 Risultati Elaborazione Corrente")
