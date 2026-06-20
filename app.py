@@ -16,6 +16,7 @@ from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
+from data_refinery import DataRefinery
 
 
 # --- RISOLUZIONE DINAMICA PATH INTERNI ---
@@ -293,7 +294,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
         st.error(f"❌ Errore critico nel caricamento del pannello Admin: {e}")
 
 # ==========================================
-#   PAGINA 3: WAR ROOM STRATEGICA (BLOCCO CORRETTO)
+#   PAGINA 3: WAR ROOM STRATEGICA (OTTIMIZZATA)
 # ==========================================
 elif scelta == "📊 War Room Strategica":
     st.markdown(
@@ -311,102 +312,132 @@ elif scelta == "📊 War Room Strategica":
 
     st.markdown("---")
 
-    # 1. Il componente uploader viene renderizzato liberamente sulla pagina
+    # 1. Caricamento file dati operativi
     uploaded_file = st.file_uploader(
-        "📁 Carica file dati operativi", 
+        "📁 Carica file dati operativi (SAP, Salesforce, Excel Custom)", 
         type=["csv", "xlsx", "xls"]
     )   
 
-    # 2. BLOCCO DI PROTEZIONE: Tutto ciò che è dentro questo "if" viene eseguito SOLO se l'utente carica un file
+    # 2. Esecuzione Pipeline solo in presenza del file
     if uploaded_file:
+        # Salvataggio di sicurezza del file RAW caricato dal manager
         path_raw = UPLOAD_DIR / azienda / uploaded_file.name
         path_raw.parent.mkdir(parents=True, exist_ok=True)
         with open(path_raw, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
-        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
+        # Unico blocco di stato per l'intera pipeline di calcolo e raffinazione
+        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
+            
+            status.write("🔍 Fase 1: Identificazione impronta digitale del software e pulizia...")
+            refinery = DataRefinery()
+            
+            # DataRefinery analizza la struttura del file (es. layout sporco di SAP)
+            # e restituisce un DataFrame standardizzato e pulito
+            refined_result = refinery.refine_file(str(path_raw)) 
+            df_pulito = refined_result["data"]
+            
+            if refined_result.get("anomalies"):
+                st.warning(f"⚠️ Rilevate anomalie strutturali fango: {len(refined_result['anomalies'])} righe corrette.")
+
+            status.write("🗺️ Fase 2: Smart Mapping delle colonne universali...")
             engine = DataGateway()
+            df_mapped = engine.mappa_colonne_universale(df_pulito)
             
-            # --- ORA CORRETTAMENTE INDENTATO ---
-            # Questa logica prima era fuori dall'if e cercava "uploaded_file.name" quando era None, mandando il sistema in crash
-            if uploaded_file.name.endswith('.csv'):
-                df_raw = pd.read_csv(uploaded_file)
-            else:
-                df_raw = pd.read_excel(uploaded_file)
-            
-            # Manovra Smart Mapper (Dal tuo Engine)
-            df_mapped = engine.mappa_colonne_universale(df_raw)
+            # Salvataggio del file normalizzato pronto per l'ingestione
             path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
             df_mapped.to_csv(str(path_mapped), index=False)
+
+            status.write("📥 Fase 3: Ingestione e calcolo degli asset strategici...")
             ingestor = IngestoreDati()
             lista_asset = ingestor.elabora_csv(str(path_mapped), azienda)
 
             if lista_asset:
+                # Registra l'evento nell'Audit Trail dell'azienda
                 db.registra_caricamento(user_id, "WAR_ROOM", uploaded_file.name)
-        
-                # ESECUZIONE LOGICA PREDITTIVA
+                
+                status.write("📈 Fase 4: Calcolo quantitativo predittivo ed elaborazione $H_{(prod)}$...")
+                # Esecuzione della logica predittiva con fattore stress attivo dalla sidebar
                 report_analisi = engine.esegui_scan_strategico(
                     lista_asset,
                     "UNIVERSAL",
                     fattore_stress=f_stress,
                     weights=(0.7, 0.3)
                 )
-                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                status.update(label="✅ Analisi Quantitativa Completata!", state="complete")
-
-                # --- 📊 ANALISI TECNICA MOMENTUM ---
-                with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze"):
-                    variazione = kpi_reali.get("variazione_momentum", 0) if kpi_reali else 0
-                    if variazione == 0:
-                        st.info("ℹ️ **Nota per il Management:** Questo è il primo rilevamento per l'azienda. Il calcolo della velocità (Momentum) sarà disponibile a partire dal prossimo caricamento dati.")
-                    
-                    df_p = pd.DataFrame(report_analisi)
-                    
-
-                # --- 3. RISULTATI EXECUTIVE ---
-                rischio_val = kpi_reali.get("rischio_medio", 0)
-                trend_testo = kpi_reali.get("trend", "Stabile")
-                ore_totale = sum([a.get("ore_produttive_effettive", 0) for a in report_analisi])
                 
-                st.markdown("### 📊 Intelligence Report: Analisi Strategica")
-                c1, c2, c3, c4 = st.columns(4)
-                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+                # Passiamo i dati correnti per calcolare le metriche aggiornate
+                kpi_reali = db.calcola_e_salva_kpi_correnti(user_id, report_analisi)
                 
-                c1.markdown(f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{kpi_reali.get('solidita')}%</div></div>", unsafe_allow_html=True)
-                c2.markdown(f"<div class='metric-card' style='border-top-color:{col_r}'><h3>Rischio</h3><div class='value' style='color:{col_r};'>{rischio_val}/10</div></div>", unsafe_allow_html=True)
-                c3.markdown(f"<div class='metric-card'><h3>Trend AI</h3><div class='value' style='font-size:1.2rem'>{trend_testo}</div></div>", unsafe_allow_html=True)
-                c4.markdown(f"<div class='metric-card'><h3>Ore Analizzate</h3><div class='value'>{int(ore_totale)} h</div></div>", unsafe_allow_html=True)
+                # Creazione sicura del DataFrame per l'analisi dei punteggi e grafici
+                df_p = pd.DataFrame(report_analisi)
+                
+                status.update(label="✅ Protocollo RGD-Alpha Completato con Successo!", state="complete")
+            else:
+                status.update(label="❌ Errore critico durante l'ingestione dei dati.", state="error")
+                st.stop()
 
-                # --- 4. DIAGNOSTICA IA ---
-                st.subheader("🧠 Diagnostica Strategica RGD + IA")
-                api_key = os.getenv("GROQ_API_KEY")
-                if api_key:
-                    client = Groq(api_key=api_key)
-                    media_momentum = round(df_p['momentum_score'].mean(), 2)
-                    settore_ia = st.selectbox("Seleziona Settore:", ["Marketing", "Logistica", "Produzione", "Retail"], key="settore_ia_exec")
-                        
-                    if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
-                        with st.spinner("AI al lavoro..."):
-                            try:
-                                prompt_config = f"Analisi per {azienda} ({settore_ia}). Solidità {kpi_reali.get('solidita')}% | Rischio {rischio_val}/10 | Trend {trend_testo}."
-                                chat = client.chat.completions.create(
-                                    messages=[{"role": "system", "content": "Sei un CSO (Chief Strategy Officer)."},
-                                              {"role": "user", "content": prompt_config}],
-                                    model="llama-3.3-70b-versatile"
-                                )
-                                st.markdown(f"<div class='ai-reasoning'><h4 style='color:#d4af37'>📋 RESOCONTO ESECUTIVO</h4>{chat.choices[0].message.content}</div>", unsafe_allow_html=True)
-                            except Exception as e:
-                                st.error(f"Errore IA: {e}")
+        # --- 📊 VISUALIZZAZIONE RISULTATI EXECUTIVE ---
+        rischio_val = kpi_reali.get("rischio_medio", 0) if kpi_reali else 0
+        trend_testo = kpi_reali.get("trend", "Stabile") if kpi_reali else "N/D"
+        solidita_val = kpi_reali.get("solidita", 0) if kpi_reali else 0
+        ore_totale = df_p['ore_produttive_effettive'].sum() if not df_p.empty else 0
+        
+        st.markdown("### 📊 Intelligence Report: Analisi Strategica")
+        c1, c2, c3, c4 = st.columns(4)
+        col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+        
+        c1.markdown(f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{solidita_val}%</div></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='metric-card' style='border-top-color:{col_r}'><h3>Rischio</h3><div class='value' style='color:{col_r};'>{rischio_val}/10</div></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='metric-card'><h3>Trend AI</h3><div class='value' style='font-size:1.2rem'>{trend_testo}</div></div>", unsafe_allow_html=True)
+        c4.markdown(f"<div class='metric-card'><h3>Ore Analizzate</h3><div class='value'>{int(ore_totale)} h</div></div>", unsafe_allow_html=True)
 
-                # --- 5. PIANO D'AZIONE OPERATIVO ---
-                st.subheader("📝 Piano d'Azione Operativo (Priorità)")
-                report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
-                for asset in report_ordinato:
-                    r, m, nome = asset.get("rischio", 0), asset.get("momentum_score", 0), asset.get('asset', 'N/D')
-                    if r > 7 and m > 2: box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare attività."
-                    elif r > 5 or m > 1.5: box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare monitoraggio."
-                    else: box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Standard mantenuti."
-                    st.markdown(f"<div class='{box_style}'><b>{nome}</b> | Rischio: {r} | Momentum: {m}<br><small>🎯 {consiglio}</small></div>", unsafe_allow_html=True)
+        # --- 👀 EXPANDER: ANALISI TECNICA MOMENTUM ---
+        with st.expander("📊 Analisi Tecnica: Accelerazione Inefficienze"):
+            variazione = kpi_reali.get("variazione_momentum", 0) if kpi_reali else 0
+            if variazione == 0:
+                st.info("ℹ️ **Nota per il Management:** Questo è il primo rilevamento per l'azienda. Il calcolo della velocità (Momentum) sarà disponibile a partire dal prossimo caricamento dati.")
+            else:
+                st.metric(label="Variazione Momentum Strategico", value=f"{variazione}%")
+            
+            # Mostra la tabella dei dati dell'analisi
+            st.dataframe(df_p, use_container_width=True, hide_index=True)
+
+        # --- 🧠 DIAGNOSTICA IA ---
+        st.subheader("🧠 Diagnostica Strategica RGD + IA")
+        api_key = os.getenv("GROQ_API_KEY")
+        if api_key and not df_p.empty:
+            client = Groq(api_key=api_key)
+            media_momentum = round(df_p['momentum_score'].mean(), 2)
+            settore_ia = st.selectbox("Seleziona Settore:", ["Marketing", "Logistica", "Produzione", "Retail"], key="settore_ia_exec")
+                
+            if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
+                with st.spinner("AI al lavoro..."):
+                    try:
+                        prompt_config = f"Analisi per {azienda} ({settore_ia}). Solidità {solidita_val}% | Rischio {rischio_val}/10 | Trend {trend_testo} | Media Momentum {media_momentum}."
+                        chat = client.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": "Sei un CSO (Chief Strategy Officer) di alto livello per il sistema Rgandja."},
+                                {"role": "user", "content": prompt_config}
+                            ],
+                            model="llama-3.3-70b-versatile"
+                        )
+                        st.markdown(f"<div class='ai-reasoning'><h4 style='color:#d4af37'>📋 RESOCONTO ESECUTIVO</h4>{chat.choices[0].message.content}</div>", unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"Errore IA: {e}")
+
+        # --- 📝 PIANO D'AZIONE OPERATIVO ---
+        st.subheader("📝 Piano d'Azione Operativo (Priorità)")
+        report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
+        for asset in report_ordinato:
+            r, m, nome = asset.get("rischio", 0), asset.get("momentum_score", 0), asset.get('asset', 'N/D')
+            if r > 7 and m > 2: 
+                box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare attività e mitigare immediatamente il rischio operativo."
+            elif r > 5 or m > 1.5: 
+                box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare il monitoraggio e isolare le varianze orarie."
+            else: 
+                box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Standard mantenuti. Continuare la normale governance."
+            
+            st.markdown(f"<div class='{box_style}'><b>{nome}</b> | Rischio: {r} | Momentum: {m}<br><small>🎯 {consiglio}</small></div>", unsafe_allow_html=True)
     # ==========================================
 #   PAGINA 4: ARCHIVIO STORICO (VERSIONE EXECUTIVE)
 # ==========================================

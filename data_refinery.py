@@ -2,71 +2,105 @@ import pandas as pd
 import re
 import holidays
 from datetime import datetime
+from io import BytesIO
 
 class DataRefinery:
     def __init__(self, country='IT'):
         self.country = country
         self.it_holidays = holidays.CountryHoliday(country)
-        # Firme software note
+        # Firme software note ottimizzate
         self.signatures = {
             'SAP_ALV': r'\|',
             'ORACLE_REP': r'\-{5,}',
-            'AS400': r'PAGINA\s+\d+'
+            'AS400': r'PAGINA\s+\d+|PAGE\s+\d+'
         }
 
-    def refine_file(self, uploaded_file):
+    def refine_file(self, file_input):
         """
-        IL PROTOCOLLO LINEARE:
+        IL PROTOCOLLO LINEARE OTTIMIZZATO:
         1. Identificazione -> 2. Isolamento -> 3. Mappatura -> 4. Diagnostica
         """
+        # --- STAGE 0: Normalizzazione Input (Accetta sia stringhe-path che file di Streamlit) ---
+        if isinstance(file_input, str):
+            with open(file_input, 'rb') as f:
+                file_bytes = f.read()
+            file_name = file_input
+            buffer = BytesIO(file_bytes)
+        else:
+            file_bytes = file_input.getvalue()
+            file_name = file_input.name
+            buffer = file_input
+
         # --- STAGE 1: Identificazione ---
-        # Leggiamo l'inizio del file per capire chi lo ha generato
-        header_sample = uploaded_file.getvalue().decode('utf-8', errors='ignore')[:2000]
+        header_sample = file_bytes.decode('utf-8', errors='ignore')[:2000]
         detected_system = "Generic"
         for sys, pattern in self.signatures.items():
             if re.search(pattern, header_sample):
                 detected_system = sys
                 break
         
-        # Carichiamo il DataFrame (Shadow Copy)
-        uploaded_file.seek(0)
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file, sep=None, engine='python', on_bad_lines='skip')
+        buffer.seek(0)
+        if file_name.endswith('.csv'):
+            df = pd.read_csv(buffer, sep=None, engine='python', on_bad_lines='skip')
         else:
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_excel(buffer)
 
-        # --- STAGE 2: Isolamento (Pulizia Rumore) ---
-        # Rimuoviamo righe con troppi nulli (subtotali/header vuoti)
-        threshold = len(df.columns) * 0.5
+        if df.empty:
+            return {"data": df, "system": detected_system, "anomalies": [], "status": "Empty"}
+
+        # --- STAGE 2: Isolamento (Pulizia Selettiva del Rumore) ---
+        
+        # 1. ELIMINAZIONE COLONNE FANTASMA: Rimuove le colonne vuote create dai '|' di SAP
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed|^$|^\s*$', case=False, na=False)]
+        
+        # 2. CALCOLO SOGLIA REALE: Calcola la tolleranza sulle colonne rimaste vere
+        threshold = max(1, int(len(df.columns) * 0.5))
         df_clean = df.dropna(thresh=threshold).copy()
         
-        # Eliminiamo righe che contengono parole di sistema
-        noise_words = ['TOTAL', 'SUBTOTAL', 'SOMMA', 'REPORT', 'PAGE', 'USER']
-        mask = df_clean.apply(lambda row: row.astype(str).str.contains('|'.join(noise_words), case=False).any(), axis=1)
+        # 3. FILTRO RUMORE AVANZATO: Include anche i separatori grafici
+        noise_words = ['TOTAL', 'SUBTOTAL', 'SOMMA', 'REPORT', 'PAGE', 'MANDANT']
+        
+        def is_noise_row(row):
+            row_str = " ".join(row.astype(str)).upper()
+            
+            # Se la riga contiene i trattini tipici di SAP o parole chiave strutturali, è rumore
+            if '---' in row_str or '- -' in row_str:
+                return True
+            if any(word in row_str for word in noise_words):
+                return True
+                
+            return False
+
+        # 4. APPLICAZIONE MASCHERA SICURA
+        mask = df_clean.apply(is_noise_row, axis=1)
         df_clean = df_clean[~mask]
 
         # --- STAGE 3: Mappatura & Normalizzazione ---
-        # Qui cerchiamo di standardizzare i nomi delle colonne
-        # (Da espandere con la tua logica Smart Mapper)
         df_clean.columns = [str(c).strip().upper() for c in df_clean.columns]
         
         # --- STAGE 4: Diagnostica Continuità ---
         anomalies = []
-        if 'DATA' in df_clean.columns or 'DATE' in df_clean.columns:
-            date_col = 'DATA' if 'DATA' in df_clean.columns else 'DATE'
+        date_candidates = [col for col in df_clean.columns if col in ['DATA', 'DATE', 'GIORNO', 'TIMESTAMP']]
+        
+        if date_candidates:
+            date_col = date_candidates[0]
             df_clean[date_col] = pd.to_datetime(df_clean[date_col], errors='coerce')
             df_clean = df_clean.dropna(subset=[date_col])
             
-            all_days = pd.date_range(start=df_clean[date_col].min(), end=df_clean[date_col].max()).date
-            present_days = df_clean[date_col].dt.date.unique()
-            
-            for d in all_days:
-                if d not in present_days:
-                    if d.weekday() < 5 and d not in self.it_holidays:
-                        anomalies.append(d)
+            if not df_clean.empty:
+                start_date = df_clean[date_col].min()
+                end_date = df_clean[date_col].max()
+                
+                all_days = pd.date_range(start=start_date, end=end_date).date
+                present_days_set = set(df_clean[date_col].dt.date.unique())
+                
+                for d in all_days:
+                    if d not in present_days_set:
+                        if d.weekday() < 5 and d not in self.it_holidays:
+                            anomalies.append(d.strftime('%Y-%m-%d'))
 
         return {
-            "data": df_clean,
+            "data": df_clean.reset_index(drop=True),
             "system": detected_system,
             "anomalies": anomalies,
             "status": "Success" if not df_clean.empty else "Empty"
