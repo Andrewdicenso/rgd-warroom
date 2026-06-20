@@ -330,12 +330,18 @@ elif scelta == "📊 War Room Strategica":
             
             status.write("🔍 Fase 1: Identificazione impronta digitale del software e pulizia...")
             
-            # --- DEFINIZIONE DINAMICA DEL CALENDARIO ---
-            # Cerchiamo il paese dell'azienda. Se non è specificato, usiamo 'IT' come default sicuro.
+            # Controlla questo pezzetto dentro app.py:
+            status.write("🔍 Fase 1: Identificazione impronta digitale del software e pulizia...")
+
+            # 1. Recuperiamo il paese dell'azienda (con fallback su 'IT')
             paese_calendar = st.session_state.get("paese_azienda", "IT") 
-            
-            # Iniettiamo il paese nel Refinery per caricare i giorni festivi corretti
+
+            # 2. Passiamo il paese all'istanza
             refinery = DataRefinery(country=paese_calendar)
+
+            # 3. Eseguiamo il raffinamento passandogli il file
+            refined_result = refinery.refine_file(str(path_raw)) 
+            df_pulito = refined_result["data"]
             
             # Il motore esegue il raffinamento usando il calendario appena definito
             refined_result = refinery.refine_file(str(path_raw)) 
