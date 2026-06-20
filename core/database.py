@@ -219,3 +219,33 @@ class DatabaseAziendale:
         except Exception as e:
             logger.error(f"❌ Errore nel recupero attività globale: {e}")
             return pd.DataFrame(columns=["timestamp", "azienda", "attivita", "dettaglio"])
+
+    def reset_password_tracciato(self, email, nuova_password):
+        """Reset della password con registrazione dell'evento nei log di sicurezza."""
+        try:
+            # 1. Troviamo l'utente
+            utente = self.get_utente_by_email(email)
+            if not utente:
+                return False
+            
+            with self._get_conn() as conn:
+                with conn.cursor() as cur:
+                    # 2. Aggiorniamo la password
+                    nuovo_hash = bcrypt.hashpw(nuova_password.encode(), bcrypt.gensalt()).decode()
+                    cur.execute(
+                        "UPDATE utenti SET password_hash = %s WHERE id = %s",
+                        (nuovo_hash, utente["id"])
+                    )
+                    
+                    # 3. REGISTRIAMO LA TRACCIA (Data e Ora sono automatici nel DB)
+                    cur.execute(
+                        "INSERT INTO security_logs (user_id, azione) VALUES (%s, %s)",
+                        (utente["id"], "RESET PASSWORD EFFETTUATO")
+                    )
+                    
+                    conn.commit()
+                    logger.info(f"🔐 Sicurezza: Password resettata per utente ID {utente['id']}")
+                    return True
+        except Exception as e:
+            logger.error(f"❌ Errore durante il reset tracciato: {e}")
+            return False
