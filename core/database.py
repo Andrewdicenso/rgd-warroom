@@ -177,3 +177,36 @@ class DatabaseAziendale:
 
             return {"solidita": solidita, "rischio_medio": round(rischio_recente, 2), "trend": trend, "variazione": variazione}
         except Exception as e: logger.error(f"Errore KPI: {e}"); return {"solidita": 0, "trend": "Errore"}
+
+    def recupera_attivita_globale(self):
+        """
+        Recupera gli ultimi log di sistema combinando caricamenti e attività sugli asset.
+        """
+        try:
+            with self._get_conn() as conn:
+                query = """
+                    SELECT timestamp, azienda, contesto as attivita, nome_file as dettaglio 
+                    FROM log_caricamenti
+                    UNION ALL
+                    SELECT timestamp, company_id as azienda, 'Salvataggio Asset' as attivita, nome as dettaglio
+                    FROM asset_logs
+                    ORDER BY timestamp DESC
+                    LIMIT 50
+                """
+                df = pd.read_sql_query(query, conn)
+                
+                def _dec(v):
+                    if v is None: return "N/D"
+                    try:
+                        dec = self.vault.decrypt_data(v)
+                        return dec.decode() if isinstance(dec, bytes) else dec
+                    except:
+                        return v
+                
+                if not df.empty and "azienda" in df.columns:
+                    df["azienda"] = df["azienda"].apply(_dec)
+                
+                return df
+        except Exception as e:
+            logger.error(f"❌ Errore nel recupero attività globale: {e}")
+            return pd.DataFrame(columns=["timestamp", "azienda", "attivita", "dettaglio"])
