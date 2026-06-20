@@ -165,6 +165,36 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
 
+
+# --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
+st.sidebar.markdown("---")
+with st.sidebar.expander("⚖️ Note Legali & Copyright"):
+    st.markdown(f"""
+    <div style="font-size: 0.85em; color: #555; line-height: 1.4;">
+        <strong>Proprietario Intellettuale:</strong><br>
+        [Tuo Nome e Cognome]<br><br>
+        <strong>Marchio Registrato:</strong><br>
+        Rgandja® (Classi 9, 42)<br><br>
+        <strong>Tutela Algoritmica:</strong><br>
+        La metodologia <em>H(prod)</em> e i calcoli di 
+        <em>Momentum Strategico</em> sono protetti come 
+        <strong>Segreto Industriale</strong> (D.Lgs. 30/2005).
+    </div>
+    <hr style="margin: 10px 0;">
+    <div style="font-size: 0.75em; color: gray; text-align: justify;">
+        È vietata la riproduzione, decompilazione o reverse engineering 
+        del software. Ogni accesso è tracciato nel log di sicurezza Enterprise.
+    </div>
+    """, unsafe_allow_html=True)
+
+st.sidebar.caption("© 2024 Rgandja. Tutti i diritti riservati.")
+# --- FINE BLOCCO TUTELA LEGALE ---
+
+# ==========================================
+# RIGA DI RIFERIMENTO FINALE: (Fine del file)
+# ==========================================
+
+
 # ==========================================
 #   PAGINA 1: HOME EXECUTIVE
 # ==========================================
