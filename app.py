@@ -329,7 +329,10 @@ elif scelta == "📊 War Room Strategica":
         with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
             
             status.write("🔍 Fase 1: Identificazione impronta digitale del software e pulizia...")
-            refinery = DataRefinery()
+            
+            # RIFINITURA: Passiamo il paese dinamicamente (es. 'IT'), recuperandolo dal contesto se presente
+            codice_paese = "IT" # Puoi sostituirlo con una variabile dinamica se l'hai definita
+            refinery = DataRefinery(country=codice_paese)
             
             # DataRefinery analizza la struttura del file (es. layout sporco di SAP)
             # e restituisce un DataFrame standardizzato e pulito
