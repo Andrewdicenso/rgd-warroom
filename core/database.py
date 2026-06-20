@@ -61,6 +61,15 @@ class DatabaseAziendale:
                             nome_file TEXT
                         )
                     """)
+                    # Tabella Log Sicurezza (per reset password e accessi)
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS security_logs (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER,
+                            azione TEXT,
+                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
                 conn.commit()
         except Exception as e:
             logger.error(f"❌ Errore schema Cloud: {e}")
