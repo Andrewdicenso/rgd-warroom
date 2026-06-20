@@ -85,7 +85,8 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
 
 # --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
 if not st.session_state.autenticato:
-    t1, t2 = st.tabs(["🔐 Login", "🆕 Registrazione"])
+    # Aggiungiamo il terzo Tab per il recupero credenziali
+    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
     with t1:
         e = st.text_input("Email Aziendale", key="l_e").strip()
@@ -102,8 +103,31 @@ if not st.session_state.autenticato:
         rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
         if st.button("Crea Account Enterprise"):
             registra_nuovo_utente(re, rp, rc)
+
+    with t3:
+        st.subheader("Reset Credenziali con Tracciamento")
+        st.info("Nota: Ogni operazione di reset viene registrata nei log di sicurezza con data e ora.")
+        res_e = st.text_input("Inserisci la tua Email", key="res_e").strip()
+        res_p = st.text_input("Nuova Password", type="password", key="res_p").strip()
+        res_c = st.text_input("Conferma Nuova Password", type="password", key="res_c").strip()
+        
+        if st.button("Aggiorna Password e Registra Evento"):
+            if not res_e or not res_p:
+                st.warning("Inserisci email e nuova password.")
+            elif res_p != res_c:
+                st.error("Le password non coincidono.")
+            elif len(res_p) < 8:
+                st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
+            else:
+                # Esecuzione del reset tracciato nel database
+                if db.reset_password_tracciato(res_e, res_p):
+                    st.success("✅ Password aggiornata con successo!")
+                    st.toast("Evento registrato nei log di sicurezza.")
+                    st.info("Ora puoi tornare nel tab 'Login' e accedere.")
+                else:
+                    st.error("Impossibile procedere. Verifica l'email inserita.")
             
-    st.stop() # Blocca l'esecuzione del resto dell'app finché non loggati
+    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
