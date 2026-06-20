@@ -334,16 +334,29 @@ elif scelta == "📊 War Room Strategica":
             else:
                 df_raw = pd.read_excel(uploaded_file)
             
-            # Manovra Smart Mapper (Dal tuo Engine)
-            df_mapped = engine.mappa_colonne_universale(df_raw)
+        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...") as status:
+            # --- 1. RAFFINAZIONE (Pulisce il "fango" SAP/Oracle) ---
+            refinery = DataRefinery()
+            refined_result = refinery.refine_file(uploaded_file)
+            
+            df_pulito = refined_result["data"]
+            # Nota: puoi usare refined_result["anomalies"] per mostrare avvisi in UI
+            
+            # --- 2. SMART MAPPING (Lavora sul dato già pulito) ---
+            engine = DataGateway()
+            df_mapped = engine.mappa_colonne_universale(df_pulito) # <--- CAMBIATO: df_pulito invece di df_raw
+            
+            # Salvataggio temporaneo del file mappato
             path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
             df_mapped.to_csv(str(path_mapped), index=False)
 
+            # --- 3. INGESTIONE E DATABASE ---
             ingestor = IngestoreDati()
             lista_asset = ingestor.elabora_csv(str(path_mapped), azienda)
 
             if lista_asset:
                 db.registra_caricamento(user_id, "WAR_ROOM", uploaded_file.name)
+                status.update(label="✅ Analisi Completata!", state="complete")
                 
                 # ESECUZIONE LOGICA PREDITTIVA
                 report_analisi = engine.esegui_scan_strategico(
