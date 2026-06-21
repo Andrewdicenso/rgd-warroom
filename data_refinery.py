@@ -71,9 +71,14 @@ class DataRefinery:
         noise_words = ['TOTAL', 'SUBTOTAL', 'SOMMA', 'REPORT', 'PAGE', 'MANDANT']
         
         def is_noise_row(row):
-            row_str = " ".join(row.astype(str)).upper()
+            # Trasforma ogni valore in stringa singolarmente per evitare errori con i numeri (float)
+            row_values = [str(val) for val in row.values if val is not None]
+            row_str = " ".join(row_values).upper()
             
-            # Se la riga contiene i trattini tipici di SAP o parole chiave strutturali, è rumore
+            # Se la riga è vuota o contiene solo spazi
+            if not row_str.strip():
+                return True
+            # Se la riga contiene i trattini tipici di SAP o parole chiave strutturali
             if '---' in row_str or '- -' in row_str:
                 return True
             if any(word in row_str for word in noise_words):
