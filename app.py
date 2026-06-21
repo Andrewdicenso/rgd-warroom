@@ -424,7 +424,12 @@ elif scelta == "📊 War Room Strategica":
                             except Exception as e:
                                 st.error(f"Errore IA: {e}")
             else:
-                status.update(label="❌ Errore critico durante l'ingestione.", state="error")
+                # --- MODIFICA DIAGNOSTICA QUI ---
+                status.update(label="❌ Errore: Dati non compatibili", state="error")
+                st.error(f"L'ingestione di '{uploaded_file.name}' è fallita.")
+                # Mostriamo le colonne per capire perché l'inventario non viene letto
+                st.info(f"Il sistema ha rilevato queste colonne: {df_pulito.columns.tolist()}")
+                st.warning("Assicurati che il file contenga riferimenti a 'data' e 'asset'.")
                 st.stop()
 
         # --- 📝 PIANO D'AZIONE OPERATIVO ---
