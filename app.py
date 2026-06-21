@@ -389,7 +389,12 @@ elif scelta == "📊 War Room Strategica":
                 rischio_val = kpi_reali.get("rischio_medio", 0)
                 trend_testo = kpi_reali.get("trend", "Stabile")
                 solidita_val = kpi_reali.get("solidita", 0)
-                ore_totale = df_p['ore_produttive_effettive'].sum() if 'ore_produttive_effettive' in df_p.columns else 0
+                col_ore = [c for c in df_p.columns if 'ore' in c or 'effettive' in c]
+                if col_ore:
+                    # Prende la prima colonna trovata e somma i valori convertendoli in numeri
+                    ore_totale = pd.to_numeric(df_p[col_ore[0]], errors='coerce').sum()
+                else:
+                    ore_totale = 0
                 
                 st.markdown("### 📊 Intelligence Report: Analisi Strategica")
                 c1, c2, c3, c4 = st.columns(4)
