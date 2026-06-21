@@ -11,11 +11,18 @@ logger = logging.getLogger("RGD-Alpha.Database.Cloud")
 
 class DatabaseAziendale:
     def __init__(self):
-        # Usiamo la stringa di connessione fornita
-        self.db_url = "postgresql://rgdwarroomdb:vE8bsreVmq54V8M3Nh5pGsiakjYQUycr@dpg-d8fm0cq8qa3s73aeh4e0-a/rgdwarroomdb"
+        # 1. Prova a leggere l'URL dalle impostazioni di Render (per i clienti su Supabase)
+        # 2. Se non lo trova, usa l'URL fisso di Render (per i tuoi test)
+        self.db_url = os.getenv("DATABASE_URL", "postgresql://rgdwarroomdb:vE8bsreVmq54V8M3Nh5pGsiakjYQUycr@dpg-d8fm0cq8qa3s73aeh4e0-a/rgdwarroomdb")
+        
         self.vault = SecureVault()
         self.crea_tabelle()
-        logger.info("🛡️ Database Cloud RGD-Alpha (PostgreSQL) Connesso.")
+        
+        # Log modificato per darti conferma visiva di dove sei collegato
+        if "supabase.co" in self.db_url:
+            logger.info("🚀 Database SUPABASE (Clienti) Connesso.")
+        else:
+            logger.info("🧪 Database RENDER (Test Personali) Connesso.")
 
     def _get_conn(self):
         # Connessione al database esterno
