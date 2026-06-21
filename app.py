@@ -338,14 +338,16 @@ elif scelta == "📊 War Room Strategica":
             # 2. Passiamo il paese all'istanza
             refinery = DataRefinery(country=paese_calendar)
 
-            # 3. Eseguiamo il raffinamento passandogli il file
+                       # 3. Eseguiamo il raffinamento passandogli il file
             refined_result = refinery.refine_file(str(path_raw)) 
             df_pulito = refined_result["data"]
             
-            # Il motore esegue il raffinamento usando il calendario appena definito
-            refined_result = refinery.refine_file(str(path_raw)) 
-            df_pulito = refined_result["data"]
-            
+            # --- AGGIUNTA QUI: NORMALIZZAZIONE UNIVERALE ---
+            # Questo trasforma ORE_PRODUTTIVE in ore_produttive 
+            # rendendo il sistema compatibile con ogni tipo di file (SAP, Excel, ecc.)
+            df_pulito.columns = [str(c).lower().strip() for c in df_pulito.columns]
+            # -----------------------------------------------
+
             if refined_result.get("anomalies"):
                 st.warning(f"⚠️ Rilevate anomalie strutturali fango: {len(refined_result['anomalies'])} righe corrette.")
 
