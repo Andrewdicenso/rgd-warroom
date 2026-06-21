@@ -41,7 +41,17 @@ class DataRefinery:
         
         buffer.seek(0)
         if file_name.endswith('.csv'):
-            df = pd.read_csv(buffer, sep=None, engine='python', on_bad_lines='skip')
+            # --- NUOVA LOGICA DI IDENTIFICAZIONE RIGA ---
+            lines = file_bytes.decode('utf-8', errors='ignore').splitlines()
+            skip_idx = 0
+            for i, line in enumerate(lines):
+                if 'DATA' in line.upper() and 'ASSET' in line.upper():
+                    skip_idx = i
+                    break
+            
+            buffer.seek(0)
+            df = pd.read_csv(buffer, sep=None, engine='python', skiprows=skip_idx, on_bad_lines='skip')
+            # ---------------------------------------------
         else:
             df = pd.read_excel(buffer)
 
