@@ -108,4 +108,3 @@ class IngestoreDati:
             logger.error(f"Errore critico durante l'elaborazione del file: {e}")
 
         return asset_list
-        
