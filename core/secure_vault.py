@@ -60,7 +60,7 @@ class SecureVault:
             logger.error(f"Errore cifratura: {e}")
             raise
 
-def decrypt_data(self, encrypted_data):
+    def decrypt_data(self, encrypted_data):
         """Decifra i dati. Accetta stringhe o bytes."""
         if not encrypted_data:
             return ""
