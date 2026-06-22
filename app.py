@@ -291,6 +291,7 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
     except Exception as e:
         st.error(f"❌ Errore critico nel caricamento del pannello Admin: {e}")
 
+
 # ==========================================
 #   PAGINA 3: WAR ROOM STRATEGICA (ALLINEATA)
 # ==========================================
