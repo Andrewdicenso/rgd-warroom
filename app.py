@@ -127,7 +127,7 @@ with t3:
                 else:
                     st.error("Impossibile procedere. Verifica l'email inserita.")
             
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
+        st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
