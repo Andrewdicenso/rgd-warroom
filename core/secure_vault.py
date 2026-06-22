@@ -61,19 +61,19 @@ class SecureVault:
             raise
 
 def decrypt_data(self, encrypted_data):
-    """Decifra i dati. Accetta stringhe o bytes."""
-    if not encrypted_data:
-        return ""
-    try:
-        if isinstance(encrypted_data, str):
-            encrypted_data = encrypted_data.encode("utf-8")
-        return self.cipher.decrypt(encrypted_data).decode("utf-8")
-    except InvalidToken:
-        logger.error("⚠️ ALERT SICUREZZA: Token non valido o dati manomessi!")
-        return None
-    except Exception as e:
-        logger.error(f"Errore decifratura: {e}")
-        return None
+        """Decifra i dati. Accetta stringhe o bytes."""
+        if not encrypted_data:
+            return ""
+        try:
+            if isinstance(encrypted_data, str):
+                encrypted_data = encrypted_data.encode("utf-8")
+            return self.cipher.decrypt(encrypted_data).decode("utf-8")
+        except InvalidToken:
+            logger.error("⚠️ ALERT SICUREZZA: Token non valido o dati manomessi!")
+            return None
+        except Exception as e:
+            logger.error(f"Errore decifratura: {e}")
+            return None
 
 
 # --- TEST DI INTEGRITÀ ---
