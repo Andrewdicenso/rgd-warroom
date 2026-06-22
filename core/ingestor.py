@@ -25,37 +25,6 @@ class IngestoreDati:
             'stato': ['stato', 'condizione', 'status', 'pagamento', 'disponibilita', 'Stato_Qualita']
         }
 
-        def elabora_csv(self, file_path, company_id):
-        # ... (caricamento file) ...
-        
-        # 1. Rileva i "ponti" tra le colonne
-            mappa = self._smart_mapping_colonne(df)
-        
-        # 2. Rilevamento settore
-        settore_nome, ClasseAsset = self._auto_rilevamento_settore(df.columns)
-        logger.info(f"Settore rilevato: {settore_nome}")
-
-        for _, row in df.iterrows():
-            # Estraiamo i dati usando la mappa intelligente
-            valore_corrente = row.get(mappa.get('valore'), 0)
-            rischio_corrente = row.get(mappa.get('rischio'), 0)
-            
-            # --- LOGICA PREDIZIONE (L'Anima del sistema) ---
-            # Recuperiamo lo storico dal DB per calcolare il Momentum
-            storico = self.db.get_ultimo_stato_asset(row.get('nome'), company_id)
-            
-            momentum = 0
-            if storico:
-                # Calcoliamo la variazione rispetto a ieri
-                momentum = (valore_corrente - storico['valore']) / 1 # dt=1 giorno
-            
-            # Creazione dell'asset potenziato
-            dati_asset = row.to_dict()
-            dati_asset['momentum_score'] = momentum
-            
-            asset_obj = ClasseAsset(**dati_asset)
-            # ... salvataggio e aggiunta alla lista
-
     def _valida_dati_critici(self, df):
         """
         DATA VALIDATOR: Controlla se il file ha i requisiti minimi per non rompere il sistema.
