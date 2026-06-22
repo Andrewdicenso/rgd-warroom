@@ -1,4 +1,3 @@
-import plotly.express as px
 import os
 import sys
 from datetime import datetime
@@ -22,35 +21,6 @@ from data_refinery import DataRefinery
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-    # Dati di esempio (puoi usare il tuo DataFrame)
-df = px.data.gapminder().query("year == 2007")
-
-# Creazione della mappa
-fig = px.choropleth(df, 
-                    locations="iso_alpha",
-                    color="lifeExp", 
-                    hover_name="country",
-                    projection="natural earth") # Esistono varie proiezioni come 'orthographic' per il globo
-
-# Personalizzazione del layout (per farlo somigliare a quello che hai visto)
-fig.update_geos(
-    showcountries=True, 
-    countrycolor="RebeccaPurple",
-    showcoastlines=True, 
-    coastlinecolor="DarkBlue",
-    showland=True, 
-    landcolor="LightGreen",
-    showocean=True, 
-    oceancolor="LightBlue",
-    showlakes=True, 
-    lakecolor="Blue"
-)
-
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-
-# Per visualizzarlo
-fig.show()
 
 # ==========================================
 #   CONFIGURAZIONE BASE & UI
