@@ -108,3 +108,56 @@ class IngestoreDati:
             logger.error(f"Errore critico durante l'elaborazione del file: {e}")
 
         return asset_list
+
+        # ... (restante codice invariato)
+
+    def _smart_mapping_colonne(self, df):
+        """Usa la logica fuzzy per mappare colonne anche se scritte male."""
+        mappa_reale = {}
+        colonne_file = df.columns.tolist()
+        
+        for target, sinonimi in self.mappa_sinonimi.items():
+                for col in colonne_file:
+                # Corrispondenza esatta o sinonimo
+                    if col.lower() in [s.lower() for s in sinonimi]:
+                        mappa_reale[target] = col
+                    break
+            
+            # Se ancora non trovata, prova il fuzzy matching (difflib)
+                if target not in mappa_reale:
+                    matches = difflib.get_close_matches(target, colonne_file, n=1, cutoff=0.6)
+                if matches:
+                    mappa_reale[target] = matches[0]
+        
+        return mappa_reale
+
+    def elabora_csv(self, file_path, company_id):
+        # ... (caricamento file) ...
+        
+        # 1. Rileva i "ponti" tra le colonne
+        mappa = self._smart_mapping_colonne(df)
+        
+        # 2. Rilevamento settore
+        settore_nome, ClasseAsset = self._auto_rilevamento_settore(df.columns)
+        logger.info(f"Settore rilevato: {settore_nome}")
+
+        for _, row in df.iterrows():
+            # Estraiamo i dati usando la mappa intelligente
+            valore_corrente = row.get(mappa.get('valore'), 0)
+            rischio_corrente = row.get(mappa.get('rischio'), 0)
+            
+            # --- LOGICA PREDIZIONE (L'Anima del sistema) ---
+            # Recuperiamo lo storico dal DB per calcolare il Momentum
+            storico = self.db.get_ultimo_stato_asset(row.get('nome'), company_id)
+            
+            momentum = 0
+            if storico:
+                # Calcoliamo la variazione rispetto a ieri
+                momentum = (valore_corrente - storico['valore']) / 1 # dt=1 giorno
+            
+            # Creazione dell'asset potenziato
+            dati_asset = row.to_dict()
+            dati_asset['momentum_score'] = momentum
+            
+            asset_obj = ClasseAsset(**dati_asset)
+            # ... salvataggio e aggiunta alla lista
