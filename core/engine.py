@@ -63,7 +63,8 @@ class DataGateway:
                     break
             if target not in mappa_finale.values():
                 matches = difflib.get_close_matches(target, colonne_file, n=1, cutoff=0.5)
-                if matches: mappa_finale[matches[0]] = target
+                if matches: 
+                    mappa_finale[matches[0]] = target
         
         return df.rename(columns=mappa_finale)
 
@@ -76,7 +77,8 @@ class DataGateway:
 
     # --- MATRICE MATEMATICA CORE (EMA PROTOCOL - Invariata) ---
     def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
-        if dt <= 0: dt = 1
+        if dt <= 0: 
+            dt = 1
         return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
     def _genera_consiglio_azione(self, rischio, settore, m_score=0):
@@ -96,10 +98,14 @@ class DataGateway:
     # --- CONFIGURAZIONE SETTORE / SOGLIE (Invariata) ---
     def _analizza_e_configura_motore(self, contesto, colonne):
         contesto_upper = str(contesto).upper()
-        if "EDILE" in contesto_upper: return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
-        if "FASHION" in contesto_upper: return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
-        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper: return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
-        if "ALIMENT" in contesto_upper: return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
+        if "EDILE" in contesto_upper: 
+            return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
+        if "FASHION" in contesto_upper: 
+            return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
+        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper: 
+            return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
+        if "ALIMENT" in contesto_upper: 
+            return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
         return {"settore": "GENERAL", "soglia": 7.0, "moltiplicatore": 1.0}
 
     # --- ANALISI STRATEGICA E WHAT-IF (Logica H(prod) Preservata) ---
@@ -137,30 +143,45 @@ class DataGateway:
                 "settore": settore_rilevato,
                 "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
             })
-            self._archivia_asset(d, r_pesato)
+            self._archivia_asset(d, r_pesato, str(m_score))
         return report
 
     # --- MODULO INTELLIGENCE E ARCHIVIAZIONE (Invariati) ---
     def analizza_giacenze_e_proponi_marketing(self, df):
         proposte = []
         oggi = datetime.now()
-        if df is None or df.empty: return proposte
+        if df is None or df.empty: 
+            return proposte
         for _, row in df.iterrows():
-            if 'timestamp' not in row or pd.isna(row['timestamp']): continue
+            if 'timestamp' not in row or pd.isna(row['timestamp']): 
+                continue
             giorni = (oggi - pd.to_datetime(row['timestamp'])).days
             if giorni > 30:
                 rischio, valore = row.get('rischio', 0.0), row.get('valore_extra', 0.0)
                 sconto = 0.4 if rischio > 7 else 0.2
-                proposte.append({"asset": row.get('nome'), "giorni": giorni, "recupero_stimato": f"€ {round(valore * (1 - sconto), 2)}", "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}%."})
+                proposte.append({
+                    "asset": row.get('nome'), 
+                    "giorni": giorni, 
+                    "recupero_stimato": f"€ {round(valore * (1 - sconto), 2)}", 
+                    "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}%."
+                })
         return proposte
 
-    def _archivia_asset(self, d, rischio):
+    def _archivia_asset(self, d, rischio, momentum_str="Stabile"):
         try:
-            self.db.salva_asset(user_id=d.get("user_id", 1), nome_asset=d.get("nome"), rischio=rischio, tipo=d.get("tipo", "Enterprise"), momentum="Stabile", volatilita=0.0)
+            self.db.salva_asset(
+                user_id=d.get("user_id", 1), 
+                nome_asset=d.get("nome"), 
+                rischio=rischio, 
+                tipo=d.get("tipo", "Enterprise"), 
+                momentum=momentum_str, 
+                volatilita=0.0
+            )
         except Exception as e:
             logger.warning(f"DB Sync fallito: {e}")
 
     def salva_report_certificato(self, report_data):
-        if not report_data: return False
+        if not report_data: 
+            return False
         logger.info("Report salvato con successo (stub).")
         return True
