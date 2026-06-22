@@ -50,7 +50,8 @@ class DataGateway:
             "rischio": ["Risk", "Criticality", "Priorità", "Livello", "Grado", "Pericolo", "Priority Score", "Rischio"],
             "ore_produttive_effettive": ["Hours", "Ore", "Tempo", "Effort", "Lavorate", "Actual Hours", "h"],
             "tipo": ["Type", "Category", "Categoria", "Genere", "Resource Group", "Tipo"],
-            "stato": ["Status", "Stato", "Health", "Fase", "Current State"]
+            "stato": ["Status", "Stato", "Health", "Fase", "Current State"],
+            "timestamp": ["Data", "Date", "Timestamp", "Data Caricamento", "Inizio", "Giorno"]
         }
         colonne_file = list(df.columns)
         mappa_finale = {}

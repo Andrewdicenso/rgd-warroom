@@ -60,7 +60,7 @@ class SecureVault:
             logger.error(f"Errore cifratura: {e}")
             raise
 
-    def decrypt_data(self, encrypted_data):
+def decrypt_data(self, encrypted_data):
         """Decifra i dati. Accetta stringhe o bytes."""
         if not encrypted_data:
             return ""
@@ -70,10 +70,10 @@ class SecureVault:
             return self.cipher.decrypt(encrypted_data).decode("utf-8")
         except InvalidToken:
             logger.error("⚠️ ALERT SICUREZZA: Token non valido o dati manomessi!")
-            return None
+            return "" # 👈 Ritorna stringa vuota anziché None per non rompere i DataFrame
         except Exception as e:
             logger.error(f"Errore decifratura: {e}")
-            return None
+            return str(encrypted_data) # 👈 In caso di errore generico, mostra il dato grezzo come stringa senza far crashare la pagina
 
 
 # --- TEST DI INTEGRITÀ ---

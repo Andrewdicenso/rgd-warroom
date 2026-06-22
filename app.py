@@ -1,295 +1,242 @@
-import os
-import sys
-from datetime import datetime
-from pathlib import Path
-
-# 2. LIBRERIE DI TERZE PARTI (Installate con pip)
-from dotenv import load_dotenv
-from groq import Groq
-import pandas as pd
-import plotly.express as px
 import streamlit as st
+import pandas as pd
+import numpy as np
+from datetime import datetime
 
-# 3. MODULI CORE & AUTH (I tuoi file locali)
-from auth.auth import inizializza_sessione, login_utente, logout_utente
+# Importazione dei moduli core RGD-Alpha
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
-from core.ingestor import IngestoreDati
-from data_refinery import DataRefinery
+from auth.auth import inizializza_sessione, login_utente, logout_utente
 
-# --- RISOLUZIONE DINAMICA PATH INTERNI ---
-PROJECT_ROOT = Path(__file__).resolve().parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# ==========================================
-#   CONFIGURAZIONE BASE & UI
-# ==========================================
-load_dotenv()
-DATA_ROOT = PROJECT_ROOT / "data"
-UPLOAD_DIR = DATA_ROOT / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-# Impostazione Layout Enterprise
-st.set_page_config(
-    page_title="RGD-Alpha | War Room Strategica", 
-    layout="wide", 
-    page_icon="🛡️",
-    initial_sidebar_state="expanded"
-)
-
-# Inizializzazione Sessione (Fondamentale per Auth)
+# ==============================================================================
+# 1. INIZIALIZZAZIONE SISTEMA E SESSIONE
+# ==============================================================================
+st.set_page_config(page_title="RGD-Alpha War Room", layout="wide", page_icon="🛡️")
 inizializza_sessione()
 
-# ==========================================
-#   GESTIONE ESTETICA (CSS ESTERNO)
-# ==========================================
-def load_css(file_name="style.css"):
-    """Carica il design system del progetto."""
-    try:
-        with open(file_name, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.warning("⚠️ Sistema visivo RGD non caricato. Verifica la presenza di style.css")
+# Connessioni singole e persistenti per evitare sovraccarichi al DB Cloud
+if "db" not in st.session_state:
+    st.session_state.db = DatabaseAziendale()
+if "engine" not in st.session_state:
+    st.session_state.engine = DataGateway()
 
-# Attivazione Veste Grafica
-load_css()
+db = st.session_state.db
+engine = st.session_state.engine
 
-# Inizializzazione Database (Unica istanza globale)
-db = DatabaseAziendale()
-
-# ==========================================
-#   GESTIONE REGISTRAZIONE & AUTH
-# ==========================================
-def registra_nuovo_utente(email: str, password: str, conferma: str):
-    if not email or not password or not conferma:
-        st.error("Compila tutti i campi.")
-        return
-    if password != conferma:
-        st.error("Le password non coincidono.")
-        return
-    try:
-        if db.get_utente_by_email(email):
-            st.error("Email già registrata.")
-            return
-        
-        # Recupero Admin Email (Standard RGD-Alpha)
-        admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
-        ruolo = "admin" if email.lower() == admin_email_env else "user"
-        
-        if db.crea_utente(email=email, password=password, ruolo=ruolo):
-            st.success("✅ Registrazione completata. Effettua il login.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore critico durante la registrazione: {e}")
-
-# --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
+# ==============================================================================
+# 2. SCHERMATA DI LOGIN & RESET (Se l'utente non è autenticato)
+# ==============================================================================
 if not st.session_state.autenticato:
-    # Aggiungiamo il terzo Tab per il recupero credenziali
-    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
+    st.title("🔒 RGD-Alpha Enterprise — Accesso Protetto")
     
-    with t1:
-        e = st.text_input("Email Aziendale", key="l_e").strip()
-        p = st.text_input("Password", type="password", key="l_p").strip()
-        if st.button("Accedi al Sistema"):
-            if login_utente(db, e, p):
-                st.rerun()
-            else:
-                st.error("Credenziali non valide. Riprova.")
-                
-    with t2:
-        re = st.text_input("Email per registrazione", key="r_e").strip()
-        rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
-        rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
-        if st.button("Crea Account Enterprise"):
-            registra_nuovo_utente(re, rp, rc)
-
-    with t3:
-        st.subheader("Reset Credenziali con Tracciamento")
-        st.info("Nota: Ogni operazione di reset viene registrata nei log di sicurezza con data e ora.")
-        res_e = st.text_input("Inserisci la tua Email", key="res_e").strip()
-        res_p = st.text_input("Nuova Password", type="password", key="res_p").strip()
-        res_c = st.text_input("Conferma Nuova Password", type="password", key="res_c").strip()
-        
-        if st.button("Aggiorna Password e Registra Evento"):
-            if not res_e or not res_p:
-                st.warning("Inserisci email e nuova password.")
-            elif res_p != res_c:
-                st.error("Le password non coincidono.")
-            elif len(res_p) < 8:
-                st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
-            else:
-                # Esecuzione del reset tracciato nel database
-                if db.reset_password_tracciato(res_e, res_p):
-                    st.success("✅ Password aggiornata con successo!")
-                    st.toast("Evento registrato nei log di sicurezza.")
-                    st.info("Ora puoi tornare nel tab 'Login' e accedere.")
-                else:
-                    st.error("Impossibile procedere. Verifica l'email inserita.")
+    tab_log, tab_res = st.tabs(["Accedi al Sistema", "Ripristino Credenziali Security"])
+    
+    with tab_log:
+        with st.form("form_login"):
+            email_input = st.text_input("Email Aziendale").strip()
+            password_input = st.text_input("Password", type="password")
+            submit_login = st.form_submit_button("Effettua Login")
             
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
+            if submit_login:
+                if email_input and password_input:
+                    if login_utente(db, email_input, password_input):
+                        st.success("Autenticazione riuscita! Inserimento in corso...")
+                        st.rerun()
+                    else:
+                        st.error("Credenziali errate o utente non autorizzato.")
+                else:
+                    st.warning("Per favore, compila tutti i campi di accesso.")
+                    
+    with tab_res:
+        with st.form("form_reset"):
+            st.subheader("Tracciamento Reset Password")
+            email_reset = st.text_input("Inserisci la tua Email di registrazione").strip()
+            nuova_pass = st.text_input("Nuova Password Temporanea", type="password")
+            submit_reset = st.form_submit_button("Aggiorna Password")
+            
+            if submit_reset:
+                if email_reset and nuova_pass:
+                    if db.reset_password_tracciato(email_reset, nuova_pass):
+                        st.success("🔒 Reset completato e registrato nei log di sicurezza. Puoi accedere.")
+                    else:
+                        st.error("Impossibile procedere. Email non trovata nel sistema cloud.")
+                else:
+                    st.warning("Campi incompleti.")
+    st.stop()
 
-# ==========================================
-#   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
-# ==========================================
-# Recupero sicuro: se la sessione scade, evitiamo il crash
-user_id = st.session_state.get('user_id', 0)
-azienda = st.session_state.get('azienda', 'Operatore Sconosciuto')
-ruolo = st.session_state.get('ruolo', 'user')
-is_admin = ruolo == "admin"
+# ==============================================================================
+# 3. DASHBOARD UTENTE AUTENTICATO (Sidebar Informativa)
+# ==============================================================================
+st.sidebar.title("🛡️ RGD-Alpha v2.2")
+st.sidebar.markdown(f"**Azienda:** `{st.session_state.azienda}`")
+st.sidebar.markdown(f"**Utente:** `{st.session_state.email}`")
+st.sidebar.markdown(f"**Livello Ruolo:** `{st.session_state.ruolo.upper()}`")
 
-st.sidebar.title("🛡️ RGD-ALPHA")
-st.sidebar.write(f"Operatore: **{azienda}**")
-
-# Menu dinamico
-menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
-if is_admin:
-    menu.insert(1, "🕵️ Centrale Admin")
-
-scelta = st.sidebar.radio("Navigazione", menu)
-
-# --- STRESS TEST PULITO ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("🚨 Simulazione Stress Test")
-f_stress = st.sidebar.slider(
-    "Moltiplicatore Inefficienze", 
-    min_value=1.0, 
-    max_value=2.5, 
-    value=1.0, 
-    step=0.1,
-    help="Simula un aumento del rischio operativo globale."
-)
-st.sidebar.caption("Leva attiva per simulazione scenari di crisi.")
-
-st.sidebar.markdown("---")
-if st.sidebar.button("Logout", key="logout_sidebar"):
+if st.sidebar.button("Log Out Sistema", use_container_width=True):
     logout_utente()
 
+# Menu a Tab Principale
+tab_nomi = ["🛡️ War Room & Scan", "📦 Marketing & Giacenze"]
+if st.session_state.ruolo == "admin":
+    tab_nomi.append("👑 Pannello Controllo Admin")
 
-# --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
-st.sidebar.markdown("---")
-with st.sidebar.expander("⚖️ Note Legali & Copyright"):
-    st.markdown(f"""
-    <div style="font-size: 0.85em; color: #555; line-height: 1.4;">
-        <strong>Proprietario Intellettuale:</strong><br>
-        [Tuo Nome e Cognome]<br><br>
-        <strong>Marchio Registrato:</strong><br>
-        Rgandja® (Classi 9, 42)<br><br>
-        <strong>Tutela Algoritmica:</strong><br>
-        La metodologia <em>H(prod)</em> e i calcoli di 
-        <em>Momentum Strategico</em> sono protetti come 
-        <strong>Segreto Industriale</strong> (D.Lgs. 30/2005).
-    </div>
-    <hr style="margin: 10px 0;">
-    <div style="font-size: 0.75em; color: gray; text-align: justify;">
-        È vietata la riproduzione, decompilazione o reverse engineering 
-        del software. Ogni accesso è tracciato nel log di sicurezza Enterprise.
-    </div>
-    """, unsafe_allow_html=True)
+tabs = st.tabs(tab_nomi)
 
-st.sidebar.caption("© 2024 Rgandja. Tutti i diritti riservati.")
-# --- FINE BLOCCO TUTELA LEGALE ---
+# ==============================================================================
+# TAB 1: WAR ROOM & SCAN STRATEGICO
+# ==============================================================================
+with tabs[0]:
+    st.title("🎯 War Room Strategica")
+    
+    # --- CONFIGURAZIONE PARAMETRI DI SCAN ---
+    with st.expander("⚙️ Configurazione Contesto e Stress Test (What-If)", expanded=True):
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            contesto = st.selectbox(
+                "Seleziona il Contesto Operativo:",
+                ["Magazzino", "Fornitori", "Performance Vendite", "Produttività Risorse", "EDILE", "FASHION", "UNIVERSAL"]
+            )
+        with col_c2:
+            fattore_stress = st.slider("Fattore di Stress Test (Moltiplicatore Algoritmico)", min_value=1.0, max_value=2.0, value=1.0, step=0.1)
 
-# ==========================================
-# RIGA DI RIFERIMENTO FINALE: (Fine del file)
-# ==========================================
+    uploaded_file = st.file_uploader("Carica il tracciato dati (.csv, .xlsx)", type=["csv", "xlsx"])
 
+    if uploaded_file:
+        try:
+            # Caricamento dinamico dei dati
+            if uploaded_file.name.endswith('.csv'):
+                df_originale = pd.read_csv(uploaded_file)
+            else:
+                df_originale = pd.read_excel(uploaded_file)
+            
+            # Pulizia spazi vuoti sulle intestazioni
+            df_pulito = df_originale.copy()
+            df_pulito.columns = [str(c).strip() for c in df_pulito.columns]
+            
+            # Attivazione del motore di Mappatura Universale ERP/CRM
+            df_mappato = engine.mappa_colonne_universale(df_pulito)
+            
+            # Trasformazione in dizionario iniettando l'ID Utente di sessione reale
+            lista_asset = []
+            for _, row in df_mappato.iterrows():
+                asset_dict = row.dropna().to_dict()
+                asset_dict["user_id"] = st.session_state.user_id
+                lista_asset.append(asset_dict)
+            
+            # ESECUZIONE SCAN (Formule e protocollo EMA originari intatti)
+            with st.spinner("Elaborazione in corso nel motore algoritmico..."):
+                report_analisi = engine.esegui_scan_strategico(lista_asset, contesto, fattore_stress=fattore_stress)
+            
+            # Registrazione caricamento sul Database
+            db.registra_caricamento(st.session_state.user_id, contesto, uploaded_file.name)
+            
+            # Generazione DataFrame finale dell'analisi
+            df_report = pd.DataFrame(report_analisi)
+            
+            # ----------------==================================================
+            # LA VERA WAR ROOM: SEZIONE METRICHE COMPLESSIVE ED EVOLUTE
+            # ----------------==================================================
+            st.markdown("---")
+            st.subheader("📊 Stato della War Room Aziendale")
+            
+            # Conteggi di criticità basati sui risultati reali dell'engine
+            critici = len(df_report[df_report["stato"] == "CRITICO"])
+            attenzione = len(df_report[df_report["stato"] == "ATTENZIONE"])
+            ottimali = len(df_report[df_report["stato"] == "OTTIMALE"])
+            rischio_medio_file = round(df_report["rischio"].mean(), 2) if not df_report.empty else 0.0
+            
+            # Visualizzazione dei Counter della War Room in colonne grafiche
+            col_w1, col_w2, col_w3, col_w4 = st.columns(4)
+            col_w1.metric("Asset CRITICI (Rischio > 7)", f"🚨 {critici}")
+            col_w2.metric("Asset IN ATTENZIONE", f"⚠️ {attenzione}")
+            col_w3.metric("Asset OTTIMALI", f"✅ {ottimali}")
+            col_w4.metric("Media Rischio Calcolata", f"📊 {rischio_medio_file}")
+            
+            # Sezione Grafica della War Room: Tabella ad alto impatto visivo
+            st.subheader("📋 Output Analisi Dettagliata")
+            st.dataframe(df_report, use_container_width=True)
+            
+            # --- PIANO D'AZIONE OPERATIVO AVANZATO ---
+            st.markdown("---")
+            st.subheader("🎯 Piano d'Azione Operativo Prioritario")
+            st.markdown("_Gli elementi sono ordinati automaticamente dal livello di rischio più alto a quello più basso._")
+            
+            # Estrazione e ordinamento pulito (evita i KeyError sulle maiuscole)
+            df_ordinato = df_report.sort_values(by="rischio", ascending=False)
+            
+            for _, row in df_ordinato.iterrows():
+                r = row.get("rischio", 0.0)
+                m = row.get("momentum_score", 0.0)
+                nome = row.get("asset", "Asset")
+                consiglio = row.get("consiglio_strategico", "")
+                
+                # Visualizzazione condizionale basata sulle soglie reali
+                if r > 7.0:
+                    st.error(f"🔴 **{nome}** [Rischio: {r} | Momentum: {m}] — {consiglio}")
+                elif r > 5.0:
+                    st.warning(f"🟡 **{nome}** [Rischio: {r} | Momentum: {m}] — {consiglio}")
+                else:
+                    st.success(f"🟢 **{nome}** [Rischio: {r} | Momentum: {m}] — {consiglio}")
+                    
+        except Exception as e:
+            st.error(f"❌ Errore critico di elaborazione: {e}")
+            st.info("Verifica la formattazione dei dati interni del file caricato.")
+    else:
+        st.info("💡 Carica un file valido per popolare la War Room e sbloccare i contatori di rischio.")
 
-# ==========================================
-#   PAGINA 1: HOME EXECUTIVE
-# ==========================================
-if scelta == "🏠 Home":
-    st.markdown("""
-        <div style="text-align: center; padding: 40px 0;">
-            <h1 style="color: #d4af37; font-size: 3.5rem; margin-bottom: 10px;">🛡️ RGD-WARROOM ALPHA</h1>
-            <p style="font-size: 1.3rem; color: #334e68; font-weight: 500;">
-                Il Digital Twin per la Governance Aziendale e il Risk Management Predittivo
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+# ==============================================================================
+# TAB 2: MARKETING & GIACENZE
+# ==============================================================================
+with tabs[1]:
+    st.header("📦 Intelligence Giacenze e Strategie di Recupero")
+    st.markdown("Algoritmo di analisi invecchiamento stock per lotti fermi da oltre 30 giorni.")
+    
+    # Se il file è stato caricato nel primo tab ed esiste il df_mappato in memoria locale
+    if uploaded_file and 'df_mappato' in locals():
+        if 'timestamp' in df_mappato.columns:
+            with st.spinner("Generazione proposte di recupero capitale..."):
+                proposte = engine.analizza_giacenze_e_proponi_marketing(df_mappato)
+                
+            if proposte:
+                st.success(f"Rilevate {len(proposte)} opportunità operative di liquidazione stock.")
+                df_proposte = pd.DataFrame(proposte)
+                st.dataframe(df_proposte, use_container_width=True)
+            else:
+                st.info("✅ Ottimo stato: nessun elemento risulta bloccato da oltre 30 giorni.")
+        else:
+            st.warning("⚠️ Funzione disattivata: il file inserito non ha una colonna temporale identificabile come `timestamp`.")
+    else:
+        st.info("💡 Carica un tracciato dati nel primo Tab per calcolare le giacenze operative.")
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("""
-            <div class="ai-reasoning" style="height: 280px;">
-                <h3 style="color: #3498db;">📊 Intelligence Hub</h3>
-                <p>Monitora la <b>Resilience Aziendale</b> con algoritmi EMA di nuova generazione. 
-                Isoliamo i trend critici dalle fluttuazioni operative per garantirti una visione cristallina della solidità.</p>
-                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
-                    <small style="color: #d4af37;">➔ FOCUS: PREVENZIONE DEL DECLINO OPERATIVO</small>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+# ==============================================================================
+# TAB 3: PANNELLO DI CONTROLLO ADMIN (Riservato ed esclusivo)
+# ==============================================================================
+if st.session_state.ruolo == "admin":
+    with tabs[2]:
+        st.header("👑 Global System Administrator Dashboard")
+        st.markdown("Dati strutturali estratti direttamente dal database relazionale cloud.")
         
-        st.markdown("""
-            <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
-                <h3 style="color: #e74c3c;">🚨 Scenario Simulation</h3>
-                <p>Anticipa il mercato con lo <b>Stress-Test Multivariabile</b>. 
-                Simula scenari di crisi e inefficienze per testare la tenuta dei tuoi margini in un ambiente Sandbox sicuro.</p>
-                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
-                    <small style="color: #d4af37;">➔ FOCUS: MITIGAZIONE PROATTIVA DEL RISCHIO</small>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        col_kpi1, col_kpi2 = st.columns(2)
+        
+        with col_kpi1:
+            st.subheader("👥 Utenti e Organizzazioni")
+            df_utenti = db.supervisione_admin_metriche_globali()
+            st.dataframe(df_utenti, use_container_width=True)
+            
+        with col_kpi2:
+            st.subheader("📈 KPI di Carico di Rete Storico")
+            # Estrae i dati storici del database per l'utente admin
+            kpi = db.calcola_e_salva_kpi_correnti(st.session_state.user_id)
+            
+            col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.metric("Solidità Infrastruttura", f"{kpi.get('solidita', 0)} %")
+            col_m2.metric("Rischio Medio Storico", f"{kpi.get('rischio_medio', 0)}")
+            col_m3.metric("Trend di Sistema", kpi.get('trend', 'N/D'), delta=f"{kpi.get('variazione', 0)}")
 
-    with col2:
-        st.markdown("""
-            <div class="ai-reasoning" style="height: 280px;">
-                <h3 style="color: #2ecc71;">🧠 AI Advisory Board</h3>
-                <p>Supera la 'Dashboard Fatigue'. Il nostro motore basato su <b>LLM Llama-3.3</b> trasforma i dati complessi 
-                in <b>Protocolli Esecutivi</b> chiari e pronti all'azione.</p>
-                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
-                    <small style="color: #d4af37;">➔ FOCUS: DECISION-MAKING ASSISTITO DA IA</small>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-            <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
-                <h3 style="color: #9b59b6;">📜 Governance Audit</h3>
-                <p>Mantieni un <b>Audit Trail</b> completo di ogni analisi. 
-                Monitora l'evoluzione della tua strategia nel tempo grazie al database criptato ad alta sicurezza.</p>
-                <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
-                    <small style="color: #d4af37;">➔ FOCUS: COMPLIANCE E TRACCIABILITÀ STORICA</small>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.info("💡 **Executive Insight:** L'80% dei fallimenti aziendali deriva da una cattiva interpretazione dei trend. Inizia caricando i dati operativi nell'Intelligence Hub.")
-
-# ==========================================
-#   PAGINA 2: CENTRALE ADMIN (SOLO ADMIN)
-# ==========================================
-elif scelta == "🕵️ Centrale Admin" and is_admin:
-    st.markdown("""
-        <div style="background-color: #1e3c72; padding: 20px; border-radius: 12px; color: white; margin-bottom: 20px;">
-            <h2 style="margin: 0; color: white;">🕵️ Centrale di Supervisione Admin</h2>
-            <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.8);">Monitoraggio globale delle attività di sistema e degli accessi utente.</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    try:
-        # 1. VISUALIZZAZIONE UTENTI
-        df_utenti = db.supervisione_admin_metriche_globali()
-        if df_utenti is not None and not df_utenti.empty:
-            st.subheader("👥 Utenti Registrati")
-            st.dataframe(df_utenti, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessun utente registrato oltre all'amministratore.")
-
-        # 2. VISUALIZZAZIONE LOG ATTIVITÀ
-        st.subheader("📈 Log Attività Recente")
-        df_asset_globale = db.recupera_attivita_globale()
-        if df_asset_globale is not None and not df_asset_globale.empty:
-            # Ordiniamo per data se possibile, altrimenti mostriamo l'intero log
-            st.dataframe(df_asset_globale, use_container_width=True)
-        else:
-            st.warning("Nessuna attività registrata negli asset logs.")
-
-    except Exception as e:
-        st.error(f"❌ Errore critico nel caricamento del pannello Admin: {e}")
+        st.markdown("---")
+        st.subheader("📜 Log Attività Globale Real-Time (Cloud)")
+        df_logs = db.recupera_attivita_globale()
+        st.dataframe(df_logs, use_container_width=True)
 
 # ==========================================
 #   PAGINA 3: WAR ROOM STRATEGICA (ALLINEATA)
