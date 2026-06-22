@@ -48,10 +48,6 @@ def login_utente(db, email, password):
         logger.error(f"Errore durante la fase di login: {e}")
         return False
 
-    except Exception as e:
-        logger.error(f"Errore durante la fase di login: {e}")
-        return False
-
 def logout_utente():
     """Svuota la sessione ed effettua il logout dell'utente."""
     st.session_state.autenticato = False
