@@ -88,7 +88,7 @@ if not st.session_state.autenticato:
     # Aggiungiamo il terzo Tab per il recupero credenziali
     t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
-with t1:
+    with t1:
         e = st.text_input("Email Aziendale", key="l_e").strip()
         p = st.text_input("Password", type="password", key="l_p").strip()
         if st.button("Accedi al Sistema"):
@@ -104,7 +104,14 @@ with t1:
             else:
                 st.error("Credenziali non valide. Riprova.")
 
-with t3:
+    with t2:
+        re = st.text_input("Email per registrazione", key="r_e").strip()
+        rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
+        rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
+        if st.button("Crea Account Enterprise"):
+            registra_nuovo_utente(re, rp, rc)
+
+    with t3:
         st.subheader("Reset Credenziali con Tracciamento")
         st.info("Nota: Ogni operazione di reset viene registrata nei log di sicurezza con data e ora.")
         res_e = st.text_input("Inserisci la tua Email", key="res_e").strip()
@@ -127,7 +134,7 @@ with t3:
                 else:
                     st.error("Impossibile procedere. Verifica l'email inserita.")
             
-        st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
+    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
@@ -165,7 +172,6 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
 
-
 # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
 st.sidebar.markdown("---")
 with st.sidebar.expander("⚖️ Note Legali & Copyright"):
@@ -189,11 +195,6 @@ with st.sidebar.expander("⚖️ Note Legali & Copyright"):
 
 st.sidebar.caption("© 2024 Rgandja. Tutti i diritti riservati.")
 # --- FINE BLOCCO TUTELA LEGALE ---
-
-# ==========================================
-# RIGA DI RIFERIMENTO FINALE: (Fine del file)
-# ==========================================
-
 
 # ==========================================
 #   PAGINA 1: HOME EXECUTIVE
@@ -258,7 +259,6 @@ if scelta == "🏠 Home":
 
     st.markdown("---")
     st.info("💡 **Executive Insight:** L'80% dei fallimenti aziendali deriva da una cattiva interpretazione dei trend. Inizia caricando i dati operativi nell'Intelligence Hub.")
-
 # ==========================================
 #   PAGINA 2: CENTRALE ADMIN (SOLO ADMIN)
 # ==========================================
@@ -295,6 +295,9 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 #   PAGINA 3: WAR ROOM STRATEGICA (ALLINEATA)
 # ==========================================
 elif scelta == "📊 War Room Strategica":
+    # Inizializzazione di sicurezza per evitare NameError se non viene caricato alcun file
+    report_analisi = []
+
     st.markdown(
         f"""
         <div class='warroom-header'>
@@ -324,7 +327,7 @@ elif scelta == "📊 War Room Strategica":
             f.write(uploaded_file.getbuffer())
 
         with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
-            # Fase 1: Raffinamento
+            # Phase 1: Raffinamento
             status.write("🔍 Fase 1: Identificazione impronta digitale e pulizia...")
             paese_calendar = st.session_state.get("paese_azienda", "IT") 
             refinery = DataRefinery(country=paese_calendar)
@@ -382,7 +385,6 @@ elif scelta == "📊 War Room Strategica":
                 status.update(label="✅ Protocollo RGD-Alpha Completato con Successo!", state="complete")
                 
                 # --- VISUALIZZAZIONE RISULTATI ---
-                # AGGIUNGI QUESTA RIGA QUI SOTTO:
                 df_p.columns = [str(c).lower().strip() for c in df_p.columns]
 
                 # Ora i calcoli sotto leggeranno correttamente i dati:
@@ -438,19 +440,21 @@ elif scelta == "📊 War Room Strategica":
                 st.stop()
 
         # --- 📝 PIANO D'AZIONE OPERATIVO ---
-        st.subheader("📝 Piano d'Azione Operativo (Priorità)")
-        report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
-        for asset in report_ordinato:
-            r, m, nome = asset.get("rischio", 0), asset.get("momentum_score", 0), asset.get('asset', 'N/D')
-            if r > 7 and m > 2: 
-                box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare attività e mitigare immediatamente il rischio operativo."
-            elif r > 5 or m > 1.5: 
-                box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare il monitoraggio e isolare le varianze orarie."
-            else: 
-                box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Standard mantenuti. Continuare la normale governance."
-            
-            st.markdown(f"<div class='{box_style}'><b>{nome}</b> | Rischio: {r} | Momentum: {m}<br><small>🎯 {consiglio}</small></div>", unsafe_allow_html=True)
-    # ==========================================
+        if report_analisi:
+            st.subheader("📝 Piano d'Azione Operativo (Priorità)")
+            report_ordinato = sorted(report_analisi, key=lambda x: x.get('rischio', 0), reverse=True)
+            for asset in report_ordinato:
+                r, m, nome = asset.get("rischio", 0), asset.get("momentum_score", 0), asset.get('asset', 'N/D')
+                if r > 7 and m > 2: 
+                    box_style, label, consiglio = "kpi-box-critical", "🚨 EMERGENZA", "Bloccare attività e mitigare immediatamente il rischio operativo."
+                elif r > 5 or m > 1.5: 
+                    box_style, label, consiglio = "kpi-box", "⚠️ ATTENZIONE", "Incrementare il monitoraggio e isolare le varianze orarie."
+                else: 
+                    box_style, label, consiglio = "kpi-box", "✅ NOMINALE", "Standard mantenuti. Continuare la normale governance."
+                
+                st.markdown(f"<div class='{box_style}'><b>{nome}</b> | Rischio: {r} | Momentum: {m}<br><small>🎯 {consiglio}</small></div>", unsafe_allow_html=True)
+
+# ==========================================
 #   PAGINA 4: ARCHIVIO STORICO (VERSIONE EXECUTIVE)
 # ==========================================
 elif scelta == "📜 Archivio Storico":
