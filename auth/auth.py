@@ -30,7 +30,7 @@ def login_utente(db, email, password):
             return False
         
         # 2️⃣ Verifica password bcrypt
-        if not bcrypt.checkpw(password.encode("utf-8"), utente["password_hash"].encode("utf-8")):
+        if not bcrypt.checkpw(password.encode("utf-8"), bytes(utente["password_hash"], "utf-8")):
             logger.warning(f"Tentativo di login fallito per {email}: password errata.")
             return False
 
