@@ -185,7 +185,7 @@ class DatabaseAziendale:
             return pd.DataFrame(rows, columns=colnames)
         except: 
             return pd.DataFrame()
-   def registra_caricamento(self, user_id, contesto, nome_file):
+    def registra_caricamento(self, user_id, contesto, nome_file):
         try:
             utente = self.get_utente_by_id(user_id)
             with self._get_conn() as conn:
