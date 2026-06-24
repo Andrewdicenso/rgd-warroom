@@ -18,7 +18,6 @@ from core.engine import DataGateway
 from core.ingestor import IngestoreDati
 from data_refinery import DataRefinery
 
-
 # --- RISOLUZIONE DINAMICA PATH INTERNI ---
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -59,6 +58,7 @@ load_css()
 
 # Inizializzazione Database (Unica istanza globale)
 db = DatabaseAziendale()
+
 
 # ==========================================
 #   GESTIONE REGISTRAZIONE & AUTH
