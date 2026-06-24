@@ -324,7 +324,7 @@ elif scelta == "📊 War Room Strategica":
         path_raw.parent.mkdir(parents=True, exist_ok=True)
         with open(path_raw, "wb") as f:
             f.write(uploaded_file.getbuffer())
-
+            settore_ia = "GENERAL"
         with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
             # Fase 1: Raffinamento (Manteniamola per la pulizia base)
             status.write("🔍 Fase 1: Identificazione impronta digitale e pulizia...")
