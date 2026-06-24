@@ -99,32 +99,10 @@ if not st.session_state.autenticato:
                 st.session_state.ruolo = "admin"
                 st.session_state.azienda = "RGD-Alpha"
                 st.rerun()
+            elif login_utente(db, e, p):
+                st.rerun()
             else:
-                # LOGIN DIRETTO SU SUPABASE PER GLI ALTRI UTENTI
-                try:
-                    import bcrypt
-                    # Cerchiamo l'utente nel database tramite l'email
-                    risposta = db.supabase.table("utenti").select("*").eq("email", e).execute()
-                    
-                    if risposta.data and len(risposta.data) > 0:
-                        utente_db = risposta.data[0]
-                        hash_salvato = utente_db.get("password_hash")
-                        
-                        # Verifichiamo se la password inserita coincide con l'hash crittografato
-                        if bcrypt.checkpw(p.encode('utf-8'), hash_salvato.encode('utf-8')):
-                            # Se coincide, popoliamo la sessione di Streamlit con i dati del database
-                            st.session_state.autenticato = True
-                            st.session_state.user_id = utente_db.get("id")
-                            st.session_state.email = utente_db.get("email")
-                            st.session_state.ruolo = utente_db.get("ruolo", "user")
-                            st.session_state.azienda = utente_db.get("azienda", "Default")
-                            st.rerun()
-                        else:
-                            st.error("Credenziali non valide. Riprova.")
-                    else:
-                        st.error("Credenziali non valide. Riprova.")
-                except Exception as ex:
-                    st.error(f"Errore durante l'autenticazione: {ex}")
+                st.error("Credenziali non valide. Riprova.")
 
     with t2:
         re = st.text_input("Email per registrazione", key="r_e").strip()
