@@ -1,4 +1,3 @@
-# 1. LIBRERIE STANDARD DI PYTHON (Native)
 import os
 import sys
 from datetime import datetime
@@ -12,7 +11,7 @@ import plotly.express as px
 import streamlit as st
 
 # 3. MODULI CORE & AUTH (I tuoi file locali)
-
+from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
@@ -58,7 +57,6 @@ load_css()
 
 # Inizializzazione Database (Unica istanza globale)
 db = DatabaseAziendale()
-
 
 # ==========================================
 #   GESTIONE REGISTRAZIONE & AUTH
