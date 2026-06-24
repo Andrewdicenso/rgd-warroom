@@ -10,18 +10,6 @@ from groq import Groq
 import pandas as pd
 import plotly.express as px
 
-# =====================================================================
-# INIZIALIZZAZIONI CRUCIALI (Da fare PRIMA di importare i tuoi moduli)
-# =====================================================================
-# Carica le variabili d'ambiente subito, così i moduli sotto possono leggerle
-load_dotenv()
-
-# Configura la pagina Streamlit (DEVE essere il primo comando st.* dell'app)
-st.set_page_config(
-    page_title="La Tua Applicazione",
-    layout="wide"
-)
-
 # 3. MODULI LOCALI (I tuoi file)
 # Ora possono essere importati in sicurezza perché l'ambiente e Streamlit sono pronti
 import inizializza_sessione
