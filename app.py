@@ -127,15 +127,14 @@ if not st.session_state.autenticato:
                 st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
             else:
                 # Esecuzione del reset tracciato nel database
-                if db.reset_password_tracciato(res_e, res_p):
+                if db.aggiorna_password(res_e, res_p):
                     st.success("✅ Password aggiornata con successo!")
                     st.toast("Evento registrato nei log di sicurezza.")
                     st.info("Ora puoi tornare nel tab 'Login' e accedere.")
                 else:
                     st.error("Impossibile procedere. Verifica l'email inserita.")
             
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
-
+    st.stop() # Blocca l'esecuzione finché l'utente non è autenticatoS
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
 # ==========================================
