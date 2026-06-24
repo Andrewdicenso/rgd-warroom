@@ -23,10 +23,12 @@ class IngestoreDati:
         }
 
         self.mappa_sinonimi = {
-            'quantita': ['quantita', 'pezzi', 'qta', 'stock', 'unita', 'Quantita', 'Giacenza'],
-            'valore': ['prezzo', 'importo', 'lordo', 'valore', 'costo', 'ammontare', 'Costo_Unitario', 'prezzo_acquisto'],
-            'rischio': ['rischio', 'impatto', 'criticità', 'priorità', 'Rischio_Logistico', 'Risk_Factor'],
-            'stato': ['stato', 'condizione', 'status', 'pagamento', 'disponibilita', 'Stato_Qualita']
+            'quantita': ['quantita', 'pezzi', 'qta', 'stock', 'unita', 'giacenza', 'quantity', 'vol', 'qty'],
+            'valore': ['prezzo', 'importo', 'lordo', 'valore', 'costo', 'ammontare', 'costo_unitario', 'prezzo_acquisto', 'amount', 'price', 'netwr'],
+            'rischio': ['rischio', 'impatto', 'criticita', 'priorita', 'rischio_logistico', 'risk_factor', 'risk', 'score'],
+            'stato': ['stato', 'condizione', 'status', 'pagamento', 'disponibilita', 'stato_qualita', 'level'],
+            'id_asset': ['codice', 'id', 'reference', 'ref', 'belnr', 'matnr', 'id_asset'],
+            'nome': ['descrizione', 'prodotto', 'materiale', 'item', 'nome', 'asset', 'maktx']
         }
         
         self.settori_keys = {

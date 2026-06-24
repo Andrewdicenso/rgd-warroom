@@ -326,35 +326,21 @@ elif scelta == "📊 War Room Strategica":
             f.write(uploaded_file.getbuffer())
 
         with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
-            # Phase 1: Raffinamento
+            # Fase 1: Raffinamento (Manteniamola per la pulizia base)
             status.write("🔍 Fase 1: Identificazione impronta digitale e pulizia...")
             paese_calendar = st.session_state.get("paese_azienda", "IT") 
             refinery = DataRefinery(country=paese_calendar)
-            
             refined_result = refinery.refine_file(str(path_raw)) 
-            df_pulito = refined_result["data"]
-            # Normalizzazione immediata
-            df_pulito.columns = [str(c).lower().strip() for c in df_pulito.columns]
-
-            if refined_result.get("anomalies"):
-                st.warning(f"⚠️ Rilevate anomalie strutturali: {len(refined_result['anomalies'])} righe corrette.")
-
-            # Fase 2: Mapping
-            status.write("🗺️ Fase 2: Smart Mapping delle colonne universali...")
-            engine = DataGateway()
-            df_mapped = engine.mappa_colonne_universale(df_pulito)
-            df_mapped.columns = [str(c).lower().strip() for c in df_mapped.columns]
-
-            # Salvataggio temp
-            path_mapped = UPLOAD_DIR / azienda / "temp_mapped.csv"
-            df_mapped.to_csv(str(path_mapped), index=False)
-
-            # Fase 3: Ingestione
-            status.write("📥 Fase 3: Ingestione e calcolo degli asset strategici...")
+            
+            # --- NUOVA FASE 2 & 3 UNIFICATA ---
+            status.write("📥 Fase 2 & 3: Ingestione Intelligente SAP/Excel...")
             ingestor = IngestoreDati()
-            lista_asset = ingestor.elabora_csv(str(path_mapped), azienda)
+            
+            # USIAMO IL FILE ORIGINALE (path_raw) così l'ingestore vede i nomi SAP originali
+            lista_asset = ingestor.elabora_csv(str(path_raw), azienda)
 
             if lista_asset:
+                engine = DataGateway() # Ci serve ancora per lo scan strategico
                 db.registra_caricamento(user_id, "WAR_ROOM", uploaded_file.name)
                 
                 status.write("📈 Fase 4: Calcolo quantitativo predittivo...")
