@@ -16,7 +16,7 @@ from auth.auth import inizializza_sessione, login_utente, logout_utente
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
-from core.refinery import DataRefinery
+from data_refinery import DataRefinery
 
 
 # --- RISOLUZIONE DINAMICA PATH INTERNI ---
