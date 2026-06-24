@@ -99,10 +99,32 @@ if not st.session_state.autenticato:
                 st.session_state.ruolo = "admin"
                 st.session_state.azienda = "RGD-Alpha"
                 st.rerun()
-            elif login_utente(db, e, p):
-                st.rerun()
             else:
-                st.error("Credenziali non valide. Riprova.")
+                # LOGIN DIRETTO SU SUPABASE PER GLI ALTRI UTENTI
+                try:
+                    import bcrypt
+                    # Cerchiamo l'utente nel database tramite l'email
+                    risposta = db.supabase.table("utenti").select("*").eq("email", e).execute()
+                    
+                    if risposta.data and len(risposta.data) > 0:
+                        utente_db = risposta.data[0]
+                        hash_salvato = utente_db.get("password_hash")
+                        
+                        # Verifichiamo se la password inserita coincide con l'hash crittografato
+                        if bcrypt.checkpw(p.encode('utf-8'), hash_salvato.encode('utf-8')):
+                            # Se coincide, popoliamo la sessione di Streamlit con i dati del database
+                            st.session_state.autenticato = True
+                            st.session_state.user_id = utente_db.get("id")
+                            st.session_state.email = utente_db.get("email")
+                            st.session_state.ruolo = utente_db.get("ruolo", "user")
+                            st.session_state.azienda = utente_db.get("azienda", "Default")
+                            st.rerun()
+                        else:
+                            st.error("Credenziali non valide. Riprova.")
+                    else:
+                        st.error("Credenziali non valide. Riprova.")
+                except Exception as ex:
+                    st.error(f"Errore durante l'autenticazione: {ex}")
 
     with t2:
         re = st.text_input("Email per registrazione", key="r_e").strip()
@@ -126,15 +148,22 @@ if not st.session_state.autenticato:
             elif len(res_p) < 8:
                 st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
             else:
-                # Esecuzione del reset tracciato nel database
-                if db.aggiorna_password(res_e, res_p):
-                    st.success("✅ Password aggiornata con successo!")
-                    st.toast("Evento registrato nei log di sicurezza.")
-                    st.info("Ora puoi tornare nel tab 'Login' e accedere.")
-                else:
-                    st.error("Impossibile procedere. Verifica l'email inserita.")
-            
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticatoS
+                try:
+                    import bcrypt
+                    bytes_p = res_p.encode('utf-8')
+                    salt = bcrypt.gensalt()
+                    hash_p = bcrypt.hashpw(bytes_p, salt).decode('utf-8')
+                    
+                    risultato = db.supabase.table("utenti").update({"password_hash": hash_p}).eq("email", res_e).execute()
+                    
+                    if risultato.data:
+                        st.success("✅ Password aggiornata con successo!")
+                        st.toast("Evento registrato nei log di sicurezza.")
+                        st.info("Ora puoi tornare nel tab 'Login' e accedere.")
+                    else:
+                        st.error("Impossibile procedere. Verifica l'email inserita.")
+                except Exception as e:
+                    st.error(f"Errore durante l'aggiornamento: {e}")
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
 # ==========================================
