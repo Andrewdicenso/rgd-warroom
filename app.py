@@ -1,3 +1,4 @@
+import streamlit as st
 import os
 import sys
 from datetime import datetime
@@ -8,7 +9,6 @@ from dotenv import load_dotenv
 from groq import Groq
 import pandas as pd
 import plotly.express as px
-import streamlit as st
 
 # =====================================================================
 # INIZIALIZZAZIONI CRUCIALI (Da fare PRIMA di importare i tuoi moduli)
