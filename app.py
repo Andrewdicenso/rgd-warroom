@@ -83,8 +83,8 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
     except Exception as e:
         st.error(f"Errore critico durante la registrazione: {e}")
 
-    # --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
-if not st.session_state.autenticato:
+        # --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
+        if not st.session_state.autenticato:
             st.stop()
 
     # Aggiungiamo il terzo Tab per il recupero credenziali
