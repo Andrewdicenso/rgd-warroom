@@ -84,66 +84,66 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
         st.error(f"Errore critico durante la registrazione: {e}")
 
     # --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
-        if not st.session_state.autenticato:
+if not st.session_state.autenticato:
             st.stop()
 
     # Aggiungiamo il terzo Tab per il recupero credenziali
-    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
+            t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
-    with t1:
-        e = st.text_input("Email Aziendale", key="l_e").strip()
-        p = st.text_input("Password", type="password", key="l_p").strip()
-        if st.button("Accedi al Sistema"):
-            if e.lower() == "andrewdicenso@libero.it" and p == "WarRoom123!":
-                st.session_state.autenticato = True
-                st.session_state.user_id = "96a3b344-723b-410c-99d7-84a229a1b18d"
-                st.session_state.email = "andrewdicenso@libero.it"
-                st.session_state.ruolo = "admin"
-                st.session_state.azienda = "RGD-Alpha"
-                st.rerun()
-            elif login_utente(db, e, p):
-                st.rerun()
-            else:
-                st.error("Credenziali non valide. Riprova.")
-
-    with t2:
-        re = st.text_input("Email per registrazione", key="r_e").strip()
-        rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
-        rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
-        if st.button("Crea Account Enterprise"):
-            registra_nuovo_utente(re, rp, rc)
-
-    with t3:
-        st.subheader("Reset Credenziali con Tracciamento")
-        st.info("Nota: Ogni operazione di reset viene registrata nei log di sicurezza con data e ora.")
-        res_e = st.text_input("Inserisci la tua Email", key="res_e").strip()
-        res_p = st.text_input("Nuova Password", type="password", key="res_p").strip()
-        res_c = st.text_input("Conferma Nuova Password", type="password", key="res_c").strip()
-        
-        if st.button("Aggiorna Password e Registra Evento"):
-            if not res_e or not res_p:
-                st.warning("Inserisci email e nuova password.")
-            elif res_p != res_c:
-                st.error("Le password non coincidono.")
-            elif len(res_p) < 8:
-                st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
-            else:
-                try:
-                    import bcrypt
-                    bytes_p = res_p.encode('utf-8')
-                    salt = bcrypt.gensalt()
-                    hash_p = bcrypt.hashpw(bytes_p, salt).decode('utf-8')
-                    
-                    risultato = db.supabase.table("utenti").update({"password_hash": hash_p}).eq("email", res_e).execute()
-                    
-                    if risultato.data:
-                        st.success("✅ Password aggiornata con successo!")
-                        st.toast("Evento registrato nei log di sicurezza.")
-                        st.info("Ora puoi tornare nel tab 'Login' e accedere.")
+            with t1:
+                e = st.text_input("Email Aziendale", key="l_e").strip()
+                p = st.text_input("Password", type="password", key="l_p").strip()
+                if st.button("Accedi al Sistema"):
+                    if e.lower() == "andrewdicenso@libero.it" and p == "WarRoom123!":
+                        st.session_state.autenticato = True
+                        st.session_state.user_id = "96a3b344-723b-410c-99d7-84a229a1b18d"
+                        st.session_state.email = "andrewdicenso@libero.it"
+                        st.session_state.ruolo = "admin"
+                        st.session_state.azienda = "RGD-Alpha"
+                        st.rerun()
+                    elif login_utente(db, e, p):
+                        st.rerun()
                     else:
-                        st.error("Impossibile procedere. Verifica l'email inserita.")
-                except Exception as e:
-                    st.error(f"Errore durante l'aggiornamento: {e}")
+                        st.error("Credenziali non valide. Riprova.")
+
+            with t2:
+                re = st.text_input("Email per registrazione", key="r_e").strip()
+                rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
+                rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
+                if st.button("Crea Account Enterprise"):
+                    registra_nuovo_utente(re, rp, rc)
+
+            with t3:
+                st.subheader("Reset Credenziali con Tracciamento")
+                st.info("Nota: Ogni operazione di reset viene registrata nei log di sicurezza con data e ora.")
+                res_e = st.text_input("Inserisci la tua Email", key="res_e").strip()
+                res_p = st.text_input("Nuova Password", type="password", key="res_p").strip()
+                res_c = st.text_input("Conferma Nuova Password", type="password", key="res_c").strip()
+        
+            if st.button("Aggiorna Password e Registra Evento"):
+                if not res_e or not res_p:
+                    st.warning("Inserisci email e nuova password.")
+                elif res_p != res_c:
+                    st.error("Le password non coincidono.")
+                elif len(res_p) < 8:
+                    st.error("La password deve essere di almeno 8 caratteri per la sicurezza Enterprise.")
+                else:
+                    try:
+                        import bcrypt
+                        bytes_p = res_p.encode('utf-8')
+                        salt = bcrypt.gensalt()
+                        hash_p = bcrypt.hashpw(bytes_p, salt).decode('utf-8')
+                        
+                        risultato = db.supabase.table("utenti").update({"password_hash": hash_p}).eq("email", res_e).execute()
+                        
+                        if risultato.data:
+                            st.success("✅ Password aggiornata con successo!")
+                            st.toast("Evento registrato nei log di sicurezza.")
+                            st.info("Ora puoi tornare nel tab 'Login' e accedere.")
+                        else:
+                            st.error("Impossibile procedere. Verifica l'email inserita.")
+                    except Exception as e:
+                        st.error(f"Errore durante l'aggiornamento: {e}")
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
 # ==========================================
