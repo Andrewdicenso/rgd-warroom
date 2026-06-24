@@ -402,7 +402,11 @@ elif scelta == "📊 War Room Strategica":
                     from groq import Groq
                     client = Groq(api_key=api_key)
                     media_m = round(df_p['momentum_score'].mean() if 'momentum_score' in df_p.columns else 0, 2)
-                    # settore_ia = st.selectbox("Seleziona Settore:", ["Marketing", "Logistica", "Produzione", "Retail"])
+                    # Prendi il settore dal primo asset della lista (se esiste)
+                    if lista_asset:
+                        settore_ia = lista_asset[0].__class__.__name__.replace('AssetDi', '')
+                    else:
+                        settore_ia = "GENERAL"
                         
                     if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
                         with st.spinner("AI al lavoro..."):
