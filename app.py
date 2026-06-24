@@ -1,18 +1,32 @@
-st.set_page_config
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-# 2. LIBRERIE DI TERZE PARTI (Installate con pip)
+# 2. LIBRERIE DI TERZE PARTI
 from dotenv import load_dotenv
 from groq import Groq
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# 3. MODULI CORE & AUTH (I tuoi file locali)
-import inizializza_sessione, login_utente, logout_utente
+# =====================================================================
+# INIZIALIZZAZIONI CRUCIALI (Da fare PRIMA di importare i tuoi moduli)
+# =====================================================================
+# Carica le variabili d'ambiente subito, così i moduli sotto possono leggerle
+load_dotenv()
+
+# Configura la pagina Streamlit (DEVE essere il primo comando st.* dell'app)
+st.set_page_config(
+    page_title="La Tua Applicazione",
+    layout="wide"
+)
+
+# 3. MODULI LOCALI (I tuoi file)
+# Ora possono essere importati in sicurezza perché l'ambiente e Streamlit sono pronti
+import inizializza_sessione
+import login_utente
+import logout_utente
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
