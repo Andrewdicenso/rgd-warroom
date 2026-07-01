@@ -78,16 +78,14 @@ db = DatabaseAziendale()
 
 # =========================
 #   GESTIONE REGISTRAZIONE
-# =========================
-def registra_nuovo_utente(email: str, password: str, conferma: str):
+def registra_nuovo_utente(email, password, conferma):
     if not email or not password or not conferma:
         st.error("Compila tutti i campi.")
         return
-
     if password != conferma:
         st.error("Le password non coincidono.")
         return
-
+    
     # Controllo se esiste già
     esistente = db.get_utente_by_email(email)
     if esistente:
@@ -95,16 +93,16 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
         return
 
     try:
-        # RIPRISTINO CORRETTO: Lasciamo azienda=None così database.py genera l'identificativo multi-tenant sicuro (AZ-id)
+        # Registrazione sicura RGD-Alpha
         user_id = db.crea_utente(email=email, password=password, ruolo="user", azienda=None)
         nuovo = db.get_utente_by_id(user_id)
         if nuovo:
             st.success("✅ Registrazione completata. Ora puoi effettuare il login.")
+            st.balloons()
         else:
             st.error("Errore durante la registrazione. Riprova.")
     except Exception as e:
         st.error(f"Errore durante la registrazione: {e}")
-
 
 # =========================
 #   SCHERMATA LOGIN / REGISTRAZIONE (PROTETTA)
