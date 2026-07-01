@@ -162,7 +162,7 @@ with st.sidebar:
 #   WAR ROOM STRATEGICA (VERSIONE ENTERPRISE INTEGRATA)
 # =========================================================
 if scelta == "📊 War Room Strategica":
-    st.title(f"🚀 War Room Strategica: {azienda}")
+    st.title("PORCO DIO VERSIONE NUOVA 2.0")
 
     # --- 1. CONFIGURAZIONE LATERALE (STRESS TEST) ---
     with st.sidebar:
