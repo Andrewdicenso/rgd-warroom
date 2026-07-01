@@ -163,6 +163,10 @@ with st.sidebar:
     if st.button("Logout"): 
         logout_utente()
 
+    if scelta == "🏠 Home":
+        st.title(f"🛡️ RGD-Alpha: Centrale Operativa")
+        st.info(f"Benvenuto nella War Room, **{azienda}**.")
+        st.write("Seleziona **War Room Strategica** per caricare i dati ed eseguire l'analisi prescrittiva.")
 # =========================================================
 #   WAR ROOM STRATEGICA (VERSIONE ENTERPRISE INTEGRATA)
 # =========================================================
@@ -321,23 +325,6 @@ if scelta == "📜 Archivio Storico":
         st.dataframe(df_storico, use_container_width=True)
     else:
         st.warning("Nessun record presente in archivio. Esegui un'analisi nella War Room per iniziare.")
-#=======
-    if password != conferma:
-        st.error("Le password non coincidono.")
-        st.rerun()
-    try:
-        esistente = db.get_utente_by_email(email)
-        if esistente:
-            st.error("Email già registrata.")
-            st.rerun()
-        
-        ruolo = "admin" if email.lower() == "andrewdicenso@libero.it" else "user"
-        user_id = db.crea_utente(email=email, password=password, ruolo=ruolo)
-        if user_id:
-            st.success("✅ Registrazione completata. Effettua il login.")
-            st.balloons()
-    except Exception as e:
-        st.error(f"Errore registrazione: {e}")
 
 # =========================
 #   SCHERMATA AUTH (Versione Protetta Admin)
