@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # --- MODULI CORE & AUTH ---
 from core.ingestor import IngestoreDati
-from core.engine import DataGateway, salva_report_certificato
+from core.engine import DataGateway
 from core.database import DatabaseAziendale
 from consulente import ConsulenteAziendale
 
@@ -201,7 +201,7 @@ if scelta == "📊 War Room Strategica":
                 # Esecuzione Motore con Stress Test
                 report_analisi = engine.esegui_scan_strategico(lista_asset, "UNIVERSAL", fattore_stress=f_stress)
                 kpi_reali = db.calcola_e_salva_kpi_correnti(user_id)
-                report_cifrato = salva_report_certificato(azienda, report_analisi, engine.vault)
+                report_cifrato = engine.salva_report_certificato(report_analisi)
                 
                 status.update(label="✅ Motore Sincronizzato", state="complete")
 
