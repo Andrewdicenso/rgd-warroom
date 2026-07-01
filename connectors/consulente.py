@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from ingestor import IngestoreDati  # MODIFICATO: Allineato con la classe in ingestor.py
+from core.ingestor import IngestoreDati
 
 class ConsulenteAziendale:
     def __init__(self, nome_azienda, file_config="config.json"):
