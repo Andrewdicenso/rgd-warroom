@@ -34,7 +34,16 @@ st.set_page_config(
 if "analisi_eseguita" not in st.session_state:
     st.session_state.analisi_eseguita = False
 
+# Inizializza la sessione e forza l'accesso Admin per te
 inizializza_sessione()
+
+if not st.session_state.get('autenticato'):
+    st.session_state.autenticato = True
+    st.session_state.user_id = 1
+    st.session_state.email = "andrewdicenso@libero.it"
+    st.session_state.azienda = "RGandja Enterprise"
+    st.session_state.ruolo = "admin"
+    st.rerun()
 
 # =========================
 #   CSS ENTERPRISE
