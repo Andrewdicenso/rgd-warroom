@@ -148,29 +148,38 @@ class DatabaseAziendale:
             raise
 
     def get_utente_by_email(self, email):
-        """Recupera un utente a partire dall'email in chiaro."""
+        """Recupera l'utente decriptando i dati per il confronto (Fix Accesso)."""
         try:
-            email_enc = self.vault.encrypt_data(email)
-
             with self._get_conn() as conn:
-                cursor = conn.execute("""
-                    SELECT id, email, password_hash, ruolo, azienda
-                    FROM utenti WHERE email = ?
-                """, (email_enc,))
-                row = cursor.fetchone()
+                # Recuperiamo tutti gli utenti per confrontarli in memoria decriptandoli
+                cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti")
+                rows = cursor.fetchall()
 
-            if not row:
-                return None
-
-            return {
-                "id": row[0],
-                "email": self.vault.decrypt_data(row[1]),
-                "password_hash": row[2],
-                "ruolo": row[3],
-                "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
-            }
+            for row in rows:
+                try:
+                    # Decriptiamo l'email salvata nel database
+                    email_dec = self.vault.decrypt_data(row[1])
+                    if isinstance(email_dec, bytes): 
+                        email_dec = email_dec.decode()
+                    
+                    # Confronto reale tra l'email inserita e quella nel DB
+                    if email_dec.lower() == email.lower():
+                        azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
+                        if isinstance(azienda_dec, bytes): 
+                            azienda_dec = azienda_dec.decode()
+                        
+                        return {
+                            "id": row[0],
+                            "email": email_dec,
+                            "password_hash": row[2],
+                            "ruolo": row[3],
+                            "azienda": azienda_dec
+                        }
+                except:
+                    continue
+            return None
         except Exception as e:
-            logger.error(f"Errore recupero utente: {e}")
+            logger.error(f"Errore recupero utente by email: {e}")
             return None
 
     def get_utente_by_id(self, user_id: int):

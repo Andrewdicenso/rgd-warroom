@@ -13,17 +13,14 @@ def inizializza_sessione():
     if "email" not in st.session_state:
         st.session_state.email = None
     if "ruolo" not in st.session_state:
-        st.session_state.ruolo = "user"   # FIX
+        st.session_state.ruolo = "user"
     if "azienda" not in st.session_state:
-        st.session_state.azienda = "Sconosciuta"  # FIX
+        st.session_state.azienda = "Sconosciuta"
 
 def login_utente(db, email, password):
-    """
-    Verifica le credenziali dell'utente ed effettua il login.
-    Ritorna True se il login ha successo, altrimenti False.
-    """
+    """Verifica le credenziali e assegna il ruolo Admin esclusivamente a te."""
     try:
-        # 1️⃣ Recupero utente dal DB
+        # 1️⃣ Recupero utente dal DB (usando la funzione get_utente_by_email corretta)
         utente = db.get_utente_by_email(email)
         if not utente:
             logger.warning(f"Tentativo di login fallito: email non trovata ({email}).")
@@ -34,14 +31,19 @@ def login_utente(db, email, password):
             logger.warning(f"Tentativo di login fallito per {email}: password errata.")
             return False
 
-        # 3️⃣ Login OK → aggiorno sessione
+        # 3️⃣ Login OK → Blindatura Ruolo Admin
         st.session_state.autenticato = True
-        st.session_state.user_id = utente["id"]          # UUID
+        st.session_state.user_id = utente["id"]
         st.session_state.email = utente["email"]
-        st.session_state.ruolo = utente["ruolo"]
         st.session_state.azienda = utente["azienda"]
 
-        logger.info(f"Utente {email} autenticato con successo. Ruolo: {utente['ruolo']}")
+        # FORZA ADMIN SOLO PER LA TUA EMAIL
+        if utente["email"].lower() == "andrewdicenso@libero.it":
+            st.session_state.ruolo = "admin"
+        else:
+            st.session_state.ruolo = "user"
+
+        logger.info(f"Utente {email} autenticato. Admin: {st.session_state.ruolo == 'admin'}")
         return True
 
     except Exception as e:
@@ -49,19 +51,16 @@ def login_utente(db, email, password):
         return False
 
 def logout_utente():
-    """Svuota la sessione ed effettua il logout dell'utente."""
+    """Svuota la sessione ed effettua il logout."""
     st.session_state.autenticato = False
     st.session_state.user_id = None
     st.session_state.email = None
-    st.session_state.ruolo = "user"          # FIX
-    st.session_state.azienda = "Sconosciuta" # FIX
+    st.session_state.ruolo = "user"
+    st.session_state.azienda = "Sconosciuta"
     st.rerun()
 
 def richiede_ruolo(ruolo_richiesto):
-    """
-    Verifica se l'utente loggato ha il ruolo richiesto.
-    Se non è autorizzato, interrompe l'esecuzione della pagina di Streamlit.
-    """
+    """Verifica autorizzazioni."""
     if not st.session_state.autenticato:
         st.error("Accesso negato. Effettua prima il login.")
         st.stop()
