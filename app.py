@@ -37,19 +37,17 @@ if "analisi_eseguita" not in st.session_state:
 # Inizializza la sessione e forza l'accesso Admin per te
 inizializza_sessione()
 
-if not st.session_state.get('autenticato'):
-    st.session_state.autenticato = True
-    st.session_state.user_id = 1
-    st.session_state.email = "andrewdicenso@libero.it"
-    st.session_state.azienda = "RGandja Enterprise"
-    st.session_state.ruolo = "admin"
-    st.rerun()
-
 # =========================
-#   CSS ENTERPRISE
+#   CSS ENTERPRISE (Versione Corretta Lighthouse)
 # =========================
 st.markdown("""
     <style>
+    /* FIX CONTRASTO: Scurisce il testo dei Tab (Login/Registrazione) */
+    [data-baseweb="tab"] p {
+        color: #31333F !important;
+        font-weight: 600 !important;
+    }
+
     .kpi-box {
         background-color: #f8f9fa; padding: 20px; border-radius: 10px;
         border-left: 5px solid #007BFF; margin-bottom: 15px;
@@ -109,30 +107,31 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
 
 
 # =========================
-#   SCHERMATA LOGIN / REGISTRAZIONE
+#   SCHERMATA LOGIN / REGISTRAZIONE (PROTETTA)
 # =========================
 if not st.session_state.autenticato:
     tab_login, tab_register = st.tabs(["🔐 Login", "🆕 Registrazione"])
 
     with tab_login:
         st.title("🔐 Accesso Utente")
-
         email_login = st.text_input("Email", key="auth_email_final").strip()
         password_login = st.text_input("Password", type="password", key="auth_pwd_final").strip()
 
         if st.button("Accedi", key="btn_login_final"):
-            if not email_login or not password_login:
-                st.error("Inserisci email e password.")
-            else:
-                if login_utente(db, email_login, password_login):
-                    st.success("Accesso eseguito!")
-                    st.rerun()
+            if login_utente(db, email_login, password_login):
+                # ASSEGNAZIONE RUOLI: Solo tu sei Admin
+                if email_login.lower() == "andrewdicenso@libero.it":
+                    st.session_state.ruolo = "admin"
                 else:
-                    st.error("Credenziali non valide. Verifica l'email o la password inserita.")
+                    st.session_state.ruolo = "user"
+                
+                st.success("Accesso eseguito!")
+                st.rerun()
+            else:
+                st.error("Credenziali non valide o utente non registrato.")
 
     with tab_register:
         st.title("🆕 Crea un nuovo account")
-
         email_r = st.text_input("Email", key="reg_email_input").strip()
         pwd_r = st.text_input("Password", type="password", key="reg_pwd_input").strip()
         pwd_c = st.text_input("Conferma Password", type="password", key="reg_pwd_conf_input").strip()
@@ -343,19 +342,29 @@ if scelta == "📜 Archivio Storico":
         st.error(f"Errore registrazione: {e}")
 
 # =========================
-#   SCHERMATA AUTH
+#   SCHERMATA AUTH (Versione Protetta Admin)
 # =========================
 if not st.session_state.autenticato:
     tab_login, tab_register = st.tabs(["🔐 Login", "🆕 Registrazione"])
+    
     with tab_login:
         st.title("🔐 Accesso Utente")
         e_login = st.text_input("Email", key="l_email").strip()
         p_login = st.text_input("Password", type="password", key="l_pwd").strip()
+        
         if st.button("Accedi"):
             if login_utente(db, e_login, p_login):
+                # --- CONTROLLO AMMINISTRATORE UNICO ---
+                if e_login.lower() == "andrewdicenso@libero.it":
+                    st.session_state.ruolo = "admin"
+                else:
+                    st.session_state.ruolo = "user"
+                
+                st.session_state.autenticato = True
                 st.rerun()
             else:
                 st.error("Credenziali errate.")
+
     with tab_register:
         st.title("🆕 Crea account Beta")
         e_reg = st.text_input("Email", key="r_email").strip()
@@ -363,6 +372,7 @@ if not st.session_state.autenticato:
         c_reg = st.text_input("Conferma", type="password", key="r_conf").strip()
         if st.button("Registrati"):
             registra_nuovo_utente(e_reg, p_reg, c_reg)
+            
     st.stop()
 
 # =========================
