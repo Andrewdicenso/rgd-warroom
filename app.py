@@ -116,13 +116,12 @@ if not st.session_state.autenticato:
 
     with t3:
         st.subheader("🔄 Recupero Credenziali Sicuro")
-        
-        # Tutto il codice sotto deve essere spostato a destra (indentato)
+
         if not reset_token:
             # STEP 1: Richiesta Link
             st.info("Inserisci la tua email. Ti invieremo un link protetto per reimpostare la password.")
             email_richiesta = st.text_input("Email Aziendale", key="email_forget").strip()
-            
+
             if st.button("Invia Link di Recupero"):
                 import uuid
                 nuovo_token = str(uuid.uuid4())
@@ -136,41 +135,17 @@ if not st.session_state.autenticato:
             # STEP 2: L'utente ha il token nella URL
             st.warning("Modalità Reset Attiva")
             nuova_p = st.text_input("Nuova Password", type="password", key="new_p")
-            if st.button("Conferma Cambio Password"):
-                if db.valida_e_resetta_password(reset_token, nuova_p):
-                    st.success("✅ Password aggiornata! Vai al tab Login.")
-                    st.query_params.clear()
-                else:
-                    st.error("Link scaduto o non valido.")
+            conferma_p = st.text_input("Conferma Nuova Password", type="password", key="conf_p")
 
-                
-                # SALVA IL TOKEN NEL DB (Devi implementare questa funzione in core/database.py)
-                # db.salva_token_reset(email_richiesta, token)
-                
-                link = f"https://tua-app.streamlit.app/?reset_token={token}"
-                
-                # SIMULAZIONE INVIO (Qui dovrai inserire la logica smtplib o API email)
-                st.success(f"📧 Link inviato a {email_richiesta}!")
-                st.code(link) # Mostrato solo per test, in produzione si invia via mail
-                st.warning("Controlla la tua cartella Spam se non ricevi la mail entro 2 minuti.")
-            else:
-                st.error("Inserisci un'email valida.")
-    else:
-        # STEP 2: L'utente ha cliccato sul link ed è tornato qui
-        st.warning("Modalità Reset Attiva")
-        nuova_p = st.text_input("Nuova Password", type="password", key="new_p")
-        conferma_p = st.text_input("Conferma Nuova Password", type="password", key="conf_p")
-        
-        if st.button("Conferma Cambio Password"):
-            if nuova_p == conferma_p and len(nuova_p) >= 8:
-                # Verifica il token nel DB e aggiorna la password
-                # if db.valida_e_aggiorna(reset_token, nuova_p):
-                st.success("✅ Password aggiornata! Ora puoi accedere dal Tab Login.")
-                st.query_params.clear() # Pulisce la URL per sicurezza
-                # else: st.error("Token non valido o scaduto.")
-            else:
-                st.error("Le password non coincidono o sono troppo brevi.")
-            
+            if st.button("Conferma Cambio Password"):
+                if nuova_p == conferma_p and len(nuova_p) >= 8:
+                    if db.valida_e_resetta_password(reset_token, nuova_p):
+                        st.success("✅ Password aggiornata! Vai al tab Login.")
+                        st.query_params.clear()
+                    else:
+                        st.error("Link scaduto o non valido.")
+                else:
+                    st.error("Le password non coincidono o sono troppo brevi.")
     st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 # ==========================================
 #   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
