@@ -153,7 +153,7 @@ if not st.session_state.autenticato:
                 st.query_params.clear() # Pulisce la URL per sicurezza
                 # else: st.error("Token non valido o scaduto.")
             else:
-                st.error("Le password non coincidono o sono troppo brevi.")
+st.error("Le password non coincidono o sono troppo brevi.")
             
     st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 # ==========================================
