@@ -116,17 +116,33 @@ if not st.session_state.autenticato:
 
     with t3:
         st.subheader("🔄 Recupero Credenziali Sicuro")
-        st.write("...")
-    if not reset_token:
-        # STEP 1: Richiesta Link
-        st.info("Inserisci la tua email. Ti invieremo un link protetto per reimpostare la password.")
-        email_richiesta = st.text_input("Email Aziendale", key="email_forget").strip()
         
-        if st.button("Invia Link di Recupero"):
-            if email_richiesta:
-                # Genera un token unico (es. usando uuid o un hash temporaneo)
+        # Tutto il codice sotto deve essere spostato a destra (indentato)
+        if not reset_token:
+            # STEP 1: Richiesta Link
+            st.info("Inserisci la tua email. Ti invieremo un link protetto per reimpostare la password.")
+            email_richiesta = st.text_input("Email Aziendale", key="email_forget").strip()
+            
+            if st.button("Invia Link di Recupero"):
                 import uuid
-                token = str(uuid.uuid4())
+                nuovo_token = str(uuid.uuid4())
+                if db.salva_token_reset(email_richiesta, nuovo_token):
+                    link = f"https://tua-app.streamlit.app/?reset_token={nuovo_token}"
+                    if invia_email_recupero(email_richiesta, link):
+                        st.success("📧 Link inviato! Controlla la tua email.")
+                    else:
+                        st.error("Errore nell'invio della mail.")
+        else:
+            # STEP 2: L'utente ha il token nella URL
+            st.warning("Modalità Reset Attiva")
+            nuova_p = st.text_input("Nuova Password", type="password", key="new_p")
+            if st.button("Conferma Cambio Password"):
+                if db.valida_e_resetta_password(reset_token, nuova_p):
+                    st.success("✅ Password aggiornata! Vai al tab Login.")
+                    st.query_params.clear()
+                else:
+                    st.error("Link scaduto o non valido.")
+
                 
                 # SALVA IL TOKEN NEL DB (Devi implementare questa funzione in core/database.py)
                 # db.salva_token_reset(email_richiesta, token)
