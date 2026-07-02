@@ -86,50 +86,44 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
     except Exception as e:
         st.error(f"Errore critico durante la registrazione: {e}")
 
-# --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
-if not st.session_state.autenticato:
-    # Aggiungiamo il terzo Tab per il recupero credenziali
+# --- BLOCCO DI ACCESSO UNIFICATO (Visualizzato solo se non autenticato) ---
+        if not st.session_state.autenticato:
+            # 1. Recupero il token dalla URL per il recupero password
+            reset_token = st.query_params.get("reset_token")
+    
+    # 2. Creo i Tab una sola volta
     t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
+    # --- TAB 1: LOGIN (Amministratore Unico + Utenti Standard) ---
     with t1:
         e = st.text_input("Email Aziendale", key="l_e").strip()
         p = st.text_input("Password", type="password", key="l_p").strip()
+        
         if st.button("Accedi al Sistema"):
+            # Controllo prioritario: Sei l'Amministratore Unico?
             if e.lower() == "andrewdicenso@libero.it" and p == "WarRoom123!":
                 st.session_state.autenticato = True
                 st.session_state.user_id = "96a3b344-723b-410c-99d7-84a229a1b18d"
                 st.session_state.email = "andrewdicenso@libero.it"
-                st.session_state.ruolo = "admin"
+                st.session_state.ruolo = "admin"  # Questo ruolo sbloccherà la monitorazione totale
                 st.session_state.azienda = "RGD-Alpha"
+                st.success("Accesso Amministratore eseguito!")
                 st.rerun()
+            
+            # Se non sei l'admin, controlla se è un utente standard nel database
             elif login_utente(db, e, p):
+                # La funzione login_utente imposterà st.session_state.ruolo = "utente" (o simile)
                 st.rerun()
             else:
                 st.error("Credenziali non valide. Riprova.")
 
-# --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
-if not st.session_state.autenticato:
-    # 1. Recupero il token dalla URL (Fondamentale per evitare l'errore)
-    reset_token = st.query_params.get("reset_token")
-    
-    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
-    
-    with t1:
-        e = st.text_input("Email Aziendale", key="l_e").strip()
-        p = st.text_input("Password", type="password", key="l_p").strip()
-        if st.button("Accedi al Sistema"):
-            if login_utente(db, e, p):
-                st.rerun()
-            else:
-                st.error("Credenziali non valide.")
-
+    # --- TAB 2: REGISTRAZIONE UTENTI ---
     with t2:
         re = st.text_input("Email per registrazione", key="r_e").strip()
         rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
         rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
         if st.button("Crea Account Enterprise"):
             registra_nuovo_utente(re, rp, rc)
-
     with t3:
         st.subheader("🔄 Recupero Credenziali Sicuro")
 
@@ -196,7 +190,7 @@ with st.sidebar.expander("⚖️ Note Legali & Copyright"):
     st.markdown(f"""
     <div style="font-size: 0.85em; color: #555; line-height: 1.4;">
         <strong>Proprietario Intellettuale:</strong><br>
-        [Tuo Nome e Cognome]<br><br>
+        [Andrew Di Censo]<br><br>
         <strong>Marchio Registrato:</strong><br>
         Rgandja® (Classi 9, 42)<br><br>
         <strong>Tutela Algoritmica:</strong><br>
