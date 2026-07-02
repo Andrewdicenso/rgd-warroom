@@ -64,6 +64,7 @@ db = DatabaseAziendale()
 # ==========================================
 #   GESTIONE REGISTRAZIONE & AUTH
 # ==========================================
+
 def registra_nuovo_utente(email: str, password: str, conferma: str):
     if not email or not password or not conferma:
         st.error("Compila tutti i campi.")
@@ -76,89 +77,84 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
             st.error("Email già registrata.")
             return
         
-        # Recupero Admin Email (Standard RGD-Alpha)
+        # Recupero Admin Email
         admin_email_env = os.getenv("ADMIN_EMAIL", "andrewdicenso@libero.it").lower()
         ruolo = "admin" if email.lower() == admin_email_env else "user"
         
         if db.crea_utente(email=email, password=password, ruolo=ruolo):
-            st.success("✅ Registrazione completata. Effettua il login.")
+            st.success("✅ Registrazione completata. Effettua il login nel Tab 'Login'.")
             st.balloons()
     except Exception as e:
         st.error(f"Errore critico durante la registrazione: {e}")
 
-# --- BLOCCO DI ACCESSO UNIFICATO (Visualizzato solo se non autenticato) ---
-        if not st.session_state.autenticato:
-            # 1. Recupero il token dalla URL per il recupero password
-            reset_token = st.query_params.get("reset_token")
+# --- BLOCCO DI ACCESSO UNIFICATO ---
+# Deve essere fuori dalla funzione sopra e allineato correttamente
+if not st.session_state.get("autenticato", False):
+    # 1. Recupero il token dalla URL per il recupero password
+    reset_token = st.query_params.get("reset_token")
     
     # 2. Creo i Tab una sola volta
     t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
-    # --- TAB 1: LOGIN (Amministratore Unico + Utenti Standard) ---
+    # --- TAB 1: LOGIN ---
     with t1:
         e = st.text_input("Email Aziendale", key="l_e").strip()
         p = st.text_input("Password", type="password", key="l_p").strip()
         
         if st.button("Accedi al Sistema"):
-            # Controllo prioritario: Sei l'Amministratore Unico?
+            # Controllo Amministratore Unico
             if e.lower() == "andrewdicenso@libero.it" and p == "WarRoom123!":
                 st.session_state.autenticato = True
                 st.session_state.user_id = "96a3b344-723b-410c-99d7-84a229a1b18d"
                 st.session_state.email = "andrewdicenso@libero.it"
-                st.session_state.ruolo = "admin"  # Questo ruolo sbloccherà la monitorazione totale
+                st.session_state.ruolo = "admin"
                 st.session_state.azienda = "RGD-Alpha"
                 st.success("Accesso Amministratore eseguito!")
                 st.rerun()
-            
-            # Se non sei l'admin, controlla se è un utente standard nel database
+            # Controllo Utente Standard
             elif login_utente(db, e, p):
-                # La funzione login_utente imposterà st.session_state.ruolo = "utente" (o simile)
                 st.rerun()
             else:
                 st.error("Credenziali non valide. Riprova.")
 
-    # --- TAB 2: REGISTRAZIONE UTENTI ---
+    # --- TAB 2: REGISTRAZIONE ---
     with t2:
         re = st.text_input("Email per registrazione", key="r_e").strip()
         rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
         rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
         if st.button("Crea Account Enterprise"):
             registra_nuovo_utente(re, rp, rc)
+
+    # --- TAB 3: RECUPERO PASSWORD ---
     with t3:
         st.subheader("🔄 Recupero Credenziali Sicuro")
-
         if not reset_token:
-            # STEP 1: Richiesta Link
-            st.info("Inserisci la tua email. Ti invieremo un link protetto per reimpostare la password.")
-            email_richiesta = st.text_input("Email Aziendale", key="email_forget").strip()
-
+            st.info("Inserisci la tua email per ricevere il link di recupero.")
+            email_richiesta = st.text_input("Email per recupero", key="email_forget").strip()
             if st.button("Invia Link di Recupero"):
                 import uuid
                 nuovo_token = str(uuid.uuid4())
                 if db.salva_token_reset(email_richiesta, nuovo_token):
-                    # NOTA: Cambia l'URL con quello reale della tua app su Render/Streamlit
                     link = f"https://rgd-warroom-app.onrender.com/?reset_token={nuovo_token}"
                     if invia_email_recupero(email_richiesta, link):
                         st.success("📧 Link inviato! Controlla la tua email.")
                     else:
                         st.error("Errore nell'invio della mail.")
         else:
-            # STEP 2: L'utente ha il token nella URL
             st.warning("Modalità Reset Attiva")
             nuova_p = st.text_input("Nuova Password", type="password", key="new_p")
             conferma_p = st.text_input("Conferma Nuova Password", type="password", key="conf_p")
-
             if st.button("Conferma Cambio Password"):
                 if nuova_p == conferma_p and len(nuova_p) >= 8:
                     if db.valida_e_resetta_password(reset_token, nuova_p):
-                        st.success("✅ Password aggiornata! Vai al tab Login.")
+                        st.success("✅ Password aggiornata! Ora puoi fare il login.")
                         st.query_params.clear()
                     else:
                         st.error("Link scaduto o non valido.")
                 else:
                     st.error("Le password non coincidono o sono troppo brevi (min 8 car.).")
 
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
+    st.stop() # Blocca il resto dell'app finché non sei loggato
 
 # Menu dinamico
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
