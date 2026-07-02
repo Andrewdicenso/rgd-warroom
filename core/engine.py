@@ -125,10 +125,16 @@ class DataGateway:
             nome = d.get("nome", d.get("asset", "Asset")) # Fallback sicuro
             r_base = d.get("rischio", 0.0)
             
-            # Calcolo H(prod) - LOGICA ORIGINALE INTEGRALE
-            ore_p = sum([d.get(k, 0) for k in ["ferie", "festivita", "assenze", "permessi", "ritardi", "micropause"]])
+                        # Calcolo H(prod) POTENZIATO: Modello di Saturazione Rischio
+            voci_perdita = ["ferie", "festivita", "assenze", "permessi", "ritardi", "micropause"]
+            ore_p = sum([float(d.get(k, 0)) for k in voci_perdita])
+            
             if ore_p > 0:
-                r_base = min(10.0, round((ore_p / self.ORE_TEORICHE_ANNUE) * 10, 2))
+                rapporto_perdita = ore_p / self.ORE_TEORICHE_ANNUE
+                # Funzione di crescita non lineare: il rischio accelera dopo il 15% di ore perse
+                r_base = round(10 / (1 + np.exp(-15 * (rapporto_perdita - 0.15))), 2)
+            else:
+                r_base = d.get("rischio", 1.0) # Fallback se non ci sono ore caricate
             
             r_pesato = round(r_base * moltiplicatore, 2)
             m_score = self._calcola_trend_momentum_alpha(r_pesato, r_base * 0.85, w1=weights[0], w2=weights[1])
