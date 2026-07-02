@@ -1,6 +1,9 @@
 import streamlit as st
 import bcrypt
 import logging
+import smtplib  # <-- Aggiunto qui
+from email.mime.text import MIMEText  # <-- Aggiunto qui
+from email.mime.multipart import MIMEMultipart  # <-- Aggiunto qui
 
 logger = logging.getLogger("RGD-Alpha.Auth")
 
@@ -68,3 +71,37 @@ def richiede_ruolo(ruolo_richiesto):
     if ruolo_richiesto == "admin" and st.session_state.ruolo != "admin":
         st.error("Area riservata all'amministratore del sistema.")
         st.stop()
+
+def invia_email_recupero(email_destinatario, link_reset):
+    """
+    Spedisce il link di reset tramite server SMTP.
+    """
+    SMTP_SERVER = "smtp.libero.it" 
+    SMTP_PORT = 465
+    SMTP_USER = "andrewdicenso@libero.it" 
+    SMTP_PASSWORD = "tua_password_app_qui" # <-- Inserisci qui la password app generata
+
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USER
+    msg['To'] = email_destinatario
+    msg['Subject'] = "🛡️ Reset Password | RGD-Alpha War Room"
+
+    corpo_mail = f"""
+    Hai richiesto il reset della password per il tuo account RGD-Alpha.
+    
+    Per procedere, clicca sul link sicuro qui sotto:
+    {link_reset}
+    
+    Il link scadrà tra 30 minuti. Se non hai richiesto tu il reset, ignora questa mail.
+    """
+    msg.attach(MIMEText(corpo_mail, 'plain'))
+
+    try:
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_USER, email_destinatario, msg.as_string())
+        logger.info(f"📧 Mail di reset inviata a {email_destinatario}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Errore invio mail: {e}")
+        return False

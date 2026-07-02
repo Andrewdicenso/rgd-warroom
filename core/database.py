@@ -98,6 +98,16 @@ class DatabaseAziendale:
                         FOREIGN KEY (user_id) REFERENCES utenti(id)
                     )
                 """)
+                # 5. Tabella Token Reset Password (NUOVA)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS password_tokens (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        email_enc TEXT NOT NULL,
+                        token TEXT NOT NULL,
+                        scadenza TIMESTAMP NOT NULL,
+                        usato INTEGER DEFAULT 0
+                    )
+                """)
 
                 conn.commit()
         except Exception as e:
