@@ -86,7 +86,7 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
 # --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
 if not st.session_state.autenticato:
     # Aggiungiamo il terzo Tab per il recupero credenziali
-    t1, t2 = st.tabs(["🔐 Login", "🆕 Registrazione"])
+    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
     with t1:
         e = st.text_input("Email Aziendale", key="l_e").strip()
