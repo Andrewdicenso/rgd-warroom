@@ -81,6 +81,24 @@ class DataGateway:
             dt = 1
         return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
+    def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
+        if dt <= 0: 
+            dt = 1
+        return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
+
+    # --- INSERISCI DA QUI ---
+    def calcola_volatilita_sistema(self, valori_rischio):
+        """
+        Rileva instabilità nei dati caricati (Anomalie di Governance).
+        """
+        if len(valori_rischio) < 2: return 0.0
+        return round(np.std(valori_rischio), 2)
+    # --- FINO A QUI ---
+
+    def _genera_consiglio_azione(self, rischio, settore, m_score=0):
+        # ... resto del codice ...
+   
+
     def _genera_consiglio_azione(self, rischio, settore, m_score=0):
         alert = " ⚠️ ACCELERAZIONE CRITICA!" if m_score > 1.5 else ""
         if rischio > 8:
