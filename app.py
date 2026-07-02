@@ -107,6 +107,22 @@ if not st.session_state.autenticato:
             else:
                 st.error("Credenziali non valide. Riprova.")
 
+# --- BLOCCO DI ACCESSO (Visualizzato solo se non autenticato) ---
+if not st.session_state.autenticato:
+    # 1. Recupero il token dalla URL (Fondamentale per evitare l'errore)
+    reset_token = st.query_params.get("reset_token")
+    
+    t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
+    
+    with t1:
+        e = st.text_input("Email Aziendale", key="l_e").strip()
+        p = st.text_input("Password", type="password", key="l_p").strip()
+        if st.button("Accedi al Sistema"):
+            if login_utente(db, e, p):
+                st.rerun()
+            else:
+                st.error("Credenziali non valide.")
+
     with t2:
         re = st.text_input("Email per registrazione", key="r_e").strip()
         rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
@@ -126,7 +142,8 @@ if not st.session_state.autenticato:
                 import uuid
                 nuovo_token = str(uuid.uuid4())
                 if db.salva_token_reset(email_richiesta, nuovo_token):
-                    link = f"https://tua-app.streamlit.app/?reset_token={nuovo_token}"
+                    # NOTA: Cambia l'URL con quello reale della tua app su Render/Streamlit
+                    link = f"https://rgd-warroom-app.onrender.com/?reset_token={nuovo_token}"
                     if invia_email_recupero(email_richiesta, link):
                         st.success("📧 Link inviato! Controlla la tua email.")
                     else:
@@ -145,19 +162,9 @@ if not st.session_state.autenticato:
                     else:
                         st.error("Link scaduto o non valido.")
                 else:
-                    st.error("Le password non coincidono o sono troppo brevi.")
-    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
-# ==========================================
-#   NAVIGAZIONE SIDEBAR EXECUTIVE (VERSIONE BLINDATA)
-# ==========================================
-# Recupero sicuro: se la sessione scade, evitiamo il crash
-user_id = st.session_state.get('user_id', 0)
-azienda = st.session_state.get('azienda', 'Operatore Sconosciuto')
-ruolo = st.session_state.get('ruolo', 'user')
-is_admin = ruolo == "admin"
+                    st.error("Le password non coincidono o sono troppo brevi (min 8 car.).")
 
-st.sidebar.title("🛡️ RGD-ALPHA")
-st.sidebar.write(f"Operatore: **{azienda}**")
+    st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 
 # Menu dinamico
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
