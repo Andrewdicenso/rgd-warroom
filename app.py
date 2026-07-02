@@ -115,8 +115,8 @@ if not st.session_state.autenticato:
             registra_nuovo_utente(re, rp, rc)
 
     with t3:
-    st.subheader("🔄 Recupero Credenziali Sicuro")
-    
+        st.subheader("🔄 Recupero Credenziali Sicuro")
+        st.write("...")
     if not reset_token:
         # STEP 1: Richiesta Link
         st.info("Inserisci la tua email. Ti invieremo un link protetto per reimpostare la password.")
@@ -153,7 +153,7 @@ if not st.session_state.autenticato:
                 st.query_params.clear() # Pulisce la URL per sicurezza
                 # else: st.error("Token non valido o scaduto.")
             else:
-st.error("Le password non coincidono o sono troppo brevi.")
+                st.error("Le password non coincidono o sono troppo brevi.")
             
     st.stop() # Blocca l'esecuzione finché l'utente non è autenticato
 # ==========================================
