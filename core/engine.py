@@ -93,7 +93,8 @@ class DataGateway:
         """
         if len(valori_rischio) < 2: return 0.0
         return round(np.std(valori_rischio), 2)
-    # --- FINO A QUI ---
+
+  
    
     def _genera_consiglio_azione(self, rischio, settore, m_score=0):
         alert = " ⚠️ ACCELERAZIONE CRITICA!" if m_score > 1.5 else ""
