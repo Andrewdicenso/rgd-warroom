@@ -163,10 +163,11 @@ if not st.session_state.autenticato:
                     st.error("Le password non coincidono o sono troppo brevi (min 8 car.).")
 
     st.stop() # Blocca il resto dell'app finché non sei loggato
-
 # --- DEFINIZIONE VARIABILI DOPO IL LOGIN ---
-# Questa riga risolve il NameError definendo is_admin
+# Definiamo le variabili estraendole dal session_state per evitare NameError
 is_admin = st.session_state.get("ruolo") == "admin"
+azienda = st.session_state.get("azienda", "RGD-Alpha")  # Aggiunta questa riga fondamentale
+user_email = st.session_state.get("email", "")
 
 # --- MENU DINAMICO ---
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
@@ -174,6 +175,7 @@ if is_admin:
     menu.insert(1, "🕵️ Centrale Admin")
 
 scelta = st.sidebar.radio("Navigazione", menu)
+
 # --- STRESS TEST PULITO ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚨 Simulazione Stress Test")
@@ -189,7 +191,9 @@ st.sidebar.caption("Leva attiva per simulazione scenari di crisi.")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
-    logout_utente()
+    # Assicurati che la funzione logout_utente() sia definita nel tuo script
+    st.session_state.clear()
+    st.rerun()
 
 # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
 st.sidebar.markdown("---")
