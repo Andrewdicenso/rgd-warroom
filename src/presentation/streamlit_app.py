@@ -160,9 +160,9 @@ def render_auth_pages() -> None:
         
         ---
         
-        **Credenziali Demo:**
-        - Email: `andrewdicenso@libero.it`
-        - Password: `WarRoom123!`
+        #**Credenziali Demo:**
+        #- Email: `andrewdicenso@libero.it`
+        #- Password: `WarRoom123!`
         """)
     
     with col2:
