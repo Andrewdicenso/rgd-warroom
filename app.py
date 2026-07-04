@@ -87,13 +87,18 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
     except Exception as e:
         st.error(f"Errore critico durante la registrazione: {e}")
 
+# --- INIZIALIZZAZIONE STATO (Assicurati che esistano le chiavi) ---
+if "autenticato" not in st.session_state:
+    st.session_state.autenticato = False
+if "ruolo" not in st.session_state:
+    st.session_state.ruolo = None
+
 # --- BLOCCO DI ACCESSO UNIFICATO ---
-# Deve essere fuori dalla funzione sopra e allineato correttamente
-if not st.session_state.get("autenticato", False):
+if not st.session_state.autenticato:
     # 1. Recupero il token dalla URL per il recupero password
     reset_token = st.query_params.get("reset_token")
     
-    # 2. Creo i Tab una sola volta
+    # 2. Creo i Tab
     t1, t2, t3 = st.tabs(["🔐 Login", "🆕 Registrazione", "🔄 Recupero Password"])
     
     # --- TAB 1: LOGIN ---
@@ -111,8 +116,8 @@ if not st.session_state.get("autenticato", False):
                 st.session_state.azienda = "RGD-Alpha"
                 st.success("Accesso Amministratore eseguito!")
                 st.rerun()
-            # Controllo Utente Standard
-            elif login_utente(db, e, p):
+            # Controllo Utente Standard (Assicurati che 'db' e 'login_utente' siano definiti sopra)
+            elif 'login_utente' in globals() and login_utente(db, e, p):
                 st.rerun()
             else:
                 st.error("Credenziali non valide. Riprova.")
@@ -123,7 +128,10 @@ if not st.session_state.get("autenticato", False):
         rp = st.text_input("Scegli Password", type="password", key="r_p").strip()
         rc = st.text_input("Conferma Password", type="password", key="r_c").strip()
         if st.button("Crea Account Enterprise"):
-            registra_nuovo_utente(re, rp, rc)
+            if 'registra_nuovo_utente' in globals():
+                registra_nuovo_utente(re, rp, rc)
+            else:
+                st.error("Funzione di registrazione non trovata.")
 
     # --- TAB 3: RECUPERO PASSWORD ---
     with t3:
@@ -156,13 +164,16 @@ if not st.session_state.get("autenticato", False):
 
     st.stop() # Blocca il resto dell'app finché non sei loggato
 
-# Menu dinamico
+# --- DEFINIZIONE VARIABILI DOPO IL LOGIN ---
+# Questa riga risolve il NameError definendo is_admin
+is_admin = st.session_state.get("ruolo") == "admin"
+
+# --- MENU DINAMICO ---
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
 if is_admin:
     menu.insert(1, "🕵️ Centrale Admin")
 
 scelta = st.sidebar.radio("Navigazione", menu)
-
 # --- STRESS TEST PULITO ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚨 Simulazione Stress Test")
