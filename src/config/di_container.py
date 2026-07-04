@@ -66,7 +66,7 @@ class DIContainer:
         
         raise ValueError(f"❌ Dependency '{name}' not registered in DIContainer")
     
-    py
+    
     # ========== SERVICE & REPOSITORY GETTERS (Operativi) ==========
 
     def get_database(self):
