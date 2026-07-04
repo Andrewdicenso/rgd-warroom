@@ -1,4 +1,3 @@
-py
 """
 Ingestion Service - Orchestrazione del caricamento dati Enterprise.
 """
