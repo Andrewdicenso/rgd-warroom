@@ -9,11 +9,13 @@ def show():
     st.title("📊 War Room Strategica")
     st.subheader(f"Asset Intelligence per: {SessionManager.get_azienda()}")
 
-    # Recupero Servizi dal Container Enterprise
+    # --- MODIFICA APPLICATA QUI ---
+    # Recupero Servizi dal Container usando i metodi corretti definiti in di_container.py
     container = DIContainer()
-    ingestore = container.ingestion_service
-    asset_repo = container.asset_repo
-    analizzatore = container.analysis_service
+    ingestore = container.get_ingestion_service()
+    asset_repo = container.get_asset_repository()
+    analizzatore = container.get_analysis_service()
+    # ------------------------------
 
     # --- ZONA CARICAMENTO ---
     uploaded_file = st.file_uploader("Carica Dataset Operativo (Excel/CSV)", type=["xlsx", "csv"])
