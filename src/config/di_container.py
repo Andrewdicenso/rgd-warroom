@@ -66,40 +66,34 @@ class DIContainer:
         
         raise ValueError(f"❌ Dependency '{name}' not registered in DIContainer")
     
-    # ========== EXAMPLE: Service Getters (Implementare quando serve) ==========
-    
-    def get_asset_service(self):
-        """Otiene AssetService (quando implementato)."""
-        # from application.services.asset_service import AssetService
-        # return AssetService(asset_repo=self.get_asset_repository())
-        pass
-    
-    def get_analysis_service(self):
-        """Ottiene AnalysisService (quando implementato)."""
-        # from application.services.analysis_service import AnalysisService
-        # return AnalysisService(asset_repo=self.get_asset_repository(), ...)
-        pass
-    
+    py
+    # ========== SERVICE & REPOSITORY GETTERS (Operativi) ==========
+
     def get_database(self):
-        """Ottiene DatabaseAziendale (when implemented)."""
-        # from core.database import DatabaseAziendale
-        # return DatabaseAziendale()
-        pass
+        """Restituisce la connessione Supabase persistente."""
+        from src.infrastructure.persistence.db.connection import DatabaseConnection
+        return self.get("database") if "database" in self._singletons else \
+               self._register_singleton("database", DatabaseConnection())
 
+    def get_user_repository(self):
+        from src.infrastructure.persistence.repositories.user_repository import UserRepository
+        return UserRepository(db=self.get_database())
 
-# Global container instance
-_container: Optional[DIContainer] = None
+    def get_asset_repository(self):
+        from src.infrastructure.persistence.repositories.asset_repository import AssetRepository
+        return AssetRepository(db=self.get_database())
 
+    def get_auth_service(self):
+        from src.application.services.auth_service import AuthService
+        return AuthService(user_repo=self.get_user_repository())
 
-def get_di_container() -> DIContainer:
-    """Factory per ottenere il global DI container."""
-    global _container
-    if _container is None:
-        _container = DIContainer()
-    return _container
+    def get_analysis_service(self):
+        from src.application.services.analysis_service import AnalysisService
+        # L'analisi richiede i dati storici (KPI Repository)
+        from src.infrastructure.persistence.repositories.kpi_repository import KPIRepository
+        kpi_repo = KPIRepository(db=self.get_database())
+        return AnalysisService(kpi_repo=kpi_repo)
 
-
-def reset_di_container() -> None:
-    """Reset il container (utile per test)."""
-    global _container
-    _container = None
+    def get_ingestion_service(self):
+        from src.application.services.ingestion_service import IngestionService
+        return IngestionService()

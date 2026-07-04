@@ -1,68 +1,94 @@
 """
-User Repository - Persistence per Utente entities.
+User Repository Enterprise - Unione tra Design Pattern (Tuo) e Persistenza Cloud Supabase.
 """
 from typing import Optional, List
 from src.domain import Utente
-from .base_repository import BaseRepository
-
+from src.infrastructure.persistence.repositories.base_repository import BaseRepository
+from src.infrastructure.persistence.db.connection import DatabaseConnection
+from src.infrastructure.security.vault import SecureVault
 
 class UserRepository(BaseRepository[Utente]):
     """
-    Repository per Utente.
-    
-    NOTA: Questa è una implementazione in-memory per demo.
-    In produzione, usare SQLAlchemy ORM + database vero.
+    Repository per Utente con persistenza su Supabase e cifratura dati sensibili.
     """
     
-    def __init__(self):
-        """Inizializza UserRepository."""
+    def __init__(self, db: DatabaseConnection):
+        """Inizializza il repository con il client Supabase e il Vault."""
         super().__init__("User")
-        self._store: dict = {}  # In-memory storage
-        self._email_index: dict = {}  # Index per email lookup rapido
-    
+        self.supabase = db.get_client()
+        self.vault = SecureVault()
+
     def create(self, user: Utente) -> Utente:
-        """Crea e salva un utente."""
-        self._store[user.id] = user
-        self._email_index[user.email.lower()] = user.id
-        self.log_info(f"User created: {user.email}")
+        """Crea e salva un utente su Supabase criptando i dati."""
+        email_enc = self.vault.encrypt_data(user.email)
+        azienda_enc = self.vault.encrypt_data(user.azienda_id) if user.azienda_id else None
+        
+        data = {
+            "id": user.id,
+            "email": email_enc,
+            "password_hash": user.password_hash,
+            "ruolo": user.ruolo,
+            "azienda_id": azienda_enc
+        }
+        
+        self.supabase.table("utenti").insert(data).execute()
+        self.log_info(f"User Enterprise creato su Cloud: {user.email}")
         return user
-    
+
     def read(self, id: str) -> Optional[Utente]:
-        """Legge un utente per ID."""
-        return self._store.get(id)
-    
+        """Legge un utente per ID dal Cloud e lo decripta."""
+        response = self.supabase.table("utenti").select("*").eq("id", id).execute()
+        if not response.data:
+            return None
+        
+        row = response.data[0]
+        row['email'] = self.vault.decrypt_data(row['email'])
+        row['azienda_id'] = self.vault.decrypt_data(row['azienda_id']) if row['azienda_id'] else None
+        return Utente(**row)
+
     def read_by_email(self, email: str) -> Optional[Utente]:
-        """Legge un utente per email."""
-        user_id = self._email_index.get(email.lower())
-        if user_id:
-            return self._store.get(user_id)
+        """Legge un utente per email (Matching sicuro decriptato)."""
+        # Poiché l'email è criptata, dobbiamo recuperare e decriptare per il confronto
+        response = self.supabase.table("utenti").select("*").execute()
+        for row in response.data:
+            try:
+                dec_email = self.vault.decrypt_data(row['email'])
+                if dec_email.lower() == email.lower():
+                    row['email'] = dec_email
+                    row['azienda_id'] = self.vault.decrypt_data(row['azienda_id']) if row['azienda_id'] else None
+                    return Utente(**row)
+            except Exception:
+                continue
         return None
-    
+
     def update(self, user: Utente) -> Utente:
-        """Aggiorna un utente."""
-        if user.id not in self._store:
-            raise ValueError(f"User {user.id} not found")
+        """Aggiorna un utente esistente su Supabase."""
+        email_enc = self.vault.encrypt_data(user.email)
+        azienda_enc = self.vault.encrypt_data(user.azienda_id) if user.azienda_id else None
         
-        # Update email index se changed
-        old_user = self._store[user.id]
-        if old_user.email != user.email:
-            del self._email_index[old_user.email.lower()]
-            self._email_index[user.email.lower()] = user.id
+        data = {
+            "email": email_enc,
+            "password_hash": user.password_hash,
+            "ruolo": user.ruolo,
+            "azienda_id": azienda_enc
+        }
         
-        self._store[user.id] = user
-        self.log_info(f"User updated: {user.email}")
+        self.supabase.table("utenti").update(data).eq("id", user.id).execute()
+        self.log_info(f"User Enterprise aggiornato: {user.email}")
         return user
-    
+
     def delete(self, id: str) -> bool:
-        """Cancella un utente."""
-        if id in self._store:
-            user = self._store[id]
-            del self._email_index[user.email.lower()]
-            del self._store[id]
-            self.log_info(f"User deleted: {id}")
-            return True
-        return False
-    
+        """Cancella un utente dal Cloud."""
+        response = self.supabase.table("utenti").delete().eq("id", id).execute()
+        self.log_info(f"User Enterprise eliminato: {id}")
+        return len(response.data) > 0
+
     def list_all(self) -> List[Utente]:
-        """Lista tutti gli utenti."""
-        return list(self._store.values())
+        """Lista tutti gli utenti decriptati (per Admin Panel)."""
+        response = self.supabase.table("utenti").select("*").execute()
+        users = []
+        for row in response.data:
+            row['email'] = self.vault.decrypt_data(row['email'])
+            row['azienda_id'] = self.vault.decrypt_data(row['azienda_id']) if row['azienda_id'] else None
+            users.append(Utente(**row))
+        return users

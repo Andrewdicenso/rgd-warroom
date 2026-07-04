@@ -98,6 +98,7 @@ class SessionManager:
         st.session_state[SessionManager.KEY_RUOLO] = ruolo
         st.session_state[SessionManager.KEY_AZIENDA] = azienda
         st.session_state[SessionManager.KEY_AZIENDA_ID] = azienda_id
+        st.rerun()
     
     @staticmethod
     def logout() -> None:
@@ -108,7 +109,7 @@ class SessionManager:
         st.session_state[SessionManager.KEY_RUOLO] = "user"
         st.session_state[SessionManager.KEY_AZIENDA] = "Sconosciuta"
         st.session_state[SessionManager.KEY_AZIENDA_ID] = None
-    
+        st.rerun()
     @staticmethod
     def require_auth(redirect_to_login: bool = True) -> bool:
         """
