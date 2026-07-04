@@ -1,4 +1,3 @@
-py
 """
 Mapping Strategy - Strategie di identificazione settore basate su AI/Attention.
 """
