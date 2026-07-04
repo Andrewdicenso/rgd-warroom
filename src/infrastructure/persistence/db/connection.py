@@ -1,4 +1,3 @@
-py
 """
 Supabase Connection - Gestore Cloud Enterprise RGD-Alpha.
 Sostituisce SQLite con persistenza Cloud-Native e Logging professionale.
