@@ -163,12 +163,15 @@ if not st.session_state.autenticato:
                     st.error("Le password non coincidono o sono troppo brevi (min 8 car.).")
 
     st.stop() # Blocca il resto dell'app finché non sei loggato
+
 # --- DEFINIZIONE VARIABILI DOPO IL LOGIN ---
 # Definiamo le variabili estraendole dal session_state per evitare NameError
 is_admin = st.session_state.get("ruolo") == "admin"
-azienda = st.session_state.get("azienda", "RGD-Alpha")  # Aggiunta questa riga fondamentale
+azienda = st.session_state.get("azienda", "RGD-Alpha")
 user_email = st.session_state.get("email", "")
 
+# AGGIUNGI QUESTA RIGA QUI SOTTO:
+user_id = st.session_state.get("user_id", "96a3b344-723b-410c-99d7-84a229a1b18d")
 # --- MENU DINAMICO ---
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
 if is_admin:
