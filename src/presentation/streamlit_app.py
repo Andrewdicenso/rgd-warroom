@@ -1,55 +1,35 @@
-"""
-Streamlit App - Entry Point dell'Applicazione RGD-Alpha.
-
-NOTA: Questo è refactorizzato rispetto al vecchio app.py.
-Ora segue il pattern di Clean Architecture:
-- Presentation layer (questo file)
-- Application layer (services, quando implementato)
-- Domain layer (entities, value objects)
-- Infrastructure layer (database, vault, etc)
-
-Per usare:
-    streamlit run src/presentation/streamlit_app.py
-"""
-
 import sys
 from pathlib import Path
+import streamlit as st
 
 # Risolvi percorsi per import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import streamlit as st
 from src.config import get_settings
 from src.presentation.state import SessionManager
 from src.presentation.components import render_login_tabs
 from src.application.services import AuthService, AssetService, AnalysisService
 from src.infrastructure import configure_logging
 
-
 settings = get_settings()
-
-# Configura logging
 configure_logging()
 
 
-# Inizializza services (singleton pattern)
+# Inizializza services (singleton pattern) come nel vecchio codice
 @st.cache_resource
 def get_auth_service() -> AuthService:
-    """Ottiene l'istanza AuthService (cached)."""
     return AuthService(admin_email=settings.ADMIN_EMAIL)
 
 
 @st.cache_resource
 def get_asset_service() -> AssetService:
-    """Ottiene l'istanza AssetService (cached)."""
     return AssetService()
 
 
 @st.cache_resource
 def get_analysis_service() -> AnalysisService:
-    """Ottiene l'istanza AnalysisService (cached)."""
     return AnalysisService()
 
 
@@ -67,17 +47,12 @@ def load_css() -> None:
 def configure_page() -> None:
     """Configura la pagina Streamlit."""
     st.set_page_config(**settings.ST_PAGE_CONFIG)
-    load_css()
+    load_css()  # <--- Il CSS viene caricato qui)
 
 
 def handle_login(email: str, password: str) -> bool:
-    """
-    Gestisce il login dell'utente.
-    Chiama AuthService per verificare le credenziali.
-    """
     auth_service = get_auth_service()
     response = auth_service.login(email, password)
-
     if response.success:
         SessionManager.login(
             user_id=response.user_id,
@@ -86,13 +61,35 @@ def handle_login(email: str, password: str) -> bool:
             azienda=response.azienda,
             azienda_id=response.azienda_id,
         )
-        st.success("✅ " + response.message)
+        st.success(f"✅ {response.message}")
+        st.rerun()
         return True
-    else:
-        st.error("❌ " + response.message)
-        return False
+    st.error(f"❌ {response.message}")
+    return False
 
 
+def render_auth_pages() -> None:
+    st.title("🛡️ RGD-Alpha | War Room Strategica")
+    st.subheader("Gestione Strategica d'Azienda")
+
+    col1, col2 = st.columns([1.5, 1], gap="large")
+    with col1:
+        st.markdown("""
+        ### Benvenuto in RGD-Alpha
+        La piattaforma di **Business Intelligence e Risk Management** 
+        progettata per PMI italiane.
+        
+        **Funzionalità Principali:**
+        - 📊 Analisi Predittiva del Rischio
+        - 🎯 Dashboard Strategica (War Room)
+        - ⚡ Alerting Automatico
+        - 📈 Simulazioni What-If
+        """)
+
+    with col2:
+        st.markdown("### 🔐 Accedi al Sistema")
+        reset_token = st.query_params.get("reset_token")
+        
 def handle_register(email: str, password: str, confirm: str) -> bool:
     """
     Gestisce la registrazione di un nuovo utente.
@@ -141,134 +138,14 @@ def handle_reset_password(token: str, password: str, confirm: str) -> bool:
         st.error("❌ " + message)
         return False
 
-
-def render_auth_pages() -> None:
-    """Renderizza le pagine di autenticazione (login, registrazione, recupero password)."""
-    st.title("🛡️ RGD-Alpha | War Room Strategica")
-    st.subheader("Gestione Strategica d'Azienda")
-
-    col1, col2 = st.columns([2, 1], gap="large")
-
-    with col1:
-        st.markdown("""
-        ### Benvenuto in RGD-Alpha
-        
-        La piattaforma di **Business Intelligence e Risk Management** 
-        progettata per PMI italiane.
-        
-        **Funzionalità Principale:**
-        - 📊 Analisi Predittiva del Rischio
-        - 🎯 Dashboard Strategica (War Room)
-        - ⚡ Alerting Automatico
-        - 📈 Simulazioni What-If
-        
-        ---
-        """)
-
-    with col2:
-        st.markdown("### 🔐 Accedi al Sistema")
-
-        # Recupera reset_token dalla URL se presente
-        reset_token = st.query_params.get("reset_token")
-
-        # Renderizza i form di autenticazione
+# ... dentro render_auth_pages() ...
         render_login_tabs(
             on_login=handle_login,
-            on_register=handle_register,
-            on_request_reset=handle_request_reset,
+            on_register=handle_register,       # <--- Passa la funzione reale
+            on_request_reset=handle_request_reset, # <--- Passa la funzione reale
             reset_token=reset_token,
-            on_reset=handle_reset_password,
-        )
-
-
-import sys
-from pathlib import Path
-import streamlit as st
-
-# Risolvi percorsi per import
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.config import get_settings
-from src.presentation.state import SessionManager
-from src.presentation.components import render_login_tabs
-from src.application.services import AuthService, AssetService, AnalysisService
-from src.infrastructure import configure_logging
-
-settings = get_settings()
-configure_logging()
-
-
-# Inizializza services (singleton pattern) come nel vecchio codice
-@st.cache_resource
-def get_auth_service() -> AuthService:
-    return AuthService(admin_email=settings.ADMIN_EMAIL)
-
-
-@st.cache_resource
-def get_asset_service() -> AssetService:
-    return AssetService()
-
-
-@st.cache_resource
-def get_analysis_service() -> AnalysisService:
-    return AnalysisService()
-
-
-def configure_page() -> None:
-    st.set_page_config(**settings.ST_PAGE_CONFIG)
-
-
-def handle_login(email: str, password: str) -> bool:
-    auth_service = get_auth_service()
-    response = auth_service.login(email, password)
-    if response.success:
-        SessionManager.login(
-            user_id=response.user_id,
-            email=response.email,
-            ruolo=response.ruolo,
-            azienda=response.azienda,
-            azienda_id=response.azienda_id,
-        )
-        st.success(f"✅ {response.message}")
-        st.rerun()
-        return True
-    st.error(f"❌ {response.message}")
-    return False
-
-
-def render_auth_pages() -> None:
-    st.title("🛡️ RGD-Alpha | War Room Strategica")
-    st.subheader("Gestione Strategica d'Azienda")
-
-    col1, col2 = st.columns([1.5, 1], gap="large")
-    with col1:
-        st.markdown("""
-        ### Benvenuto in RGD-Alpha
-        La piattaforma di **Business Intelligence e Risk Management** 
-        progettata per PMI italiane.
-        
-        **Funzionalità Principali:**
-        - 📊 Analisi Predittiva del Rischio
-        - 🎯 Dashboard Strategica (War Room)
-        - ⚡ Alerting Automatico
-        - 📈 Simulazioni What-If
-        """)
-
-    with col2:
-        st.markdown("### 🔐 Accedi al Sistema")
-        reset_token = st.query_params.get("reset_token")
-        render_login_tabs(
-            on_login=handle_login,
-            on_register=lambda e, p, c: st.info(
-                "Modulo registrazione attivo dopo il deploy."
-            ),
-            on_request_reset=lambda e: st.info(
-                "Richiesta inviata all'amministratore."
-            ),
-            reset_token=reset_token,
-        )
+            on_reset=handle_reset_password,   # <--- Passa la funzione reale
+        )        
 
 
 def render_app_pages() -> None:
