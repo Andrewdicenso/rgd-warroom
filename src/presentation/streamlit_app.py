@@ -132,6 +132,19 @@ def handle_reset_password(token: str, password: str, confirm: str) -> bool:
 
 def render_auth_pages() -> None:
     """Renderizza le pagine di autenticazione (login, registrazione, recupero password)."""
+    st.markdown(
+        """
+        <style>
+            /* Nasconde sidebar e freccette di apertura */
+            [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"] {
+                display: none !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    
     st.title("🛡️ RGD-Alpha | War Room Strategica")
     st.subheader("Gestione Strategica d'Azienda")
 
