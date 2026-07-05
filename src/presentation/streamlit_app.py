@@ -20,13 +20,23 @@ configure_logging()
 # --- STILE PROFESSIONALE E SFONDO (Inizio inserimento riga 20) ---py
 st.markdown(
     """
-    <style>
-    /* 1. Rimuove Header e decorazioni fastidiose in alto */
-    header, [data-testid="stHeader"], [data-testid="stDecoration"] {
-        visibility: hidden;
-        height: 0% !important;
-        display: none !important;
-    }
+/* Nasconde la linea colorata in alto e lo sfondo dell'header */
+[data-testid="stHeader"], [data-testid="stDecoration"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Nasconde tutti i contenuti dell'header TRANNE il pulsante della sidebar */
+header[data-testid="stHeader"] > div:first-child > div:first-child > div:nth-child(2) {
+    display: none !important;
+}
+
+/* Assicura che l'header non occupi spazio ma permetta al pulsante di essere cliccabile */
+header[data-testid="stHeader"] {
+    height: 3.5rem !important; /* Altezza standard per far apparire la freccia */
+    background: transparent !important;
+}
 
     /* 2. Sfondo della pagina senza interruzioni */
     .stApp {
