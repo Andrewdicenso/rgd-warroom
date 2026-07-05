@@ -1,37 +1,48 @@
 import sys
 from pathlib import Path
-import streamlit as st
 
 # Risolvi percorsi per import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import streamlit as st
 from src.config import get_settings
 from src.presentation.state import SessionManager
 from src.presentation.components import render_login_tabs
 from src.application.services import AuthService, AssetService, AnalysisService
 from src.infrastructure import configure_logging
 
+# Inizializzazione configurazioni globali
 settings = get_settings()
 configure_logging()
 
 
-# Inizializza services (singleton pattern) come nel vecchio codice
+# ==========================================
+# SERVICES INITIALIZATION (Singleton Pattern)
+# ==========================================
+
 @st.cache_resource
 def get_auth_service() -> AuthService:
+    """Ottiene l'istanza AuthService (cached)."""
     return AuthService(admin_email=settings.ADMIN_EMAIL)
 
 
 @st.cache_resource
 def get_asset_service() -> AssetService:
+    """Ottiene l'istanza AssetService (cached)."""
     return AssetService()
 
 
 @st.cache_resource
 def get_analysis_service() -> AnalysisService:
+    """Ottiene l'istanza AnalysisService (cached)."""
     return AnalysisService()
 
+
+# ==========================================
+# CORE UI CONFIGURATION
+# ==========================================
 
 def load_css() -> None:
     """Carica il design system CSS."""
@@ -47,12 +58,18 @@ def load_css() -> None:
 def configure_page() -> None:
     """Configura la pagina Streamlit."""
     st.set_page_config(**settings.ST_PAGE_CONFIG)
-    load_css()  # <--- Il CSS viene caricato qui)
+    load_css()
 
+
+# ==========================================
+# ACTION HANDLERS (Logica di Business)
+# ==========================================
 
 def handle_login(email: str, password: str) -> bool:
+    """Gestisce il login dell'utente e rinfresca lo stato visivo."""
     auth_service = get_auth_service()
     response = auth_service.login(email, password)
+    
     if response.success:
         SessionManager.login(
             user_id=response.user_id,
@@ -64,18 +81,66 @@ def handle_login(email: str, password: str) -> bool:
         st.success(f"✅ {response.message}")
         st.rerun()
         return True
+    
     st.error(f"❌ {response.message}")
     return False
 
 
+def handle_register(email: str, password: str, confirm: str) -> bool:
+    """Gestisce la registrazione di un nuovo utente."""
+    auth_service = get_auth_service()
+    response = auth_service.register(email, password, confirm)
+
+    if response.success:
+        st.success(f"✅ {response.message}")
+        return True
+    
+    st.error(f"❌ {response.message}")
+    return False
+
+
+def handle_request_reset(email: str) -> bool:
+    """Gestisce la richiesta di reset password."""
+    auth_service = get_auth_service()
+    success, reset_token = auth_service.request_password_reset(email)
+
+    if success:
+        # TODO: Inviare email con reset_token
+        st.success("✅ Se l'email è registrata, riceverai un link di reset")
+        return True
+    
+    st.warning("⚠️ Se l'email è registrata, riceverai un link di reset")
+    return False
+
+
+def handle_reset_password(token: str, password: str, confirm: str) -> bool:
+    """Gestisce il reset effettivo della password via token."""
+    auth_service = get_auth_service()
+    success, message = auth_service.reset_password(token, password, confirm)
+
+    if success:
+        st.success(f"✅ {message}")
+        return True
+    
+    st.error(f"❌ {message}")
+    return False
+
+
+# ==========================================
+# PRESENTATION LAYER (Rendering delle Pagine)
+# ==========================================
+
 def render_auth_pages() -> None:
+    """Renderizza le pagine di autenticazione (login, registrazione, recupero password)."""
     st.title("🛡️ RGD-Alpha | War Room Strategica")
     st.subheader("Gestione Strategica d'Azienda")
 
     col1, col2 = st.columns([1.5, 1], gap="large")
+
     with col1:
         st.markdown("""
         ### Benvenuto in RGD-Alpha
+        
         La piattaforma di **Business Intelligence e Risk Management** 
         progettata per PMI italiane.
         
@@ -84,83 +149,37 @@ def render_auth_pages() -> None:
         - 🎯 Dashboard Strategica (War Room)
         - ⚡ Alerting Automatico
         - 📈 Simulazioni What-If
+        
+        ---
         """)
 
     with col2:
         st.markdown("### 🔐 Accedi al Sistema")
+
+        # Recupera reset_token dalla URL se presente
         reset_token = st.query_params.get("reset_token")
-        
-def handle_register(email: str, password: str, confirm: str) -> bool:
-    """
-    Gestisce la registrazione di un nuovo utente.
-    Chiama AuthService per registrare.
-    """
-    auth_service = get_auth_service()
-    response = auth_service.register(email, password, confirm)
 
-    if response.success:
-        st.success("✅ " + response.message)
-        return True
-    else:
-        st.error("❌ " + response.message)
-        return False
-
-
-def handle_request_reset(email: str) -> bool:
-    """
-    Gestisce la richiesta di reset password.
-    Chiama AuthService per generare reset token.
-    """
-    auth_service = get_auth_service()
-    success, reset_token = auth_service.request_password_reset(email)
-
-    if success:
-        # TODO: Inviare email con reset_token
-        st.success("✅ Se l'email è registrata, riceverai un link di reset")
-        return True
-    else:
-        st.warning("⚠️ Se l'email è registrata, riceverai un link di reset")
-        return False
-
-
-def handle_reset_password(token: str, password: str, confirm: str) -> bool:
-    """
-    Gestisce il reset della password.
-    Chiama AuthService per completare il reset.
-    """
-    auth_service = get_auth_service()
-    success, message = auth_service.reset_password(token, password, confirm)
-
-    if success:
-        st.success("✅ " + message)
-        return True
-    else:
-        st.error("❌ " + message)
-        return False
-
-# ... dentro render_auth_pages() ...
+        # Renderizza i form di autenticazione passando i gestori reali
         render_login_tabs(
             on_login=handle_login,
-            on_register=handle_register,       # <--- Passa la funzione reale
-            on_request_reset=handle_request_reset, # <--- Passa la funzione reale
+            on_register=handle_register,
+            on_request_reset=handle_request_reset,
             reset_token=reset_token,
-            on_reset=handle_reset_password,   # <--- Passa la funzione reale
-        )        
+            on_reset=handle_reset_password,
+        )
 
 
 def render_app_pages() -> None:
-    """Pagine dell'app con Sidebar e Menu integrato."""
+    """Pagine interne dell'app con Sidebar e Menu integrato post-login."""
 
-    # 1. SIDEBAR (Recuperata e potenziata dal vecchio codice)
+    # 1. SIDEBAR DI NAVIGAZIONE
     with st.sidebar:
         st.markdown(f"### 👤 {SessionManager.get_email()}")
-        # Recupero il RUOLO in maiuscolo come nel vecchio codice
         st.caption(f"Ruolo: **{str(SessionManager.get_ruolo()).upper()}**")
         st.caption(f"Azienda: **{SessionManager.get_azienda()}**")
 
         st.divider()
 
-        # Menu di Navigazione richiesto
         menu = st.radio(
             "Navigazione:",
             ["🏠 Home", "📊 War Room", "📁 Archivio Dati"],
@@ -172,7 +191,7 @@ def render_app_pages() -> None:
             SessionManager.logout()
             st.rerun()
 
-    # 2. LOGICA CONTENUTI
+    # 2. LOGICA DEI CONTENUTI
     if menu == "🏠 Home":
         st.title("🏠 Homepage RGD-Alpha")
         st.info(f"""
@@ -184,28 +203,27 @@ def render_app_pages() -> None:
         """)
 
     elif menu == "📊 War Room":
-        # Importiamo e mostriamo la War Room direttamente qui
         try:
             from src.presentation.pages.war_room import show
-
             show()
         except ImportError:
-            st.error(
-                "Errore nel caricamento del modulo War Room. Verifica il percorso del file."
-            )
+            st.error("Errore nel caricamento del modulo War Room. Verifica il percorso del file.")
 
     elif menu == "📁 Archivio Dati":
         st.title("📁 Archivio Dati Operativi")
-        st.write(
-            "Qui verranno elencati i file elaborati dal sistema e quelli prelevati dai gestionali aziendali."
-        )
-        # Placeholder per la tabella file
+        st.write("Qui verranno elencati i file elaborati dal sistema e quelli prelevati dai gestionali aziendali.")
         st.info("Nessun file presente nell'archivio al momento.")
 
 
+# ==========================================
+# APPLICATION ENTRY POINT
+# ==========================================
+
 def main() -> None:
+    """Ciclo di vita principale dell'applicazione."""
     configure_page()
     SessionManager.initialize()
+    
     if SessionManager.is_autenticato():
         render_app_pages()
     else:
