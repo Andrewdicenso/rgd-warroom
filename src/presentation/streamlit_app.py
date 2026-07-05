@@ -17,6 +17,58 @@ from src.infrastructure import configure_logging
 settings = get_settings()
 configure_logging()
 
+# --- STILE PROFESSIONALE E SFONDO (Inizio inserimento riga 20) ---
+st.markdown(
+    """
+    <style>
+    /* Sfondo della pagina con immagine tecnologica */
+    .stApp {
+        background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                          url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
+    /* Contenitore principale effetto Glassmorphism (Vetro) */
+    .stMainBlockContainer {
+        background: rgba(255, 255, 255, 0.07) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        padding: 3rem !important;
+        max-width: 850px !important;
+        margin-top: 4rem !important;
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* Colore del testo bianco per leggibilità su sfondo scuro */
+    h1, h2, h3, p, span, label, .stMarkdown, .stText {
+        color: #ffffff !important;
+    }
+
+    /* Pulsanti personalizzati */
+    .stButton > button {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        width: 100%;
+    }
+
+    .stButton > button:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-color: #ffffff !important;
+        transform: translateY(-2px);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # ==========================================
 # SERVICES INITIALIZATION (Singleton Pattern)
