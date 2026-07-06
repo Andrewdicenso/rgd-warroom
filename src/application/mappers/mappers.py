@@ -7,8 +7,12 @@ from src.domain import (
     Asset, AssetDiMercato, AssetDiValore, AssetDiRelazione,
     Utente
 )
+
 from src.application.dto import (
-    AssetDTO, AssetDiMercatoDTO, RiskAnalysisDTO,
+    AssetDTO, 
+    AssetDiMercatoDTO, 
+    AssetDiValoreDTO,  # <--- AGGIUNGI QUESTA RIGA QUI
+    RiskAnalysisDTO,
     UserDTO
 )
 
