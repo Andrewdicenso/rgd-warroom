@@ -20,25 +20,25 @@ configure_logging()
 # --- STILE PROFESSIONALE E SFONDO (Inizio inserimento riga 20) ---py
 st.markdown(
     """
-/* Nasconde la linea colorata in alto e lo sfondo dell'header */
-[data-testid="stHeader"], [data-testid="stDecoration"] {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: none !important;
-}
+    <style>
+    /* 1. Pulizia Header */
+    [data-testid="stHeader"], [data-testid="stDecoration"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+    }
 
-/* Nasconde tutti i contenuti dell'header TRANNE il pulsante della sidebar */
-header[data-testid="stHeader"] > div:first-child > div:first-child > div:nth-child(2) {
-    display: none !important;
-}
+    /* Nasconde i contenuti dell'header TRANNE il pulsante sidebar */
+    header[data-testid="stHeader"] > div:first-child > div:first-child > div:nth-child(2) {
+        display: none !important;
+    }
 
-/* Assicura che l'header non occupi spazio ma permetta al pulsante di essere cliccabile */
-header[data-testid="stHeader"] {
-    height: 3.5rem !important; /* Altezza standard per far apparire la freccia */
-    background: transparent !important;
-}
+    header[data-testid="stHeader"] {
+        height: 3.5rem !important;
+        background: transparent !important;
+    }
 
-    /* 2. Sfondo della pagina senza interruzioni */
+    /* 2. Sfondo della pagina */
     .stApp {
         background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
                           url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072");
@@ -56,12 +56,13 @@ header[data-testid="stHeader"] {
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         padding: 3rem !important;
         max-width: 900px !important;
-        margin-top: 2rem !important; /* Ridotto per non lasciare troppo spazio in alto */
+        margin-top: 2rem !important;
         box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5) !important;
     }
 
     /* 4. Testi e Pulsanti */
     h1, h2, h3, p, span, label, .stMarkdown { color: #ffffff !important; }
+    
     .stButton > button {
         border-radius: 12px !important;
         background: rgba(255, 255, 255, 0.1) !important;
@@ -69,7 +70,9 @@ header[data-testid="stHeader"] {
         width: 100%;
         transition: 0.3s;
     }
-    .stButton > button:hover { background: rgba(255, 255, 255, 0.2) !important; }
+    .stButton > button:hover { 
+        background: rgba(255, 255, 255, 0.2) !important; 
+    }
     </style>
     """,
     unsafe_allow_html=True
