@@ -2,6 +2,7 @@
 from .models import (
     AssetDTO,
     AssetDiMercatoDTO,
+    AssetDiValoreDTO,   # <-- Aggiunto qui
     RiskAnalysisDTO,
     KPIReportDTO,
     LoginRequestDTO,
@@ -18,6 +19,7 @@ from .models import (
 __all__ = [
     "AssetDTO",
     "AssetDiMercatoDTO",
+    "AssetDiValoreDTO",  # <-- Aggiunto qui
     "RiskAnalysisDTO",
     "KPIReportDTO",
     "LoginRequestDTO",
