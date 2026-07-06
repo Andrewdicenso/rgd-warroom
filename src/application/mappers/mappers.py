@@ -60,8 +60,6 @@ class AssetMapper:
     
     @staticmethod
     def to_dto_valore(asset: AssetDiValore) -> "AssetDiValoreDTO":
-        """Converte AssetDiValore a DTO."""
-        from src.application.dto import AssetDiValoreDTO
         base_dto = AssetMapper.to_dto(asset)
         return AssetDiValoreDTO(
             **vars(base_dto),
