@@ -37,3 +37,8 @@ test_*.py
 debug.log
 
 node_modules/
+
+# --- CACHE PYTHON (Aggiungi queste per pulire la lista deploy) ---
+__pycache__/
+*.pyc
+*.pyo

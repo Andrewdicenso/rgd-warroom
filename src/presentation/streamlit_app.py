@@ -38,6 +38,25 @@ st.markdown(
         background: transparent !important;
     }
 
+    /* --- INIZIO NUOVA AGGIUNTA --- */
+    /* 1.1 Nasconde Navigazione Automatica Sidebar */
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+
+    /* 1.2 Correzione Colore Testi Sidebar */
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #31333f !important;
+    }
+    /* --- FINE NUOVA AGGIUNTA --- */
+
+    /* 2. Sfondo della pagina */
+    .stApp {
+
     /* 2. Sfondo della pagina */
     .stApp {
         background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
