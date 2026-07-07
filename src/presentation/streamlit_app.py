@@ -17,85 +17,86 @@ from src.infrastructure import configure_logging
 settings = get_settings()
 configure_logging()
 
-# --- STILE PROFESSIONALE E SFONDO (Corretto) ---
-st.markdown
-"""
-    <style>
-    /* 1. Pulizia Header e Navigazione */
-    [data-testid="stHeader"], [data-testid="stDecoration"] {
-        background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-    }
+        # --- STILE PROFESSIONALE E SFONDO (Corretto) ---
+st.markdown(
+            """
+            <style>
+                /* 1. Pulizia Header e Navigazione */
+                [data-testid="stHeader"], [data-testid="stDecoration"] {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    border: none !important;
+                }
 
-    /* Nasconde i contenuti dell'header TRANNE il pulsante sidebar */
-    header[data-testid="stHeader"] > div:first-child > div:first-child > div:nth-child(2) {
-        display: none !important;
-    }
+                /* Nasconde i contenuti dell'header TRANNE il pulsante sidebar */
+                header[data-testid="stHeader"] > div:first-child > div:first-child > div:nth-child(2) {
+                    display: none !important;
+                }
 
-    header[data-testid="stHeader"] {
-        height: 3.5rem !important;
-        background: transparent !important;
-    }
+                header[data-testid="stHeader"] {
+                    height: 3.5rem !important;
+                    background: transparent !important;
+                }
 
-    /* 1.1 Nasconde Navigazione Automatica Sidebar */
-    [data-testid="stSidebarNav"] {
-        display: none !important;
-    }
+                /* 1.1 Nasconde Navigazione Automatica Sidebar */
+                [data-testid="stSidebarNav"] {
+                    display: none !important;
+                }
 
-    /* 1.2 Correzione Colore Testi Sidebar */
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] span, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #31333f !important;
-    }
+                /* 1.2 Correzione Colore Testi Sidebar */
+                [data-testid="stSidebar"] p, 
+                [data-testid="stSidebar"] span, 
+                [data-testid="stSidebar"] label, 
+                [data-testid="stSidebar"] h3,
+                [data-testid="stSidebar"] .stMarkdown {
+                    color: #31333f !important;
+                }
 
-    /* 2. Sfondo della pagina senza interruzioni */
-    .stApp {
-        background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
-                          url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072") !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
-    }
+                /* 2. Sfondo della pagina senza interruzioni */
+                .stApp {
+                    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                                    url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072") !important;
+                    background-size: cover !important;
+                    background-position: center !important;
+                    background-attachment: fixed !important;
+                }
 
-    /* 3. Contenitore principale (Card) */
-    .stMainBlockContainer {
-        background: rgba(255, 255, 255, 0.07) !important;
-        backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
-        border-radius: 24px !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        padding: 3rem !important;
-        max-width: 900px !important;
-        margin-top: 2rem !important;
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5) !important;
-    }
+                /* 3. Contenitore principale (Card) */
+                .stMainBlockContainer {
+                    background: rgba(255, 255, 255, 0.07) !important;
+                    backdrop-filter: blur(15px) !important;
+                    -webkit-backdrop-filter: blur(15px) !important;
+                    border-radius: 24px !important;
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    padding: 3rem !important;
+                    max-width: 900px !important;
+                    margin-top: 2rem !important;
+                    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5) !important;
+                }
 
-    /* 4. Testi e Pulsanti */
-    h1, h2, h3, p, span, label, .stMarkdown { 
-        color: #ffffff !important; 
-    }
-    
-    .stButton > button {
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.9) !important; /* Sfondo quasi bianco, più solido */
-        color: #31333F !important; /* TESTO SCURO: ora si legge subito! */
-        width: 100%;
-        border: 1px solid rgba(0,0,0,0.1) !important;
-        transition: 0.3s;
-        font-weight: 600 !important;
-    }
-    
-    .stButton > button:hover { 
-        background: #d33682 !important; /* Colore rosa/fucsia quando ci passi sopra */
-        color: white !important; /* Il testo diventa bianco solo quando passi il mouse */
-        border: 1px solid #d33682 !important;
-    }
-    </style>
-    """,
+                /* 4. Testi e Pulsanti */
+                h1, h2, h3, p, span, label, .stMarkdown { 
+                    color: #ffffff !important; 
+                }
+                
+                .stButton > button {
+                    border-radius: 12px !important;
+                    background: rgba(255, 255, 255, 0.9) !important; /* Sfondo quasi bianco, più solido */
+                    color: #31333F !important; /* TESTO SCURO: ora si legge subito! */
+                    width: 100%;
+                    border: 1px solid rgba(0,0,0,0.1) !important;
+                    transition: 0.3s;
+                    font-weight: 600 !important;
+                }
+                
+                .stButton > button:hover { 
+                    background: #d33682 !important; /* Colore rosa/fucsia quando ci passi sopra */
+                    color: white !important; /* Il testo diventa bianco solo quando passi il mouse */
+                    border: 1px solid #d33682 !important;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True)
 # ==========================================
 # SERVICES INITIALIZATION (Singleton Pattern)
 # ==========================================
