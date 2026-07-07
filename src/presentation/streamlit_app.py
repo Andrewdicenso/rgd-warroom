@@ -18,8 +18,8 @@ settings = get_settings()
 configure_logging()
 
 # --- STILE PROFESSIONALE E SFONDO (Corretto) ---
-st.markdown(
-    """
+st.markdown
+"""
     <style>
     /* 1. Pulizia Header e Navigazione */
     [data-testid="stHeader"], [data-testid="stDecoration"] {
@@ -81,20 +81,21 @@ st.markdown(
     
     .stButton > button {
         border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
+        background: rgba(255, 255, 255, 0.9) !important; /* Sfondo quasi bianco, più solido */
+        color: #31333F !important; /* TESTO SCURO: ora si legge subito! */
         width: 100%;
+        border: 1px solid rgba(0,0,0,0.1) !important;
         transition: 0.3s;
+        font-weight: 600 !important;
     }
     
     .stButton > button:hover { 
-        background: rgba(255, 255, 255, 0.2) !important; 
+        background: #d33682 !important; /* Colore rosa/fucsia quando ci passi sopra */
+        color: white !important; /* Il testo diventa bianco solo quando passi il mouse */
+        border: 1px solid #d33682 !important;
     }
     </style>
     """,
-    unsafe_allow_html=True
-)
-
 # ==========================================
 # SERVICES INITIALIZATION (Singleton Pattern)
 # ==========================================
@@ -208,7 +209,7 @@ def handle_reset_password(token: str, password: str, confirm: str) -> bool:
 # ==========================================
 
 def render_auth_pages() -> None:
-    """Renderizza le pagine di autenticazione (login, registrazione, recupero password)."""
+    """Renderizza le pagine di autenticazione (Login, Reg., Reset password)."""
     st.markdown(
         """
         <style>
