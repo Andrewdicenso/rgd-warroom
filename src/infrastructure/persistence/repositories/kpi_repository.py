@@ -35,3 +35,35 @@ class KPIRepository(BaseRepository):
         }
         response = self.supabase.table("kpi_history").insert(data).execute()
         return len(response.data) > 0
+            
+    def record_kpi(self, asset_id: str, user_id: str, rischio: float) -> bool:
+        """Registra un nuovo punto nello storico dei rischi."""
+        data = {
+            "asset_id": asset_id,
+            "user_id": user_id,
+            "rischio": rischio
+        }
+        response = self.supabase.table("kpi_history").insert(data).execute()
+        return len(response.data) > 0
+
+    # === AGGIUNGI QUESTI METODI PER RISOLVERE IL TYPERROR ===
+
+    def create(self, data: dict):
+        """Implementazione obbligatoria per BaseRepository"""
+        return self.supabase.table("kpi_history").insert(data).execute()
+
+    def read(self, id: str):
+        """Implementazione obbligatoria per BaseRepository"""
+        return self.supabase.table("kpi_history").select("*").eq("id", id).execute()
+
+    def update(self, id: str, data: dict):
+        """Implementazione obbligatoria per BaseRepository"""
+        return self.supabase.table("kpi_history").update(data).eq("id", id).execute()
+
+    def delete(self, id: str):
+        """Implementazione obbligatoria per BaseRepository"""
+        return self.supabase.table("kpi_history").delete().eq("id", id).execute()
+
+    def list_all(self):
+        """Implementazione obbligatoria per BaseRepository"""
+        return self.supabase.table("kpi_history").select("*").execute()
