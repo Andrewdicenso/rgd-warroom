@@ -17,11 +17,11 @@ from src.infrastructure import configure_logging
 settings = get_settings()
 configure_logging()
 
-# --- STILE PROFESSIONALE E SFONDO (Inizio inserimento riga 20) ---py
+# --- STILE PROFESSIONALE E SFONDO (Corretto) ---
 st.markdown(
     """
     <style>
-    /* 1. Pulizia Header */
+    /* 1. Pulizia Header e Navigazione */
     [data-testid="stHeader"], [data-testid="stDecoration"] {
         background: transparent !important;
         background-color: transparent !important;
@@ -38,7 +38,6 @@ st.markdown(
         background: transparent !important;
     }
 
-    /* --- INIZIO NUOVA AGGIUNTA --- */
     /* 1.1 Nasconde Navigazione Automatica Sidebar */
     [data-testid="stSidebarNav"] {
         display: none !important;
@@ -52,18 +51,14 @@ st.markdown(
     [data-testid="stSidebar"] .stMarkdown {
         color: #31333f !important;
     }
-    /* --- FINE NUOVA AGGIUNTA --- */
 
-    /* 2. Sfondo della pagina */
-    .stApp {
-
-    /* 2. Sfondo della pagina */
+    /* 2. Sfondo della pagina senza interruzioni */
     .stApp {
         background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
-                          url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+                          url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072") !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-attachment: fixed !important;
     }
 
     /* 3. Contenitore principale (Card) */
@@ -80,7 +75,9 @@ st.markdown(
     }
 
     /* 4. Testi e Pulsanti */
-    h1, h2, h3, p, span, label, .stMarkdown { color: #ffffff !important; }
+    h1, h2, h3, p, span, label, .stMarkdown { 
+        color: #ffffff !important; 
+    }
     
     .stButton > button {
         border-radius: 12px !important;
@@ -89,6 +86,7 @@ st.markdown(
         width: 100%;
         transition: 0.3s;
     }
+    
     .stButton > button:hover { 
         background: rgba(255, 255, 255, 0.2) !important; 
     }
