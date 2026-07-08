@@ -15,9 +15,38 @@ class AnalysisService(BaseService):
     Calcola trend, momentum, volatilità e proiezioni future.
     """
     
-    def __init__(self):
-        """Inizializza AnalysisService."""
+    def __init__(self, kpi_repo=None):
+        """Inizializza AnalysisService con il repository KPI."""
         super().__init__("AnalysisService")
+        self.kpi_repo = kpi_repo
+
+    def calculate_strategic_kpis(self, assets: list):
+        """
+        Applica il motore matematico originale RGD-Alpha per KPI globali.
+        """
+        if not assets:
+            return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0}
+
+        # Estrazione dati dagli oggetti Asset
+        tot_rischio = sum(asset.rischio.value if hasattr(asset.rischio, 'value') else asset.rischio for asset in assets)
+        # Nota: Usiamo 0.5 come volatilità di default se non presente
+        tot_volatilità = sum(getattr(asset, 'volatilita', 0.5) for asset in assets)
+        conteggio = len(assets)
+
+        # 1. Rischio Medio (La tua formula originale)
+        rischio_medio = round(tot_rischio / conteggio, 2)
+        
+        # 2. Solidità Operativa (La tua formula originale: inversa del rischio)
+        solidita = round(max(0.0, min(100.0, 100.0 - (rischio_medio * 9.5))), 1)
+        
+        # 3. Impatto Proiettato a 30gg (La tua formula originale)
+        impatto_30gg = round((tot_volatilità / conteggio) * rischio_medio * 1.5, 2)
+
+        return {
+            "rischio_medio": rischio_medio,
+            "solidita": solidita,
+            "impatto_30gg": impatto_30gg
+        }
     
     def analyze_asset_risk(
         self,
