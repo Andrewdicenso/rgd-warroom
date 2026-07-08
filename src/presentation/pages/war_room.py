@@ -1,4 +1,3 @@
-py
 import streamlit as st
 from src.presentation.state.session_manager import SessionManager
 from src.config.di_container import DIContainer
