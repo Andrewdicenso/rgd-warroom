@@ -1,3 +1,4 @@
+py
 import streamlit as st
 from src.presentation.state.session_manager import SessionManager
 from src.config.di_container import DIContainer
@@ -9,13 +10,12 @@ def show():
     st.title("📊 War Room Strategica")
     st.subheader(f"Asset Intelligence per: {SessionManager.get_azienda()}")
 
-    # --- MODIFICA APPLICATA QUI ---
-    # Recupero Servizi dal Container usando i metodi corretti definiti in di_container.py
+    # Recupero Servizi dal Container
     container = DIContainer()
     ingestore = container.get_ingestion_service()
-    asset_repo = container.get_asset_repository()
+    # Usiamo AssetService invece del repository direttamente
+    asset_service = container.get_asset_service()
     analizzatore = container.get_analysis_service()
-    # ------------------------------
 
     # --- ZONA CARICAMENTO ---
     uploaded_file = st.file_uploader("Carica Dataset Operativo (Excel/CSV)", type=["xlsx", "csv"])
@@ -30,8 +30,11 @@ def show():
                 
                 # B. Salvataggio e Analisi Predittiva
                 for asset in assets:
-                    # Salviamo l'asset su Supabase
-                    asset_repo.save(asset)
+                    # MODIFICA: Usiamo il metodo 'create_asset' del service che gestisce internamente il salvataggio
+                    try:
+                        asset_service.create_asset(asset)
+                    except Exception as e:
+                        st.warning(f"⚠️ Nota: Asset {asset.nome} già presente o errore minore salvataggio.")
                     
                     # Calcolo Rischio H(prod) tramite il tuo motore di regressione
                     # Recuperiamo lo storico fittizio per ora (List[float])

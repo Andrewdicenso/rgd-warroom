@@ -87,10 +87,17 @@ class DIContainer:
         from src.application.services.auth_service import AuthService
         return AuthService(user_repo=self.get_user_repository())
 
+    # --- AGGIUNTA FONDAMENTALE PER LA WAR ROOM ---
+    def get_asset_service(self):
+        """Restituisce l'AssetService collegato al suo Repository reale."""
+        from src.application.services.asset_service import AssetService
+        # Iniettiamo l'AssetRepository nell'AssetService (UI -> SERVICE -> REPO)
+        return AssetService(asset_repo=self.get_asset_repository())
+
     def get_analysis_service(self):
         from src.application.services.analysis_service import AnalysisService
-        # L'analisi richiede i dati storici (KPI Repository)
         from src.infrastructure.persistence.repositories.kpi_repository import KPIRepository
+        # Iniettiamo il KPIRepository per i calcoli predittivi
         kpi_repo = KPIRepository(db=self.get_database())
         return AnalysisService(kpi_repo=kpi_repo)
 
