@@ -35,7 +35,7 @@ def show():
                 
                 if assets:
                     status.update(label="✅ Ingestione Completata. Avvio Analisi...", state="complete")
-                    # ... resto della logica ...
+                    
                 else:
                     status.update(label="⚠️ Il file è vuoto o non formattato correttamente.", state="error")
                     st.warning("Verifica che il file CSV/Excel contenga dati validi.")
@@ -43,13 +43,11 @@ def show():
                 status.update(label="❌ Errore durante l'elaborazione", state="error")
                 st.error(f"Si è verificato un errore tecnico: {str(e)}")
                     
-                    # Calcolo Rischio H(prod) tramite il tuo motore di regressione
-                    # Recuperiamo lo storico fittizio per ora (List[float])
-                    history = [asset.rischio.value] * 5 
-                    analisi_dto = analizzatore.analyze_asset_risk(asset, history)
+                history = [asset.rischio.value] * 5 
+                analisi_dto = analizzatore.analyze_asset_risk(asset, history)
                     
-                    # Mostriamo il consiglio strategico generato dal tuo motore
-                    st.info(f"🔍 **{asset.nome}**: {analisi_dto.consiglio}")
+                # Mostriamo il consiglio strategico generato dal tuo motore
+                st.info(f"🔍 **{asset.nome}**: {analisi_dto.consiglio}")
                 
                 st.success(f"Totale Asset analizzati e salvati: {len(assets)}")
             else:
