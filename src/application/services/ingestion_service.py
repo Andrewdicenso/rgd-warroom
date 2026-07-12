@@ -13,15 +13,27 @@ class IngestionService(BaseService):
         super().__init__("IngestionService")
         self.strategy = AttentionMappingStrategy()
 
+    # File: /opt/render/project/src/src/application/services/ingestion_service.py
+# Sostituisci il blocco di lettura (intorno alla riga 24) con questo:
+
     def process_file(self, file_content, company_id: str) -> List[Asset]:
         """Esegue l'intero protocollo di ingestione RGD-Alpha."""
         self.log_info("Inizio processamento file caricato.")
 
         # 1. Lettura file (Excel o CSV)
         try:
+            # Prova prima come Excel
             df = pd.read_excel(file_content)
-        except:
-            df = pd.read_csv(file_content)
+        except Exception:
+            # Se fallisce, prova come CSV con rilevamento automatico del separatore
+            try:
+                # Riporta il puntatore all'inizio del file se necessario
+                file_content.seek(0)
+                # sep=None con engine='python' permette a pandas di indovinare il separatore (virgola, punto e virgola, ecc.)
+                df = pd.read_csv(file_content, sep=None, engine='python', on_bad_lines='warn')
+            except Exception as e:
+                self.log_error(f"Errore critico nella lettura del file: {e}")
+                return []
 
         if df.empty:
             return []

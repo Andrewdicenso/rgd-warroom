@@ -24,16 +24,24 @@ def show():
             # A. Ingestione Dati
             assets = ingestore.process_file(uploaded_file, SessionManager.get_user_id())
             
-            if assets:
-                status.update(label="✅ Ingestione Completata. Avvio Analisi...", state="complete")
+            # File: /opt/render/project/src/src/presentation/pages/war_room.py
+# Sostituisci la sezione "A. Ingestione Dati" (intorno alla riga 25) con questa:
+
+    if uploaded_file:
+        with st.status("🚀 Protocollo Analitico RGD in corso...", expanded=True) as status:
+            try:
+                # A. Ingestione Dati
+                assets = ingestore.process_file(uploaded_file, SessionManager.get_user_id())
                 
-                # B. Salvataggio e Analisi Predittiva
-                for asset in assets:
-                    # MODIFICA: Usiamo il metodo 'create_asset' del service che gestisce internamente il salvataggio
-                    try:
-                        asset_service.create_asset(asset)
-                    except Exception as e:
-                        st.warning(f"⚠️ Nota: Asset {asset.nome} già presente o errore minore salvataggio.")
+                if assets:
+                    status.update(label="✅ Ingestione Completata. Avvio Analisi...", state="complete")
+                    # ... resto della logica ...
+                else:
+                    status.update(label="⚠️ Il file è vuoto o non formattato correttamente.", state="error")
+                    st.warning("Verifica che il file CSV/Excel contenga dati validi.")
+            except Exception as e:
+                status.update(label="❌ Errore durante l'elaborazione", state="error")
+                st.error(f"Si è verificato un errore tecnico: {str(e)}")
                     
                     # Calcolo Rischio H(prod) tramite il tuo motore di regressione
                     # Recuperiamo lo storico fittizio per ora (List[float])
