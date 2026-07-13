@@ -147,7 +147,7 @@ class AnalysisService(BaseService):
         # Clamp tra 0 e 10
         return max(0.0, min(10.0, projected))
     
-def _generate_advice(self, asset: Asset, trend: str, risk_90gg: float) -> str:
+    def _generate_advice(self, asset: Asset, trend: str, risk_90gg: float) -> str:
         """Genera consiglio strategico potenziato dall'AI con fallback deterministico."""
 
         # 1. Proviamo a usare l'AI se il provider è configurato
