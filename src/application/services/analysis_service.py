@@ -7,7 +7,7 @@ from src.domain import Asset, MomentumStatus
 from src.application.services.base_service import BaseService
 from src.application.mappers import RiskAnalysisMapper
 from src.application.dto import RiskAnalysisDTO
-
+from ai_modules.modelli.factory import AIFactory
 
 class AnalysisService(BaseService):
     """
@@ -16,9 +16,11 @@ class AnalysisService(BaseService):
     """
     
     def __init__(self, kpi_repo=None):
-        """Inizializza AnalysisService con il repository KPI."""
+        """Inizializza AnalysisService con il repository KPI e il provider AI."""
         super().__init__("AnalysisService")
         self.kpi_repo = kpi_repo
+        # Inizializziamo il provider AI (Groq di default)
+        self.ai_provider = AIFactory.get_provider("groq")
 
     def calculate_strategic_kpis(self, assets: list):
         """
@@ -146,30 +148,30 @@ class AnalysisService(BaseService):
         return max(0.0, min(10.0, projected))
     
     def _generate_advice(self, asset: Asset, trend: str, risk_90gg: float) -> str:
-        """Genera consiglio strategico basato su analisi."""
-        if asset.is_critical:
-            return f"AZIONE IMMEDIATA: {asset.nome} è critico (rischio {asset.rischio.value:.1f}/10). Intervento management richiesto NOW."
-        
-        if trend == MomentumStatus.ACCELERATING.value:
-            if risk_90gg >= 7.5:
-                return f"ATTENZIONE: {asset.nome} sta accelerando verso critico. Planificare intervento nei prossimi 30gg."
-            else:
-                return f"MONITORAGGIO: {asset.nome} trend negativo. Mantieni sotto controllo."
-        
-        if risk_90gg >= 5.0:
-            return f"PRECAUZIONE: {asset.nome} probabilmente salirà a {risk_90gg:.1f}/10 tra 90gg. Pianificare azione."
-        
-        return f"STABILE: {asset.nome} mantiene trend positivo. Continua monitoraggio."
+        """Genera consiglio strategico potenziato dall'AI con fallback deterministico."""
     
-    def _determine_urgency(self, current_risk: float, future_risk: float) -> str:
-        """Determina il livello di urgenza."""
-        if current_risk >= 7.5:
-            return "IMMEDIATE"
+    # 1. Proviamo a usare l'AI se il provider è configurato
+    if self.ai_provider:
+        context_str = (
+            f"Asset: {asset.nome}, Rischio Attuale: {asset.rischio.value}, "
+            f"Trend: {trend}, Proiezione 90gg: {risk_90gg}. "
+            f"Criticità: {'Sì' if asset.is_critical else 'No'}."
+        )
+        ai_insight = self.ai_provider.generate_advice(context_str)
         
-        if future_risk >= 7.5 and (future_risk - current_risk) > 1.0:
-            return "HIGH"
-        
-        if current_risk >= 5.0 or future_risk >= 6.0:
-            return "MEDIUM"
-        
-        return "LOW"
+        if ai_insight:
+            return ai_insight
+
+    # 2. FALLBACK: Se l'AI fallisce o non è disponibile, usiamo la logica originale
+    if asset.is_critical:
+        return f"AZIONE IMMEDIATA: {asset.nome} è critico (rischio {asset.rischio.value:.1f}/10). Intervento management richiesto NOW."
+    
+    if trend == MomentumStatus.ACCELERATING.value:
+        if risk_90gg >= 7.5:
+            return f"ATTENZIONE: {asset.nome} sta accelerando verso critico. Pianificare intervento nei prossimi 30gg."
+        return f"MONITORAGGIO: {asset.nome} trend negativo. Mantieni sotto controllo."
+    
+    if risk_90gg >= 5.0:
+        return f"PRECAUZIONE: {asset.nome} probabilmente salirà a {risk_90gg:.1f}/10 tra 90gg. Pianificare azione."
+    
+    return f"STABILE: {asset.nome} mantiene trend positivo. Continua monitoraggio."
