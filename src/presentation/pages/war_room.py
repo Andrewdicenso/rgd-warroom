@@ -42,8 +42,13 @@ def show():
                     st.warning("Il file caricato sembra vuoto o non formattato correttamente.")
 
             except Exception as e:
-                status.update(label="❌ Errore durante l'elaborazione", state="error")
-                st.error(f"Si è verificato un errore tecnico: {str(e)}")
+                import traceback
+                status.update(label="❌ Errore Tecnico Rilevato", state="error")
+                st.error(f"### Dettaglio Errore: {str(e)}")
+                error_details = traceback.format_exc()
+                with st.expander("🔍 Vedi Analisi Tecnica (Debug)"):
+                    st.code(error_details, language="python")
+                st.warning("Consiglio: Copia il contenuto qui sopra e analizziamolo insieme.")
 
 if __name__ == "__main__":
     show()
