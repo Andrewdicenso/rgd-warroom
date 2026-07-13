@@ -1,7 +1,5 @@
-"""
-Ingestion Service - Orchestrazione del caricamento dati Enterprise.
-"""
 import pandas as pd
+import numpy as np
 from typing import List
 from src.application.services.base_service import BaseService
 from src.application.strategies.mapping_strategy import AttentionMappingStrategy
@@ -13,46 +11,66 @@ class IngestionService(BaseService):
         super().__init__("IngestionService")
         self.strategy = AttentionMappingStrategy()
 
-    # File: /opt/render/project/src/src/application/services/ingestion_service.py
-# Sostituisci il blocco di lettura (intorno alla riga 24) con questo:
+    def _smart_repair_logic(self, bad_line):
+        """Logica di riparazione per righe malformate."""
+        fixed_line = bad_line[:2] + [" ".join(bad_line[2:])]
+        return fixed_line
+
+    def log_ingestion_error(self, error_type: str, details: str):
+        """Standardizzazione del logging errori per il motore di ingestione."""
+        self.log_error(f"[{error_type}] {details}")
 
     def process_file(self, file_content, company_id: str) -> List[Asset]:
-        """Esegue l'intero protocollo di ingestione RGD-Alpha."""
-        self.log_info("Inizio processamento file caricato.")
+        """Esegue l'intero protocollo di ingestione RGD-Alpha Enterprise."""
+        self.log_info("Avvio Motore di Ingestione Adattivo RGD-Alpha.")
 
-        # 1. Lettura file (Excel o CSV)
+        # 1. Parsing Flessibile con protezione memoria
         try:
-            # Prova prima come Excel
+            # Prova a leggere come Excel
             df = pd.read_excel(file_content)
         except Exception:
-            # Se fallisce, prova come CSV con rilevamento automatico del separatore
+            # Se fallisce, riprova come CSV con protezione RAM
             try:
-                # Riporta il puntatore all'inizio del file se necessario
                 file_content.seek(0)
-                # sep=None con engine='python' permette a pandas di indovinare il separatore (virgola, punto e virgola, ecc.)
-                df = pd.read_csv(file_content, sep=None, engine='python', on_bad_lines='warn')
+                df = pd.read_csv(
+                    file_content, 
+                    sep=None, 
+                    engine='python', 
+                    on_bad_lines=self._smart_repair_logic, 
+                    dtype=str,
+                    encoding_errors='replace'
+                )
             except Exception as e:
-                self.log_error(f"Errore critico nella lettura del file: {e}")
+                self.log_ingestion_error("CRITICAL_PARSING_FAILURE", str(e))
                 return []
 
         if df.empty:
+            self.log_ingestion_error("EMPTY_FILE", "Il file caricato non contiene dati validi.")
             return []
 
-        # 2. Identificazione Reparto tramite Attenzione
-        settore = self.strategy.identify_sector(df.columns)
-        self.log_info(f"Settore rilevato dal file: {settore.value}")
+        # 2. Ottimizzazione Memoria e Pulizia
+        df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+        df = df.dropna(how='all')
+        
+        numeric_cols = ['rischio', 'quantita', 'prezzo', 'livello_servizio']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').astype('float32')
 
-        # 3. Normalizzazione e Creazione Asset
+        # 3. Identificazione Reparto
+        settore = self.strategy.identify_sector(df.columns)
+        self.log_info(f"Settore rilevato: {settore.value}")
+
+        # 4. Normalizzazione e Creazione Asset
         assets = []
         for _, row in df.iterrows():
-            row_dict = row.to_dict()
-            # Mappiamo i sinonimi (SAP e Standard) sui campi dell'entità
-            normalizzato = self._mappa_campi(row_dict)
-            normalizzato['company_id'] = company_id
-            
-            # Creazione tramite la nostra Factory di Dominio
-            asset = crea_asset_dal_dizionario(normalizzato, settore)
-            assets.append(asset)
+            try:
+                normalizzato = self._mappa_campi(row.to_dict())
+                normalizzato['company_id'] = company_id
+                asset = crea_asset_dal_dizionario(normalizzato, settore)
+                assets.append(asset)
+            except Exception as e:
+                self.log_ingestion_error("ASSET_CREATION_FAILURE", f"Riga ignorata causa errore: {e}")
 
         return assets
 
@@ -64,6 +82,5 @@ class IngestionService(BaseService):
                 if str(key).lower() in sinonimi:
                     pulito[target] = val
                     break
-        # Mantieni i dati originali come extra
         pulito['dati_extra'] = raw_data
         return pulito
