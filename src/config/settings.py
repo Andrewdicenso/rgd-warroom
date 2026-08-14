@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     # ========== DATABASE & SUPABASE ==========
     DATABASE_URL: str = "sqlite:///data/db/azienda.db"
-    SUPABASE_URL: str = "https://byzyyjbfjmvymgkbitcs.supabase.co"
+    SUPABASE_URL: str = "https://byzyyjbfjmvmgkbitcs.supabase.co"
     SUPABASE_KEY: Optional[str] = None
     DB_PASSWORD: Optional[str] = None
 
