@@ -1,25 +1,31 @@
-"""DTOs Module."""
+"""
+Modulo DTO (Data Transfer Objects) - RGD-Alpha Enterprise.
+Espone tutti i DTO per l'Application Layer per consentire import puliti e diretti.
+"""
+
 from .models import (
-    AssetDTO,
+    AlertDTO,
     AssetDiMercatoDTO,
-    AssetDiValoreDTO,   # <-- Aggiunto qui
-    RiskAnalysisDTO,
+    AssetDiValoreDTO,
+    AssetDTO,
+    DashboardDTO,
+    FileIngestionRequestDTO,
+    FileIngestionResponseDTO,
     KPIReportDTO,
     LoginRequestDTO,
     LoginResponseDTO,
-    UserDTO,
+    PasswordResetDTO,
+    PasswordResetRequestDTO,
     RegistrationRequestDTO,
     RegistrationResponseDTO,
-    FileIngestionRequestDTO,
-    FileIngestionResponseDTO,
-    AlertDTO,
-    DashboardDTO
+    RiskAnalysisDTO,
+    UserDTO,
 )
 
 __all__ = [
     "AssetDTO",
     "AssetDiMercatoDTO",
-    "AssetDiValoreDTO",  # <-- Aggiunto qui
+    "AssetDiValoreDTO",
     "RiskAnalysisDTO",
     "KPIReportDTO",
     "LoginRequestDTO",
@@ -27,8 +33,10 @@ __all__ = [
     "UserDTO",
     "RegistrationRequestDTO",
     "RegistrationResponseDTO",
+    "PasswordResetRequestDTO",
+    "PasswordResetDTO",
     "FileIngestionRequestDTO",
     "FileIngestionResponseDTO",
     "AlertDTO",
-    "DashboardDTO"
+    "DashboardDTO",
 ]

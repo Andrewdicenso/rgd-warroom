@@ -1,183 +1,190 @@
 """
-DTOs (Data Transfer Objects) - Application Layer.
-Usati per trasferire dati tra layer (non contengono logica di business).
+DTOs (Data Transfer Objects) - Application Layer Enterprise RGD-Alpha.
+Definisce le strutture dati usate per trasferire dati tra la UI (Streamlit),
+i servizi applicativi e i layer esterni (non contengono logica di business).
 """
-from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
+
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, EmailStr, Field
 
 
-@dataclass
-class AssetDTO:
-    """DTO per Asset - used for API responses, UI rendering."""
+# ==========================================
+# 1. ASSET DTOs
+# ==========================================
+
+class AssetDTO(BaseModel):
+    """DTO base per Asset - Usato per API e UI rendering."""
     id: str
     nome: str
     categoria: str
-    rischio_value: float
-    rischio_level: str  # CRITICAL, WARNING, SAFE
-    momentum_status: str
-    momentum_value: float
-    volatilita_value: float
+    rischio_value: float = Field(default=0.0, ge=0.0, le=10.0)
+    rischio_level: str = "SAFE"  # CRITICAL, WARNING, SAFE
+    momentum_status: str = "STABLE"
+    momentum_value: float = 0.0
+    volatilita_value: float = 0.0
     company_id: str
-    data_creazione: str
-    data_aggiornamento: str
-    is_critical: bool
-    dati_extra: Dict[str, Any]
+    data_creazione: str = Field(default_factory=lambda: datetime.now().isoformat())
+    data_aggiornamento: str = Field(default_factory=lambda: datetime.now().isoformat())
+    is_critical: bool = False
+    dati_extra: Dict[str, Any] = Field(default_factory=dict)
 
 
-@dataclass
 class AssetDiMercatoDTO(AssetDTO):
-    """DTO per Asset di Logistica."""
+    """DTO per Asset di Logistica e Mercato."""
     quantita: float = 0.0
     sku: str = ""
     ubicazione: str = ""
 
 
-@dataclass
 class AssetDiValoreDTO(AssetDTO):
-    """DTO per Asset di Finanza."""
+    """DTO per Asset di Finanza e Valore."""
     prezzo: float = 0.0
     stato_pagamento: str = ""
     valuta: str = "EUR"
 
 
-@dataclass
-class RiskAnalysisDTO:
-    """DTO per risultato analisi di rischio."""
+# ==========================================
+# 2. RISK ANALYSIS & KPI DTOs
+# ==========================================
+
+class RiskAnalysisDTO(BaseModel):
+    """DTO per il risultato dell'analisi di rischio e proiezioni."""
     asset_id: str
     asset_nome: str
     rischio_attuale: float
     rischio_proiezione_30gg: float
     rischio_proiezione_60gg: float
     rischio_proiezione_90gg: float
-    trend: str  # ACCELERATING, DECELERATING, STABLE
-    trend_value: float
-    volatilita: float
-    consiglio_strategico: str
-    urgenza: str  # IMMEDIATE, HIGH, MEDIUM, LOW
-    confidenza: float  # 0-1 (confidence score)
+    trend: str = "STABLE"  # ACCELERATING, DECELERATING, STABLE
+    trend_value: float = 0.0
+    volatilita: float = 0.0
+    consiglio_strategico: str = ""
+    urgenza: str = "LOW"  # IMMEDIATE, HIGH, MEDIUM, LOW
+    confidenza: float = 0.95  # Confidence score (0-1)
+    ai_provider: str = "Google Gemini"
 
 
-@dataclass
-class KPIReportDTO:
-    """DTO per report KPI."""
-    periodo: str  # "2024-03"
+class KPIReportDTO(BaseModel):
+    """DTO per report sintetico KPI aziendali."""
+    periodo: str  # es. "2026-08"
     health_score: float  # 0-10
-    asset_critici_count: int
-    asset_warning_count: int
-    cash_flow_previsto: float
-    revenue_previsto: float
-    margin_percentage: float
-    trend_overall: str
-    summary: str
+    asset_critici_count: int = 0
+    asset_warning_count: int = 0
+    cash_flow_previsto: float = 0.0
+    revenue_previsto: float = 0.0
+    margin_percentage: float = 0.0
+    trend_overall: str = "STABLE"
+    summary: str = ""
 
 
-@dataclass
-class LoginRequestDTO:
+# ==========================================
+# 3. AUTHENTICATION & USER DTOs
+# ==========================================
+
+class LoginRequestDTO(BaseModel):
     """DTO per richiesta login."""
-    email: str
+    email: EmailStr
     password: str
 
 
-@dataclass
-class LoginResponseDTO:
+class LoginResponseDTO(BaseModel):
     """DTO per risposta login."""
     success: bool
-    user_id: str
-    email: str
-    ruolo: str
-    azienda: str
-    azienda_id: str
+    user_id: str = ""
+    email: str = ""
+    ruolo: str = "USER"
+    azienda: str = ""
+    azienda_id: str = ""
     token: Optional[str] = None
     message: str = ""
 
 
-@dataclass
-class UserDTO:
-    """DTO per Utente."""
+class UserDTO(BaseModel):
+    """DTO per rappresentazione Utente."""
     id: str
-    email: str
-    ruolo: str
-    azienda_id: Optional[str]
-    data_creazione: str
-    data_ultimo_login: Optional[str]
+    email: EmailStr
+    ruolo: str = "USER"
+    azienda_id: Optional[str] = None
+    data_creazione: str = Field(default_factory=lambda: datetime.now().isoformat())
+    data_ultimo_login: Optional[str] = None
 
 
-@dataclass
-class RegistrationRequestDTO:
-    """DTO per richiesta registrazione."""
-    email: str
+class RegistrationRequestDTO(BaseModel):
+    """DTO per richiesta registrazione nuovo tenant/utente."""
+    email: EmailStr
     password: str
     confirm_password: str
     azienda_name: Optional[str] = None
 
 
-@dataclass
-class RegistrationResponseDTO:
+class RegistrationResponseDTO(BaseModel):
     """DTO per risposta registrazione."""
     success: bool
     user_id: Optional[str] = None
     message: str = ""
 
 
-@dataclass
-class PasswordResetRequestDTO:
+class PasswordResetRequestDTO(BaseModel):
     """DTO per richiesta reset password."""
-    email: str
+    email: EmailStr
 
 
-@dataclass
-class PasswordResetDTO:
-    """DTO per completamento reset password."""
+class PasswordResetDTO(BaseModel):
+    """DTO per completamento reset password con token."""
     token: str
     new_password: str
     confirm_password: str
 
 
-@dataclass
-class FileIngestionRequestDTO:
-    """DTO per richiesta ingestion file."""
+# ==========================================
+# 4. INGESTION & DATA IMPORT DTOs
+# ==========================================
+
+class FileIngestionRequestDTO(BaseModel):
+    """DTO per richiesta carimento file (CSV, Excel, ERP)."""
     file_name: str
     file_content: bytes
-    file_type: str  # csv, xlsx, etc
+    file_type: str  # csv, xlsx, txt, etc.
     user_id: str
     company_id: str
 
 
-@dataclass
-class FileIngestionResponseDTO:
-    """DTO per risposta ingestion file."""
+class FileIngestionResponseDTO(BaseModel):
+    """DTO per risposta esito carimento dati."""
     success: bool
     ingestion_id: str
-    rows_processed: int
-    rows_valid: int
-    rows_rejected: int
-    assets_created: int
-    assets_updated: int
-    errors: List[str]
-    warnings: List[str]
+    rows_processed: int = 0
+    rows_valid: int = 0
+    rows_rejected: int = 0
+    assets_created: int = 0
+    assets_updated: int = 0
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
 
-@dataclass
-class AlertDTO:
-    """DTO per Alert."""
+# ==========================================
+# 5. ALERT & DASHBOARD DTOs
+# ==========================================
+
+class AlertDTO(BaseModel):
+    """DTO per Notifiche ed Alert di sistema."""
     id: str
-    severity: str  # CRITICAL, WARNING, INFO
+    severity: str = "INFO"  # CRITICAL, WARNING, INFO
     title: str
     message: str
-    asset_id: Optional[str]
-    created_at: str
-    read: bool
+    asset_id: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    read: bool = False
 
 
-@dataclass
-class DashboardDTO:
-    """DTO per Dashboard summary."""
-    health_score: float
-    asset_critici: int
-    asset_warning: int
-    asset_total: int
-    alerts: List[AlertDTO]
-    top_risks: List[RiskAnalysisDTO]
-    recent_uploads: List[str]
-    last_sync: str
+class DashboardDTO(BaseModel):
+    """DTO per Dashboard Summary principale della War Room."""
+    health_score: float = 10.0
+    asset_critici: int = 0
+    asset_warning: int = 0
+    asset_total: int = 0
+    alerts: List[AlertDTO] = Field(default_factory=list)
+    top_risks: List[RiskAnalysisDTO] = Field(default_factory=list)
+    recent_uploads: List[str] = Field(default_factory=list)
+    last_sync: str = Field(default_factory=lambda: datetime.now().isoformat())
