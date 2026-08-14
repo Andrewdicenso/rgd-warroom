@@ -6,12 +6,16 @@ class AIFactory:
     """Factory per creare istanze di modelli AI in modo disaccoppiato."""
     
     @staticmethod
-    def get_provider(provider_name: str = "groq") -> Optional[AIModelInterface]:
-        """Restituisce il provider richiesto basandosi sulla configurazione."""
+    def get_provider(provider_name: str = "gemini") -> Optional[AIModelInterface]:
+        """
+        Restituisce il provider richiesto basandosi sulla configurazione.
+        Supporta 'gemini', 'groq' o valori di default.
+        """
         
         providers = {
+            "gemini": GroqAIProvider,
             "groq": GroqAIProvider,
-            # In futuro aggiungeremo qui: "openai": OpenAIProvider, "local": LocalProvider
+            # In futuro: "openai": OpenAIProvider, "anthropic": ClaudeProvider
         }
         
         provider_class = providers.get(provider_name.lower())
@@ -19,4 +23,5 @@ class AIFactory:
         if provider_class:
             return provider_class()
         
-        return None
+        # Fallback di sicurezza: se il nome del provider non viene trovato, usa GroqAIProvider
+        return GroqAIProvider()
