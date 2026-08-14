@@ -2,12 +2,15 @@
 Analysis Service - Use Case: Analisi Predittiva del Rischio.
 """
 import numpy as np
+import logging
 from typing import List
 from src.domain import Asset, MomentumStatus
 from src.application.services.base_service import BaseService
 from src.application.mappers import RiskAnalysisMapper
 from src.application.dto import RiskAnalysisDTO
 from ai_modules.modelli.factory import AIFactory
+
+logger = logging.getLogger("RGD-Alpha.AnalysisService")
 
 class AnalysisService(BaseService):
     """
@@ -24,30 +27,34 @@ class AnalysisService(BaseService):
 
     def calculate_strategic_kpis(self, assets: list):
         """
-        Applica il motore matematico originale RGD-Alpha per KPI globali.
+        Applica il motore matematico originale RGD-Alpha per KPI globali con normalizzazione dell'impatto.
         """
         if not assets:
-            return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0}
+            return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0, "delta_30gg": 0.0}
 
         # Estrazione dati dagli oggetti Asset
         tot_rischio = sum(asset.rischio.value if hasattr(asset.rischio, 'value') else asset.rischio for asset in assets)
-        # Nota: Usiamo 0.5 come volatilità di default se non presente
         tot_volatilità = sum(getattr(asset, 'volatilita', 0.5) for asset in assets)
         conteggio = len(assets)
 
-        # 1. Rischio Medio (La tua formula originale)
+        # 1. Rischio Medio (Formula originale)
         rischio_medio = round(tot_rischio / conteggio, 2)
         
-        # 2. Solidità Operativa (La tua formula originale: inversa del rischio)
+        # 2. Solidità Operativa (Formula originale: inversa del rischio)
         solidita = round(max(0.0, min(100.0, 100.0 - (rischio_medio * 9.5))), 1)
         
-        # 3. Impatto Proiettato a 30gg (La tua formula originale)
-        impatto_30gg = round((tot_volatilità / conteggio) * rischio_medio * 1.5, 2)
+        # 3. Impatto Proiettato a 30gg (Miglioria: Normalizzato con Cap a 10.0)
+        impatto_grezzo = (tot_volatilità / conteggio) * rischio_medio * 1.5
+        impatto_30gg = round(min(10.0, max(0.0, impatto_grezzo)), 2)
+
+        # 4. Delta Rischio stimato a 30 giorni
+        delta_30gg = round(impatto_30gg - rischio_medio, 2)
 
         return {
             "rischio_medio": rischio_medio,
             "solidita": solidita,
-            "impatto_30gg": impatto_30gg
+            "impatto_30gg": impatto_30gg,
+            "delta_30gg": delta_30gg
         }
     
     def analyze_asset_risk(
@@ -71,16 +78,16 @@ class AnalysisService(BaseService):
         trend, trend_value = self._calculate_trend(historical_risks)
         
         # Calcola proiezioni future
-        current_risk = asset.rischio.value
+        current_risk = asset.rischio.value if hasattr(asset.rischio, 'value') else float(asset.rischio)
         risk_30gg = self._project_risk(current_risk, trend_value, 1)
         risk_60gg = self._project_risk(current_risk, trend_value, 2)
         risk_90gg = self._project_risk(current_risk, trend_value, 3)
         
-        # Genera consiglio strategico
+        # Genera consiglio strategico (AI o Fallback)
         consiglio = self._generate_advice(asset, trend, risk_90gg)
         
         # Determina urgenza
-        urgenza = self._determine_urgency(asset.rischio.value, risk_90gg)
+        urgenza = self._determine_urgency(current_risk, risk_90gg)
         
         # Crea DTO
         dto = RiskAnalysisMapper.to_dto(
@@ -145,26 +152,32 @@ class AnalysisService(BaseService):
         projected = current_risk + (trend_slope * months)
         
         # Clamp tra 0 e 10
-        return max(0.0, min(10.0, projected))
+        return round(max(0.0, min(10.0, projected)), 2)
     
     def _generate_advice(self, asset: Asset, trend: str, risk_90gg: float) -> str:
-        """Genera consiglio strategico potenziato dall'AI con fallback deterministico."""
+        """Genera consiglio strategico potenziato dall'AI con fallback deterministico sicuro."""
 
         # 1. Proviamo a usare l'AI se il provider è configurato
         if self.ai_provider:
-            context_str = (
-                f"Asset: {asset.nome}, Rischio Attuale: {asset.rischio.value}, "
-                f"Trend: {trend}, Proiezione 90gg: {risk_90gg}. "
-                f"Criticità: {'Sì' if asset.is_critical else 'No'}."
-            )
-            ai_insight = self.ai_provider.generate_advice(context_str)
+            try:
+                current_risk_val = asset.rischio.value if hasattr(asset.rischio, 'value') else asset.rischio
+                context_str = (
+                    f"Asset: {asset.nome}, Rischio Attuale: {current_risk_val}, "
+                    f"Trend: {trend}, Proiezione 90gg: {risk_90gg}. "
+                    f"Criticità: {'Sì' if asset.is_critical else 'No'}."
+                )
+                ai_insight = self.ai_provider.generate_advice(context_str)
 
-            if ai_insight:
-                return ai_insight
+                if ai_insight:
+                    return ai_insight
+            except Exception as e:
+                logger.warning(f"AI Provider temporaneamente non disponibile, attivato fallback deterministico: {e}")
 
         # 2. FALLBACK: Se l'AI fallisce o non è disponibile, usiamo la logica originale
+        current_risk_val = asset.rischio.value if hasattr(asset.rischio, 'value') else asset.rischio
+
         if asset.is_critical:
-            return f"AZIONE IMMEDIATA: {asset.nome} è critico (rischio {asset.rischio.value:.1f}/10). Intervento management richiesto NOW."
+            return f"AZIONE IMMEDIATA: {asset.nome} è critico (rischio {current_risk_val:.1f}/10). Intervento management richiesto NOW."
 
         if trend == MomentumStatus.ACCELERATING.value:
             if risk_90gg >= 7.5:
