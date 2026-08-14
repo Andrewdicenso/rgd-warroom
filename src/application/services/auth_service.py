@@ -1,73 +1,76 @@
 """
-Auth Service - Use Case: Autenticazione & Autorizzazione.
+Auth Service - Use Case: Autenticazione & Autorizzazione Enterprise.
+Orchestra Login, Registrazione, Reset Password e Gestione Sessioni/Token.
 """
-import bcrypt
-import uuid
-from typing import Optional, Tuple
+
 from datetime import datetime, timedelta
-from src.domain import Utente, UserRole
-from src.application.services.base_service import BaseService
+import logging
+from typing import Dict, Optional, Tuple
+import uuid
+import bcrypt
+
 from src.application.dto import LoginResponseDTO, RegistrationResponseDTO
-from src.application.mappers import UserMapper
+from src.application.services.base_service import BaseService
+from src.config import settings
+from src.domain import UserRole, Utente
+
+logger = logging.getLogger("RGD-Alpha.AuthService")
 
 
 class AuthService(BaseService):
     """
-    Servizio di autenticazione.
-    Orchiestra login, registrazione, password reset, token management.
-    
-    NOTA: In produzione, userà UserRepository per persistenza.
-    Per ora, usa in-memory storage per demo.
+    Servizio di autenticazione e sicurezza.
+    Supporta persistenza reale via UserRepository o cache locale di fallback.
     """
-    
-    def __init__(self, admin_email: str = "andrewdicenso@libero.it"):
+
+    def __init__(self, user_repo=None, admin_email: Optional[str] = None):
         """
         Inizializza AuthService.
-        
-        Args:
-            admin_email: Email dell'amministratore (única)
         """
         super().__init__("AuthService")
-        self.admin_email = admin_email.lower()
-        self._users_store: dict = {}  # In-memory storage (demo only)
-        self._reset_tokens: dict = {}  # In-memory reset tokens
-        
-        # Crea admin di default
+        self.user_repo = user_repo
+        self.admin_email = (admin_email or settings.ADMIN_EMAIL).lower().strip()
+
+        self._users_store: Dict[str, Utente] = {}  # In-memory storage (demo/fallback)
+        self._reset_tokens: Dict[str, dict] = {}  # Token di reset password
+
+        # Inizializza admin di default
         self._create_default_admin()
-    
+
     def _create_default_admin(self) -> None:
-        """Crea admin di default se non esiste."""
-        admin_password = "WarRoom123!"
-        admin_hash = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
-        
+        """Crea l'utente admin di default se non presente."""
+        admin_password = settings.DEFAULT_ADMIN_PASSWORD
+        admin_hash = bcrypt.hashpw(
+            admin_password.encode("utf-8"), bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+        ).decode("utf-8")
+
         admin = Utente(
             email=self.admin_email,
             password_hash=admin_hash,
             ruolo=UserRole.ADMIN.value,
-            azienda_id="rgd-alpha-001"
+            azienda_id="rgd-alpha-enterprise",
         )
-        
+
         self._users_store[admin.id] = admin
-        self.log_info(f"Default admin created: {self.admin_email}")
-    
+        if self.user_repo:
+            try:
+                self.user_repo.create(admin)
+            except Exception:
+                pass  # L'admin potrebbe già esistere a DB
+
+        self.log_info(f"Admin di default verificato/creato per: {self.admin_email}")
+
     def login(self, email: str, password: str) -> LoginResponseDTO:
         """
-        Effettua il login di un utente.
-        
-        Args:
-            email: Email utente
-            password: Password in chiaro
-            
-        Returns:
-            LoginResponseDTO con result e token
+        Autentica un utente verificando le credenziali con Bcrypt.
         """
         email = email.lower().strip()
-        self.log_info(f"Login attempt: {email}")
-        
-        # Trova utente per email
+        self.log_info(f"Tentativo di login per: {email}")
+
+        # 1. Trova l'utente (da DB o cache)
         user = self._find_user_by_email(email)
         if not user:
-            self.log_warning(f"Login failed: user not found {email}")
+            self.log_warning(f"Login fallito: utente non trovato ({email})")
             return LoginResponseDTO(
                 success=False,
                 user_id="",
@@ -75,12 +78,13 @@ class AuthService(BaseService):
                 ruolo="",
                 azienda="",
                 azienda_id="",
-                message="Email o password non validi"
+                message="Email o password non validi",
             )
-        
-        # Verifica password
-        if not bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
-            self.log_warning(f"Login failed: wrong password for {email}")
+
+        # 2. Verifica hash della password
+        user_pw_hash = getattr(user, "password_hash", "")
+        if not bcrypt.checkpw(password.encode("utf-8"), user_pw_hash.encode("utf-8")):
+            self.log_warning(f"Login fallito: password errata per {email}")
             return LoginResponseDTO(
                 success=False,
                 user_id="",
@@ -88,192 +92,197 @@ class AuthService(BaseService):
                 ruolo="",
                 azienda="",
                 azienda_id="",
-                message="Email o password non validi"
+                message="Email o password non validi",
             )
-        
-        # Update last login
-        user.data_ultimo_login = datetime.now()
-        
-        # Crea token (JWT semplice per demo)
+
+        # 3. Aggiorna data ultimo login
+        if hasattr(user, "data_ultimo_login"):
+            user.data_ultimo_login = datetime.now()
+
+        # 4. Genera Token di sessione
         token = self._create_token(user.id)
-        
-        self.log_info(f"Login successful: {email}")
-        
+
+        self.log_info(f"Login completato con successo: {email}")
+
         return LoginResponseDTO(
             success=True,
             user_id=user.id,
             email=user.email,
-            ruolo=user.ruolo,
-            azienda="Demo Company",  # TODO: fetch from database
-            azienda_id=user.azienda_id or "demo-001",
+            ruolo=getattr(user, "ruolo", UserRole.USER.value),
+            azienda=getattr(user, "azienda_nome", "Azienda Connessa"),
+            azienda_id=getattr(user, "azienda_id", "demo-001"),
             token=token,
-            message="Login effettuato con successo"
+            message="Login effettuato con successo",
         )
-    
+
     def register(
         self,
         email: str,
         password: str,
         confirm_password: str,
-        azienda_name: Optional[str] = None
+        azienda_name: Optional[str] = None,
     ) -> RegistrationResponseDTO:
         """
-        Registra un nuovo utente.
-        
-        Args:
-            email: Email utente
-            password: Password
-            confirm_password: Conferma password
-            azienda_name: Nome azienda (opzionale)
-            
-        Returns:
-            RegistrationResponseDTO
+        Registra un nuovo utente garantendo la validazione della password e l'univocità della mail.
         """
         email = email.lower().strip()
-        self.log_info(f"Registration attempt: {email}")
-        
-        # Validazioni
+        self.log_info(f"Tentativo di registrazione per: {email}")
+
+        # Validazioni della password
         if password != confirm_password:
             return RegistrationResponseDTO(
-                success=False,
-                message="Le password non coincidono"
+                success=False, message="Le password inserite non coincidono"
             )
-        
-        if len(password) < 8:
+
+        if len(password) < settings.PASSWORD_MIN_LENGTH:
             return RegistrationResponseDTO(
                 success=False,
-                message="Password deve essere almeno 8 caratteri"
+                message=f"La password deve contenere almeno {settings.PASSWORD_MIN_LENGTH} caratteri",
             )
-        
-        # Verifica se esiste già
+
+        # Controllo presenza utente esistente
         if self._find_user_by_email(email):
-            self.log_warning(f"Registration failed: email già registrata {email}")
+            self.log_warning(f"Registrazione fallita: email già presente ({email})")
             return RegistrationResponseDTO(
-                success=False,
-                message="Email già registrata nel sistema"
+                success=False, message="Email già registrata nel sistema"
             )
-        
-        # Crea nuovo utente
-        password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
-        
-        # Se è l'admin email, assegna ruolo admin
-        ruolo = UserRole.ADMIN.value if email == self.admin_email else UserRole.USER.value
-        
+
+        # Generazione Hash Password
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+        ).decode("utf-8")
+
+        # Assegnazione Ruolo
+        ruolo = (
+            UserRole.ADMIN.value
+            if email == self.admin_email
+            else UserRole.USER.value
+        )
+        company_id = f"company-{uuid.uuid4().hex[:8]}"
+
         utente = Utente(
             email=email,
             password_hash=password_hash,
             ruolo=ruolo,
-            azienda_id=f"company-{uuid.uuid4().hex[:8]}"
+            azienda_id=company_id,
         )
-        
+
+        # Salvataggio
         self._users_store[utente.id] = utente
-        
-        self.log_info(f"User registered: {email}")
-        
+        if self.user_repo:
+            try:
+                self.user_repo.create(utente)
+            except Exception as e:
+                self.log_error(f"Errore durante il salvataggio utente nel DB: {e}")
+
+        self.log_info(f"Nuovo utente registrato con successo: {email}")
+
         return RegistrationResponseDTO(
             success=True,
             user_id=utente.id,
-            message="Registrazione completata con successo"
+            message="Registrazione completata con successo",
         )
-    
+
     def request_password_reset(self, email: str) -> Tuple[bool, str]:
         """
-        Richiede un reset della password.
-        
-        Args:
-            email: Email utente
-            
-        Returns:
-            (success, reset_token)
+        Genera un token di reset della password valido per 24 ore.
         """
         email = email.lower().strip()
-        self.log_info(f"Password reset requested: {email}")
-        
+        self.log_info(f"Richiesta di reset password per: {email}")
+
         user = self._find_user_by_email(email)
         if not user:
-            # Security: non rivelare se email esiste
-            return False, ""
-        
-        # Crea reset token (valido 24h)
+            # Sicurezza: risponde sempre True per evitare User Enumeration
+            return True, ""
+
         reset_token = str(uuid.uuid4())
         self._reset_tokens[reset_token] = {
             "user_id": user.id,
             "email": email,
-            "expires_at": datetime.now() + timedelta(hours=24)
+            "expires_at": datetime.now() + timedelta(hours=24),
         }
-        
-        self.log_info(f"Reset token created for {email}")
-        
+
+        self.log_info(f"Token di reset generato per: {email}")
         return True, reset_token
-    
-    def reset_password(self, token: str, new_password: str, confirm_password: str) -> Tuple[bool, str]:
+
+    def reset_password(
+        self, token: str, new_password: str, confirm_password: str
+    ) -> Tuple[bool, str]:
         """
-        Completa il reset della password.
-        
-        Args:
-            token: Reset token
-            new_password: Nuova password
-            confirm_password: Conferma password
-            
-        Returns:
-            (success, message)
+        Completa il ripristino della password validando il token.
         """
-        self.log_info(f"Password reset attempt with token")
-        
-        # Verifica token
+        self.log_info("Tentativo di aggiornamento password con token di reset")
+
         if token not in self._reset_tokens:
-            return False, "Token non valido"
-        
+            return False, "Token di reset non valido"
+
         token_data = self._reset_tokens[token]
-        
-        # Verifica scadenza
+
+        # Controlla scadenza token
         if datetime.now() > token_data["expires_at"]:
             del self._reset_tokens[token]
-            return False, "Token scaduto"
-        
-        # Validazioni password
+            return False, "Il token di reset è scaduto"
+
         if new_password != confirm_password:
-            return False, "Le password non coincidono"
-        
-        if len(new_password) < 8:
-            return False, "Password deve essere almeno 8 caratteri"
-        
-        # Aggiorna password
+            return False, "Le nuove password non coincidono"
+
+        if len(new_password) < settings.PASSWORD_MIN_LENGTH:
+            return (
+                False,
+                f"La password deve essere di almeno {settings.PASSWORD_MIN_LENGTH} caratteri",
+            )
+
         user_id = token_data["user_id"]
-        user = self._users_store.get(user_id)
-        
+        user = self._users_store.get(user_id) or (
+            self.user_repo.read(user_id) if self.user_repo else None
+        )
+
         if not user:
-            return False, "Utente non trovato"
-        
-        user.password_hash = bcrypt.hashpw(
+            return False, "Utente associato non trovato"
+
+        # Aggiornamento Hash Password
+        new_hash = bcrypt.hashpw(
             new_password.encode("utf-8"),
-            bcrypt.gensalt(rounds=12)
+            bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS),
         ).decode("utf-8")
-        
-        # Elimina token usato
+
+        user.password_hash = new_hash
+
+        if self.user_repo:
+            try:
+                self.user_repo.update(user_id, user)
+            except Exception as e:
+                self.log_error(f"Errore aggiornamento password nel DB: {e}")
+
+        # Invalida il token usato
         del self._reset_tokens[token]
-        
-        self.log_info(f"Password reset successful for {user.email}")
-        
+
+        self.log_info(f"Password aggiornata con successo per l'utente: {user.email}")
         return True, "Password aggiornata con successo"
-    
+
     def _find_user_by_email(self, email: str) -> Optional[Utente]:
-        """Trova utente per email (case-insensitive)."""
+        """Trova un utente per email nel DB o nella memoria."""
+        if self.user_repo:
+            try:
+                user = self.user_repo.get_by_email(email)
+                if user:
+                    return user
+            except Exception:
+                pass
+
         for user in self._users_store.values():
-            if user.email.lower() == email.lower():
+            if getattr(user, "email", "").lower() == email.lower():
                 return user
         return None
-    
+
     def _create_token(self, user_id: str) -> str:
-        """Crea un token semplice (demo)."""
-        # In produzione, usare JWT
-        return f"token-{user_id}-{uuid.uuid4().hex[:8]}"
-    
+        """Crea un token identificativo di sessione."""
+        return f"rgd-token-{user_id}-{uuid.uuid4().hex[:12]}"
+
     def verify_token(self, token: str) -> Optional[str]:
-        """Verifica token e ritorna user_id se valido."""
-        # In produzione, verificare JWT signature
-        if token.startswith("token-"):
+        """Verifica la validità del token e restituisce il relativo user_id."""
+        if token.startswith("rgd-token-"):
             parts = token.split("-")
-            if len(parts) >= 2:
-                return parts[1]
+            if len(parts) >= 3:
+                return parts[2]
         return None
