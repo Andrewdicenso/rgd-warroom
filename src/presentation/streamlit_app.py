@@ -1,11 +1,16 @@
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
-# Risolvi percorsi per import
+# 1. Carica subito le variabili d'ambiente dal file .env
+load_dotenv()
+
+# 2. Risolvi percorsi per gli import del progetto
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# 3. Import dei moduli dell'applicazione
 import streamlit as st
 from src.config import get_settings
 from src.presentation.state import SessionManager
@@ -13,7 +18,7 @@ from src.presentation.components import render_login_tabs
 from src.application.services import AuthService, AssetService, AnalysisService
 from src.infrastructure import configure_logging
 
-# Inizializzazione configurazioni globali
+# 4. Inizializzazione configurazioni globali
 settings = get_settings()
 configure_logging()
 
