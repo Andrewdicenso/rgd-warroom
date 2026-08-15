@@ -28,8 +28,14 @@ class AuthService(BaseService):
         Inizializza AuthService.
         """
         super().__init__("AuthService")
+        
+        # 1. Carichiamo le impostazioni tramite la funzione factory
+        self.settings = get_settings() 
+        
         self.user_repo = user_repo
-        self.admin_email = (admin_email or settings.ADMIN_EMAIL).lower().strip()
+        
+        # 2. Usiamo self.settings invece di settings
+        self.admin_email = (admin_email or self.settings.ADMIN_EMAIL).lower().strip()
 
         self._users_store: Dict[str, Utente] = {}  # In-memory storage (demo/fallback)
         self._reset_tokens: Dict[str, dict] = {}  # Token di reset password
@@ -39,9 +45,12 @@ class AuthService(BaseService):
 
     def _create_default_admin(self) -> None:
         """Crea l'utente admin di default se non presente."""
-        admin_password = settings.DEFAULT_ADMIN_PASSWORD
+        # Se hai usato self.settings = get_settings() in __init__, usa questa versione:
+        admin_password = self.settings.DEFAULT_ADMIN_PASSWORD
+        
         admin_hash = bcrypt.hashpw(
-            admin_password.encode("utf-8"), bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+            admin_password.encode("utf-8"), 
+            bcrypt.gensalt(rounds=self.settings.BCRYPT_ROUNDS)
         ).decode("utf-8")
 
         admin = Utente(
