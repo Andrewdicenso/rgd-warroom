@@ -11,7 +11,7 @@ import bcrypt
 
 from src.application.dto import LoginResponseDTO, RegistrationResponseDTO
 from src.application.services.base_service import BaseService
-from src.config.settings import settings
+from src.config import settings
 from src.domain import UserRole, Utente
 
 logger = logging.getLogger("RGD-Alpha.AuthService")
@@ -39,7 +39,7 @@ class AuthService(BaseService):
 
     def _create_default_admin(self) -> None:
         """Crea l'utente admin di default se non presente."""
-        admin_password = settings.settings.DEFAULT_ADMIN_PASSWORD
+        admin_password = settings.DEFAULT_ADMIN_PASSWORD
         admin_hash = bcrypt.hashpw(
             admin_password.encode("utf-8"), bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
         ).decode("utf-8")
