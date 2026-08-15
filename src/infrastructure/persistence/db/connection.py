@@ -2,33 +2,31 @@
 Supabase Connection - Gestore Cloud Enterprise RGD-Alpha.
 Sostituisce SQLite con persistenza Cloud-Native e Logging professionale.
 """
-import os
 import logging
 from supabase import create_client, Client
-from dotenv import load_dotenv  # Importa la libreria per leggere il file .env
+from src.config.settings import get_settings  # <--- Usa il tuo sistema centralizzato
 
-# Recuperiamo il logger configurato nel tuo sistema
 logger = logging.getLogger("RGD-Alpha.Database")
 
 class DatabaseConnection:
     """
     Gestisce la connessione al database Cloud Supabase.
-    Utilizza le Environment Variables impostate nel file .env o su Render.
+    Utilizza la configurazione centralizzata Settings.
     """
     
     def __init__(self):
         """Inizializza il client Supabase verificando le credenziali."""
         
-        # Carica le variabili dal file .env (cerca automaticamente nella root del progetto)
-        load_dotenv()
+        # Carichiamo i settings validati
+        cfg = get_settings()
         
-        self.url = os.getenv("SUPABASE_URL")
-        self.key = os.getenv("SUPABASE_KEY")
+        self.url = cfg.SUPABASE_URL
+        self.key = cfg.SUPABASE_KEY
         
-        # Verifica se le variabili sono state caricate correttamente
-        if not self.url or not self.key:
-            logger.critical("❌ Mancano SUPABASE_URL o SUPABASE_KEY nelle variabili d'ambiente.")
-            raise ValueError("Configurazione Supabase incompleta su Render o file .env mancante.")
+        # Verifica robusta
+        if not self.url or not self.key or "http" not in str(self.url):
+            logger.critical(f"❌ Configurazione Supabase non valida. URL: {self.url}")
+            raise ValueError(f"URL Supabase non valido o mancante: {self.url}")
             
         try:
             # Inizializzazione del client Supabase
