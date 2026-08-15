@@ -1,6 +1,15 @@
+toml
 [theme]
-primaryColor = "#d33682"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#31333f"
+# Un blu/celeste professionale per i pulsanti e gli accenti
+primaryColor = "#00a0dc" 
+
+# Celeste chiarissimo per lo sfondo principale
+backgroundColor = "#f0f8ff" 
+
+# Un celeste leggermente più scuro per la barra laterale e i widget
+secondaryBackgroundColor = "#e1effa" 
+
+# Testo grigio molto scuro (quasi nero) per la massima leggibilità
+textColor = "#1e293b" 
+
 font = "sans serif"
