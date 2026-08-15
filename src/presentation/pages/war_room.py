@@ -12,12 +12,14 @@ def show():
     st.markdown(
         """
         <style>
-            [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"] {
-                display: block !important;
+            /* Forza il colore del testo e del bordo dell'uploader */
+            .stFileUploader label p {
+                color: #31333F !important; /* Grigio scuro/Nero */
             }
-            .stFileUploader {
-                display: block !important;
-                visibility: visible !important;
+            section[data-testid="stFileUploader"] {
+                border: 1px solid #ff4b4b !important; /* Bordo rosso per individuarlo subito */
+                padding: 10px;
+                border-radius: 5px;
             }
         </style>
         """,
