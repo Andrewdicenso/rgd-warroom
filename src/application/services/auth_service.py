@@ -11,7 +11,7 @@ import bcrypt
 
 from src.application.dto import LoginResponseDTO, RegistrationResponseDTO
 from src.application.services.base_service import BaseService
-from src.config import settings
+from src.config.settings import settings
 from src.domain import UserRole, Utente
 
 logger = logging.getLogger("RGD-Alpha.AuthService")
