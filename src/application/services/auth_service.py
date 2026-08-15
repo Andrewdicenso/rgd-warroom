@@ -143,10 +143,10 @@ class AuthService(BaseService):
                 success=False, message="Le password inserite non coincidono"
             )
 
-        if len(password) < settings.PASSWORD_MIN_LENGTH:
+        if len(password) < self.settings.PASSWORD_MIN_LENGTH:
             return RegistrationResponseDTO(
                 success=False,
-                message=f"La password deve contenere almeno {settings.PASSWORD_MIN_LENGTH} caratteri",
+                message=f"La password deve contenere almeno {self.settings.PASSWORD_MIN_LENGTH} caratteri",
             )
 
         # Controllo presenza utente esistente
@@ -158,7 +158,7 @@ class AuthService(BaseService):
 
         # Generazione Hash Password
         password_hash = bcrypt.hashpw(
-            password.encode("utf-8"), bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS)
+            password.encode("utf-8"), bcrypt.gensalt(rounds=self.settings.BCRYPT_ROUNDS)
         ).decode("utf-8")
 
         # Assegnazione Ruolo
@@ -235,10 +235,10 @@ class AuthService(BaseService):
         if new_password != confirm_password:
             return False, "Le nuove password non coincidono"
 
-        if len(new_password) < settings.PASSWORD_MIN_LENGTH:
+        if len(new_password) < self.settings.PASSWORD_MIN_LENGTH:
             return (
                 False,
-                f"La password deve essere di almeno {settings.PASSWORD_MIN_LENGTH} caratteri",
+                f"La password deve essere di almeno {self.settings.PASSWORD_MIN_LENGTH} caratteri",
             )
 
         user_id = token_data["user_id"]
@@ -252,7 +252,7 @@ class AuthService(BaseService):
         # Aggiornamento Hash Password
         new_hash = bcrypt.hashpw(
             new_password.encode("utf-8"),
-            bcrypt.gensalt(rounds=settings.BCRYPT_ROUNDS),
+            bcrypt.gensalt(rounds=self.settings.BCRYPT_ROUNDS),
         ).decode("utf-8")
 
         user.password_hash = new_hash
