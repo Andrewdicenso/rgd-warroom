@@ -7,12 +7,29 @@ from src.config.di_container import DIContainer
 SessionManager.require_auth()
 
 def show():
+    # --- RESET CSS ---
+    # Forza la visibilità di tutti gli elementi UI, annullando eventuali stili restrittivi
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebar"], [data-testid="stSidebarCollapseButton"] {
+                display: block !important;
+            }
+            .stFileUploader {
+                display: block !important;
+                visibility: visible !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.title("📊 War Room Strategica")
     st.subheader(f"Asset Intelligence per: {SessionManager.get_azienda()}")
     
     st.divider()
 
-    # --- SEZIONE CARICAMENTO (Spostata in alto per visibilità) ---
+    # --- SEZIONE CARICAMENTO ---
     st.markdown("### 📁 Caricamento Dati Operativi")
     uploaded_file = st.file_uploader(
         "Seleziona un file Excel o CSV per avviare il protocollo di analisi", 
@@ -25,7 +42,7 @@ def show():
     if uploaded_file:
         with st.status("🚀 Protocollo Analitico RGD in corso...", expanded=True) as status:
             try:
-                # Recupero Servizi solo quando necessario
+                # Recupero Servizi (Dependency Injection)
                 container = DIContainer()
                 ingestore = container.get_ingestion_service()
                 analizzatore = container.get_analysis_service()
@@ -44,11 +61,11 @@ def show():
                 analizzati_con_successo = 0
                 for asset in assets:
                     try:
-                        # Calcolo Rischio e AI Insight
+                        # Calcolo Rischio e AI Insight (History fittizia per il calcolo)
                         history = [asset.rischio.value] * 5
                         analisi_dto = analizzatore.analyze_asset_risk(asset, history)
                         
-                        # Recupero insight in modo sicuro (supporta diversi nomi attributo)
+                        # Recupero insight in modo sicuro (supporta diversi nomi attributo nel DTO)
                         insight_text = getattr(analisi_dto, 'insight', getattr(analisi_dto, 'consiglio', "Analisi non disponibile"))
                         
                         with st.expander(f"🔍 Analisi Asset: {asset.nome}"):
