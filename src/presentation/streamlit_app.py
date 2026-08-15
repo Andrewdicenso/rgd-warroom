@@ -142,7 +142,9 @@ st.markdown(
 @st.cache_resource
 def get_auth_service() -> AuthService:
     """Ottiene l'istanza AuthService (cached)."""
-    return AuthService(admin_email=settings.ADMIN_EMAIL)
+    from src.config.settings import get_settings
+    cfg = get_settings()
+    return AuthService(admin_email=cfg.ADMIN_EMAIL)
 
 
 @st.cache_resource
