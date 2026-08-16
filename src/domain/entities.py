@@ -28,6 +28,15 @@ class Asset:
     data_creazione: datetime = field(default_factory=datetime.now)
     data_aggiornamento: datetime = field(default_factory=datetime.now)
     dati_extra: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def azienda_id(self):
+        """Rende l'asset compatibile con le chiamate che usano 'azienda_id'"""
+        return self.company_id
+
+    @azienda_id.setter
+    def azienda_id(self, value):
+        self.company_id = value
     
     def __post_init__(self):
         """Validazione al momento della creazione."""
@@ -189,12 +198,18 @@ class Utente:
 def crea_asset_dal_dizionario(data: Dict[str, Any], categoria: AssetCategory) -> Asset:
     """
     Factory function: crea un Asset dal dizionario.
-    Supporta le tre categorie specializzate.
+    Risolve il conflitto tra azienda_id e company_id e supporta nomi colonne vari.
     """
     asset_id = data.get("id", str(uuid.uuid4()))
-    nome = data.get("nome", "Asset Senza Nome")
-    company_id = data.get("company_id", "")
-    rischio_value = float(data.get("rischio", 0.0))
+    
+    # Prova a prendere il nome in vari modi (italiano/inglese/maiuscolo)
+    nome = data.get("nome", data.get("Nome", "Asset Senza Nome"))
+    
+    # RISOLUZIONE CRITICA: Cerca l'ID azienda in ogni formato possibile
+    company_id = data.get("company_id", data.get("azienda_id", data.get("Company_ID", "")))
+    
+    # Prova a leggere il rischio
+    rischio_value = float(data.get("rischio", data.get("Rischio", 0.0)))
     
     common_kwargs = {
         "id": asset_id,
