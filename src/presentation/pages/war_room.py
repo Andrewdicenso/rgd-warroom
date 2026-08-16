@@ -7,19 +7,26 @@ from src.config.di_container import DIContainer
 SessionManager.require_auth()
 
 def show():
-    # --- RESET CSS ---
-    # Forza la visibilità di tutti gli elementi UI, annullando eventuali stili restrittivi
+        # --- RESET E PERSONALIZZAZIONE CSS ---
     st.markdown(
         """
         <style>
-            /* Forza il colore del testo e del bordo dell'uploader */
-            .stFileUploader label p {
-                color: #31333F !important; /* Grigio scuro/Nero */
+            /* Forza la visibilità del testo del pulsante Upload */
+            [data-testid="stBaseButton-secondary"] p {
+                color: #1e293b !important; /* Blu scuro/Nero */
+                font-weight: bold !important;
             }
-            section[data-testid="stFileUploader"] {
-                border: 1px solid #ff4b4b !important; /* Bordo rosso per individuarlo subito */
-                padding: 10px;
-                border-radius: 5px;
+            
+            /* Rende la zona di caricamento più visibile */
+            [data-testid="stFileUploaderDropzone"] {
+                border: 2px dashed #00a0dc !important; /* Bordo tratteggiato celeste */
+                background-color: #ffffff !important; /* Sfondo bianco per l'area di drop */
+                border-radius: 10px;
+            }
+
+            /* Testo delle istruzioni (200MB, XLSX, ecc.) */
+            [data-testid="stFileUploaderDropzoneInstructions"] span {
+                color: #475569 !important;
             }
         </style>
         """,

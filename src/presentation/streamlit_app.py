@@ -86,33 +86,34 @@ st.markdown(
             color: #ffffff !important; 
         }
         
-        /* 5. FIX PULSANTI (Forza testo scuro visibile) */
-        .stButton > button, div.stButton > button, div.stFormSubmitButton > button {
+        /* 5. FIX PULSANTI E CARICAMENTO FILE (Testo visibile) */
+        .stButton > button, div.stButton > button, div.stFormSubmitButton > button,
+        [data-testid="stFileUploader"] section {
             border-radius: 10px !important;
             background: #ffffff !important; /* Fondo bianco solido */
-            color: #1f2937 !important;     /* TESTO SCURO LEGGIBILE */
             width: 100% !important;
-            border: 1px solid rgba(255,255,255,0.3) !important;
+            border: 1px solid #2563eb !important; /* Bordo blu per risaltare */
             transition: all 0.3s ease !important;
-            font-weight: 600 !important;
-            padding: 0.5rem 1rem !important;
         }
         
-        /* Forza il colore scuro su qualsiasi elemento figlio del pulsante */
-        .stButton > button *, div.stButton > button *, div.stFormSubmitButton > button * {
+        /* Forza il colore scuro su TUTTI gli elementi interni (testo e icone) */
+        .stButton > button *, 
+        div.stButton > button *, 
+        div.stFormSubmitButton > button *,
+        [data-testid="stFileUploader"] section * {
             color: #1f2937 !important;
+            fill: #1f2937 !important; /* Per le icone SVG */
         }
         
-        /* Hover del pulsante */
+        /* Hover del pulsante: testo bianco su fondo blu */
         .stButton > button:hover, div.stButton > button:hover, div.stFormSubmitButton > button:hover { 
-            background: #2563eb !important; /* Blu brillante */
-            color: #ffffff !important;
+            background: #2563eb !important; 
             border: 1px solid #2563eb !important;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
         }
 
         .stButton > button:hover *, div.stButton > button:hover *, div.stFormSubmitButton > button:hover * {
             color: #ffffff !important;
+            fill: #ffffff !important;
         }
 
         /* 6. FIX TABS (Login, Registrazione, Recupero) */
