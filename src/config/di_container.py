@@ -70,10 +70,11 @@ class DIContainer:
     # ========== SERVICE & REPOSITORY GETTERS (Operativi) ==========
 
     def get_database(self):
-        """Restituisce la connessione Supabase persistente."""
-        from src.infrastructure.persistence.db.connection import DatabaseConnection
-        return self.get("database") if "database" in self._singletons else \
-               self._register_singleton("database", DatabaseConnection())
+        if "database" not in self._singletons:
+            from src.infrastructure.persistence.db.connection import DatabaseConnection
+            instance = DatabaseConnection()
+            self._register_singleton("database", instance)
+        return self._singletons["database"]
 
     def get_user_repository(self):
         from src.infrastructure.persistence.repositories.user_repository import UserRepository
