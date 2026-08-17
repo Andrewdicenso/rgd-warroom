@@ -1,33 +1,51 @@
 import logging
+import os
 from typing import List, Tuple
 import numpy as np
+import pandas as pd
+import difflib
+from datetime import datetime
 
+# Moduli AI e DTO (Questi dovrebbero essere corretti)
 from ai_modules.modelli.factory import AIFactory
 from src.application.dto import RiskAnalysisDTO
 from src.application.mappers import RiskAnalysisMapper
 from src.application.services.base_service import BaseService
 from src.domain import Asset, MomentumStatus
 
+# --- CORREZIONE PERCORSI SICUREZZA ---
+# Rimuoviamo 'core' e usiamo 'src'. 
+# Nota: Verifica se il file è in src/infrastructure/security/secure_vault.py
+try:
+    from src.infrastructure.security.secure_vault import SecureVault
+except ImportError:
+    # Se il file si trova direttamente in src/infrastructure/
+    from src.infrastructure.secure_vault import SecureVault
+
 logger = logging.getLogger("RGD-Alpha.AnalysisService")
 
+
 class AnalysisService(BaseService):
-    """
-    ENGINE RGD-ALPHA ENTERPRISE v2.2
-    SISTEMA INTEGRATO: Mappatura Universale + EMA Protocol + What-If Analysis.
-    """
-    def __init__(self):
+
+    def __init__(self, kpi_repo=None):
+        """Inizializza il servizio ricevendo il repository dal container."""
+        super().__init__("AnalysisService")
         try:
-            self.vault = SecureVault(key_path="core/security/vault.key")
-            self.db = DatabaseAziendale()
+            # Il container passa KPIRepository come kpi_repo
+            self.db = kpi_repo 
+            
+            # ATTENZIONE: verifica che la cartella sia 'src' e non 'core'
+            self.vault = SecureVault(key_path="src/infrastructure/security/vault.key")
         except Exception as e:
             logger.critical(f"Errore critico avvio componenti core: {e}")
-            raise
+            raise # <--- DEVE essere dentro l'except, allineato con logger
         
         self.ORE_TEORICHE_ANNUE = 2080
         self.pesi_contesto = {
             "Magazzino": 1.2, "Fornitori": 1.5, "Performance Vendite": 1.0,
             "Produttività Risorse": 1.3, "EDILE": 1.4, "FASHION": 1.1, "UNIVERSAL": 1.0
         }
+
 
     # ==========================================================================
     # NUOVA FUNZIONE: SMART MAPPING UNIVERSALE
