@@ -1,8 +1,3 @@
-"""
-Analysis Service - Use Case: Analisi Predittiva del Rischio.
-Orchestra i calcoli matematici dei KPI e l'integrazione con l'AI.
-"""
-
 import logging
 from typing import List, Tuple
 import numpy as np
@@ -15,183 +10,190 @@ from src.domain import Asset, MomentumStatus
 
 logger = logging.getLogger("RGD-Alpha.AnalysisService")
 
-
 class AnalysisService(BaseService):
     """
-    Servizio per l'analisi predittiva del rischio.
-    Calcola trend, momentum, volatilità e proiezioni future.
+    ENGINE RGD-ALPHA ENTERPRISE v2.2
+    SISTEMA INTEGRATO: Mappatura Universale + EMA Protocol + What-If Analysis.
     """
-
-    def __init__(self, kpi_repo=None):
-        """Inizializza AnalysisService con il repository KPI e il provider AI."""
-        super().__init__("AnalysisService")
-        self.kpi_repo = kpi_repo
-        # Inizializziamo il provider AI (Gemini/Groq tramite AIFactory)
-        self.ai_provider = AIFactory.get_provider("gemini")
-
-    def calculate_strategic_kpis(self, assets: list) -> dict:
-        """
-        Applica il motore matematico originale RGD-Alpha per KPI globali 
-        con normalizzazione dell'impatto.
-        """
-        if not assets:
-            return {
-                "rischio_medio": 0.0,
-                "solidita": 100.0,
-                "impatto_30gg": 0.0,
-                "delta_30gg": 0.0,
-            }
-
-        # Estrazione dati dagli oggetti Asset
-        tot_rischio = sum(
-            asset.rischio.value if hasattr(asset.rischio, "value") else asset.rischio
-            for asset in assets
-        )
-        tot_volatilità = sum(getattr(asset, "volatilita", 0.5) for asset in assets)
-        conteggio = len(assets)
-
-        # 1. Rischio Medio
-        rischio_medio = round(tot_rischio / conteggio, 2)
-
-        # 2. Solidità Operativa (Inversa del rischio)
-        solidita = round(max(0.0, min(100.0, 100.0 - (rischio_medio * 9.5))), 1)
-
-        # 3. Impatto Proiettato a 30gg (Normalizzato con Cap a 10.0)
-        impatto_grezzo = (tot_volatilità / conteggio) * rischio_medio * 1.5
-        impatto_30gg = round(min(10.0, max(0.0, impatto_grezzo)), 2)
-
-        # 4. Delta Rischio stimato a 30 giorni
-        delta_30gg = round(impatto_30gg - rischio_medio, 2)
-
-        return {
-            "rischio_medio": rischio_medio,
-            "solidita": solidita,
-            "impatto_30gg": impatto_30gg,
-            "delta_30gg": delta_30gg,
+    def __init__(self):
+        try:
+            self.vault = SecureVault(key_path="core/security/vault.key")
+            self.db = DatabaseAziendale()
+        except Exception as e:
+            logger.critical(f"Errore critico avvio componenti core: {e}")
+            raise
+        
+        self.ORE_TEORICHE_ANNUE = 2080
+        self.pesi_contesto = {
+            "Magazzino": 1.2, "Fornitori": 1.5, "Performance Vendite": 1.0,
+            "Produttività Risorse": 1.3, "EDILE": 1.4, "FASHION": 1.1, "UNIVERSAL": 1.0
         }
 
-    def analyze_asset_risk(
-        self, asset: Asset, historical_risks: List[float]
-    ) -> RiskAnalysisDTO:
+    # ==========================================================================
+    # NUOVA FUNZIONE: SMART MAPPING UNIVERSALE
+    # ==========================================================================
+    def mappa_colonne_universale(self, df):
         """
-        Analizza il rischio di un asset e genera le proiezioni temporali.
+        Rileva e rinomina automaticamente le colonne provenienti da qualsiasi ERP/CRM.
+        Non interrompe il flusso: se non trova nulla, restituisce il df originale.
         """
-        self.log_info(f"Analisi rischio avviata per asset: {asset.id}")
+        colonne_target = {
+            "nome": ["Work Center", "Reparto", "Cantiere", "Asset", "Macchina", "Project", "Account Name", "Name"],
+            "rischio": ["Risk", "Criticality", "Priorità", "Livello", "Grado", "Pericolo", "Priority Score", "Rischio"],
+            "ore_produttive_effettive": ["Hours", "Ore", "Tempo", "Effort", "Lavorate", "Actual Hours", "h"],
+            "tipo": ["Type", "Category", "Categoria", "Genere", "Resource Group", "Tipo"],
+            "stato": ["Status", "Stato", "Health", "Fase", "Current State"],
+            "timestamp": ["Data", "Date", "Timestamp", "Data Caricamento", "Inizio", "Giorno"]
+        }
+        colonne_file = list(df.columns)
+        mappa_finale = {}
 
-        # Calcola trend (regressione lineare)
-        trend, trend_value = self._calculate_trend(historical_risks)
+        for target, sinonimi in colonne_target.items():
+            for col in colonne_file:
+                if col.lower() in [s.lower() for s in sinonimi] or col.lower() == target:
+                    mappa_finale[col] = target
+                    break
+            if target not in mappa_finale.values():
+                matches = difflib.get_close_matches(target, colonne_file, n=1, cutoff=0.5)
+                if matches: 
+                    mappa_finale[matches[0]] = target
+        
+        return df.rename(columns=mappa_finale)
 
-        # Calcola proiezioni future
-        current_risk = (
-            asset.rischio.value
-            if hasattr(asset.rischio, "value")
-            else float(asset.rischio)
-        )
-        risk_30gg = self._project_risk(current_risk, trend_value, 1)
-        risk_60gg = self._project_risk(current_risk, trend_value, 2)
-        risk_90gg = self._project_risk(current_risk, trend_value, 3)
+    # --- ALGORITMI PRODUTTIVITÀ (Invariati) ---
+    def calcola_ore_produttive_individuali(self, f, fest, a, p, r, m):
+        return self.ORE_TEORICHE_ANNUE - (f + fest + a + p + r + m)
 
-        # Genera consiglio strategico (AI o Fallback)
-        consiglio = self._generate_advice(asset, trend, risk_90gg)
+    def calcola_indice_produttivita(self, output, ore_effettive):
+        return round(output / ore_effettive, 2) if ore_effettive > 0 else 0.0
 
-        # Determina livello di urgenza
-        urgenza = self._determine_urgency(current_risk, risk_90gg)
+    # --- MATRICE MATEMATICA CORE (EMA PROTOCOL - Invariata) ---
+    def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
+        if dt <= 0: 
+            dt = 1
+        return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
-        # Crea e restituisce DTO tramite Mapper
-        dto = RiskAnalysisMapper.to_dto(
-            asset=asset,
-            rischio_attuale=current_risk,
-            rischio_30gg=risk_30gg,
-            rischio_60gg=risk_60gg,
-            rischio_90gg=risk_90gg,
-            trend=trend,
-            trend_value=trend_value,
-            consiglio=consiglio,
-            urgenza=urgenza,
-            confidenza=0.95,
-        )
+    def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
+        if dt <= 0: 
+            dt = 1
+        return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
 
-        self.log_info(f"Analisi completata per {asset.id} → Urgenza: {urgenza}")
-        return dto
+    # --- INSERISCI DA QUI ---
+    def calcola_volatilita_sistema(self, valori_rischio):
+        """
+        Rileva instabilità nei dati caricati (Anomalie di Governance).
+        """
+        if len(valori_rischio) < 2: return 0.0
+        return round(np.std(valori_rischio), 2)
+    # --- FINO A QUI ---
+   
+    def _genera_consiglio_azione(self, rischio, settore, m_score=0):
+        alert = " ⚠️ ACCELERAZIONE CRITICA!" if m_score > 1.5 else ""
+        if rischio > 8:
+            consigli = {
+                "PRIMARIO_ALIMENTARE": "🚨 BLOCCO LOTTI: Rischio sanitario/scadenza. Isolare stock.",
+                "EDILE_COSTRUZIONI": "🚨 FERMO CANTIERE: Rischio penali elevato. Verificare subappalti.",
+                "TERZIARIO_LOGISTICA": "🚨 LIQUIDAZIONE: Saturazione spazi. Liberare magazzino ora.",
+                "FASHION_RETAIL": "🚨 OUTLET IMMEDIATO: Merce fuori stagione. Recuperare capitale."
+            }
+            return consigli.get(settore, "🚨 EMERGENZA: Azione correttiva richiesta entro 24h.") + alert
+        elif rischio > 5:
+            return f"⚠️ MONITORAGGIO: Settore {settore} in allerta. Revisione parametri settimanale." + alert
+        return "✅ NOMINALE: Proseguire secondo pianificazione."
 
-    def _calculate_trend(self, risks: List[float]) -> Tuple[str, float]:
-        """Calcola il trend dei rischi storici tramite regressione lineare."""
-        if len(risks) < 2:
-            return MomentumStatus.UNDEFINED.value, 0.0
+    # --- CONFIGURAZIONE SETTORE / SOGLIE (Invariata) ---
+    def _analizza_e_configura_motore(self, contesto, colonne):
+        contesto_upper = str(contesto).upper()
+        if "EDILE" in contesto_upper: 
+            return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
+        if "FASHION" in contesto_upper: 
+            return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
+        if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper: 
+            return {"settore": "TERZIARIO_LOGISTICA", "soglia": 7.0, "moltiplicatore": 1.3}
+        if "ALIMENT" in contesto_upper: 
+            return {"settore": "PRIMARIO_ALIMENTARE", "soglia": 6.5, "moltiplicatore": 1.4}
+        return {"settore": "GENERAL", "soglia": 7.0, "moltiplicatore": 1.0}
 
-        x = np.arange(len(risks))
-        y = np.array(risks)
+    # --- ANALISI STRATEGICA E WHAT-IF (Logica H(prod) Preservata) ---
+    def esegui_scan_strategico(self, lista_asset, contesto, fattore_stress=1.0, weights=(0.7, 0.3)):
+        colonne = []
+        if lista_asset:
+            colonne = list(lista_asset[0].keys()) if isinstance(lista_asset[0], dict) else list(vars(lista_asset[0]).keys())
+        
+        config = self._analizza_e_configura_motore(contesto, colonne)
+        settore_rilevato = config.get("settore", "GENERAL")
+        soglia = config.get("soglia", 7.0)
+        moltiplicatore = config.get("moltiplicatore", 1.0) * self.pesi_contesto.get(contesto, 1.0) * fattore_stress
+        
+        report = []
+        for asset in lista_asset:
+            d = asset if isinstance(asset, dict) else vars(asset)
+            nome = d.get("nome", d.get("asset", "Asset")) # Fallback sicuro
+            r_base = d.get("rischio", 0.0)
+            
+                        # Calcolo H(prod) POTENZIATO: Modello di Saturazione Rischio
+            voci_perdita = ["ferie", "festivita", "assenze", "permessi", "ritardi", "micropause"]
+            ore_p = sum([float(d.get(k, 0)) for k in voci_perdita])
+            
+            if ore_p > 0:
+                rapporto_perdita = ore_p / self.ORE_TEORICHE_ANNUE
+                # Funzione di crescita non lineare: il rischio accelera dopo il 15% di ore perse
+                r_base = round(10 / (1 + np.exp(-15 * (rapporto_perdita - 0.15))), 2)
+            else:
+                r_base = d.get("rischio", 1.0) # Fallback se non ci sono ore caricate
+            
+            r_pesato = round(r_base * moltiplicatore, 2)
+            m_score = self._calcola_trend_momentum_alpha(r_pesato, r_base * 0.85, w1=weights[0], w2=weights[1])
+            stato = "CRITICO" if r_pesato > soglia else "OTTIMALE" if r_pesato < 5 else "ATTENZIONE"
 
-        coeffs = np.polyfit(x, y, 1)
-        slope = coeffs[0]
+            report.append({
+                "asset": nome,
+                "stato": stato,
+                "rischio": r_pesato,
+                "momentum_score": m_score,
+                "consiglio_strategico": self._genera_consiglio_azione(r_pesato, settore_rilevato, m_score),
+                "settore": settore_rilevato,
+                "alert": "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
+            })
+            self._archivia_asset(d, r_pesato, str(m_score))
+        return report
 
-        if slope > 0.2:
-            trend = MomentumStatus.ACCELERATING.value
-        elif slope < -0.2:
-            trend = MomentumStatus.DECELERATING.value
-        else:
-            trend = MomentumStatus.STABLE.value
+    # --- MODULO INTELLIGENCE E ARCHIVIAZIONE (Invariati) ---
+    def analizza_giacenze_e_proponi_marketing(self, df):
+        proposte = []
+        oggi = datetime.now()
+        if df is None or df.empty: 
+            return proposte
+        for _, row in df.iterrows():
+            if 'timestamp' not in row or pd.isna(row['timestamp']): 
+                continue
+            giorni = (oggi - pd.to_datetime(row['timestamp'])).days
+            if giorni > 30:
+                rischio, valore = row.get('rischio', 0.0), row.get('valore_extra', 0.0)
+                sconto = 0.4 if rischio > 7 else 0.2
+                proposte.append({
+                    "asset": row.get('nome'), 
+                    "giorni": giorni, 
+                    "recupero_stimato": f"€ {round(valore * (1 - sconto), 2)}", 
+                    "consiglio": f"🚨 BLOCCATI {giorni}gg. Applica sconto {int(sconto*100)}%."
+                })
+        return proposte
 
-        return trend, float(slope)
-
-    def _project_risk(self, current_risk: float, trend_slope: float, months: int) -> float:
-        """Proietta il rischio futuro limitandolo tra 0.0 e 10.0."""
-        projected = current_risk + (trend_slope * months)
-        return round(max(0.0, min(10.0, projected)), 2)
-
-    def _determine_urgency(self, current_risk: float, risk_90gg: float) -> str:
-        """Determina il livello di urgenza d'intervento."""
-        if current_risk >= 7.5 or risk_90gg >= 8.5:
-            return "IMMEDIATE"
-        elif current_risk >= 5.0 or risk_90gg >= 6.5:
-            return "HIGH"
-        elif current_risk >= 3.0 or risk_90gg >= 4.5:
-            return "MEDIUM"
-        return "LOW"
-
-    def _generate_advice(self, asset: Asset, trend: str, risk_90gg: float) -> str:
-        """Genera un consiglio strategico potenziato dall'AI con fallback deterministico."""
-        current_risk_val = (
-            asset.rischio.value
-            if hasattr(asset.rischio, "value")
-            else asset.rischio
-        )
-
-        # 1. Tentativo con AI Provider
-        if self.ai_provider:
-            try:
-                context_str = (
-                    f"Asset: {asset.nome}, Rischio Attuale: {current_risk_val}, "
-                    f"Trend: {trend}, Proiezione 90gg: {risk_90gg}. "
-                    f"Criticità: {'Sì' if asset.is_critical else 'No'}."
-                )
-                ai_insight = self.ai_provider.generate_advice(context_str)
-                if ai_insight:
-                    return ai_insight
-            except Exception as e:
-                logger.warning(
-                    f"AI Provider temporaneamente non disponibile, attivato fallback: {e}"
-                )
-
-        # 2. FALLBACK Deterministico
-        if asset.is_critical:
-            return (
-                f"AZIONE IMMEDIATA: {asset.nome} è critico (rischio {current_risk_val:.1f}/10). "
-                f"Intervento del management richiesto ORA."
+    def _archivia_asset(self, d, rischio, momentum_str="Stabile"):
+        try:
+            self.db.salva_asset(
+                user_id=d.get("user_id", 1), 
+                nome_asset=d.get("nome"), 
+                rischio=rischio, 
+                tipo=d.get("tipo", "Enterprise"), 
+                momentum=momentum_str, 
+                volatilita=0.0
             )
+        except Exception as e:
+            logger.warning(f"DB Sync fallito: {e}")
 
-        if trend == MomentumStatus.ACCELERATING.value:
-            if risk_90gg >= 7.5:
-                return (
-                    f"ATTENZIONE: {asset.nome} sta accelerando verso livello critico. "
-                    f"Pianificare intervento nei prossimi 30 giorni."
-                )
-            return f"MONITORAGGIO: {asset.nome} mostra un trend negativo. Mantieni sotto controllo."
-
-        if risk_90gg >= 5.0:
-            return (
-                f"PRECAUZIONE: {asset.nome} potrebbe salire a {risk_90gg:.1f}/10 tra 90 giorni. "
-                f"Pianificare azione preventiva."
-            )
-
-        return f"STABILE: {asset.nome} mantiene un trend controllato. Continua il monitoraggio."
+    def salva_report_certificato(self, report_data):
+        if not report_data: 
+            return False
+        logger.info("Report salvato con successo (stub).")
+        return True
