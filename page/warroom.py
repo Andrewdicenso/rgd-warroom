@@ -23,32 +23,47 @@ def main():
     tab_log, tab_reg, tab_res = st.tabs(["🔒 Login", "🆕 Registrazione", "🔑 Recupero Password"])
 
     with tab_log:
-        st.text_input("Email Aziendale")
-        st.text_input("Password", type="password")
-        st.button("Accedi al Sistema")
+        # Aggiunta key univoca per il login
+        st.text_input("Email Aziendale", key="login_email")
+        st.text_input("Password", type="password", key="login_password")
+        st.button("Accedi al Sistema", key="btn_login")
 
     with tab_reg:
-        st.text_input("Email Aziendale")
-        st.text_input("Password", type="password")
-        st.button("Registrati")
+        # Aggiunta key univoca per la registrazione
+        st.text_input("Email Aziendale", key="reg_email")
+        st.text_input("Password", type="password", key="reg_password")
+        st.button("Registrati", key="btn_reg")
 
     with tab_res:
-        st.text_input("Email Aziendale")
-        st.button("Invia Link di Recupero")
+        # Aggiunta key univoca per il recupero
+        st.text_input("Email Aziendale", key="reset_email")
+        st.button("Invia Link di Recupero", key="btn_reset")
 
     # 🔹 Mostra upload e analisi SOLO se l'utente è autenticato
+    # Nota: dovrai implementare la logica di login per impostare questa variabile a True
     if st.session_state.get("autenticato"):
         st.markdown("### 📁 Carica file CSV o Excel")
         uploaded_file = st.file_uploader("Upload", type=["csv", "xlsx", "xls"])
+        
         if uploaded_file:
-            df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
-            st.dataframe(df, use_container_width=True)
+            try:
+                if uploaded_file.name.endswith(".csv"):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                st.dataframe(df, use_container_width=True)
 
-            analista = AnalistaRischio(db=DatabaseAziendale())
-            risultati = analista.calcola_kpi(df)
-            st.json(risultati)
-            st.write(spiega_kpi(risultati))
+                analista = AnalistaRischio(db=DatabaseAziendale())
+                risultati = analista.calcola_kpi(df)
+                st.json(risultati)
+                st.write(spiega_kpi(risultati))
 
-            fig = analista.genera_grafico_solidita(df)
-            st.pyplot(fig)
-            st.write(spiega_grafico("Grafico Solidità Operativa", df.to_dict()))
+                fig = analista.genera_grafico_solidita(df)
+                st.pyplot(fig)
+                st.write(spiega_grafico("Grafico Solidità Operativa", df.to_dict()))
+            except Exception as e:
+                st.error(f"Errore durante l'elaborazione del file: {e}")
+
+if __name__ == "__main__":
+    main()
