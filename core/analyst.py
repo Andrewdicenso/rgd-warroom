@@ -37,7 +37,6 @@ class AnalistaRischio:
         Usa DatabaseAziendale per lavorare su dati già decifrati.
         """
         try:
-            # Recupera tutti gli asset per l'azienda (company_id gestito in chiaro dal DB)
             df_all = self.db.recupera_asset_per_azienda(company_id)
 
             if df_all.empty:
@@ -48,7 +47,6 @@ class AnalistaRischio:
                     "azione": "Nessun dato storico disponibile per questo asset."
                 }
 
-            # Filtra solo l'asset/reparto richiesto
             df = df_all[df_all['nome'] == nome_asset].copy()
             if df.empty:
                 return {
@@ -58,7 +56,6 @@ class AnalistaRischio:
                     "azione": "Nessun dato storico disponibile per questo asset."
                 }
 
-            # Ordine cronologico e limitazione agli ultimi 15 campionamenti
             df = df.sort_values('timestamp')
             df = df.tail(15)
 
@@ -82,14 +79,9 @@ class AnalistaRischio:
             ultimo = rischi[-1]
             precedente = rischi[-2]
 
-            # 1. Indicatori di Velocità dello slittamento orario
             delta = ultimo - precedente
             pendenza = self._calcola_proiezione_lineare(rischi)
-
-            # 2. Analisi Volatilità delle ore produttive (Deviazione Standard)
             volatilita = np.std(rischi)
-
-            # 3. Momentum (Variazione percentuale del posizionamento di rischio)
             momentum_perc = ((ultimo - rischi[0]) / rischi[0] * 100) if rischi[0] != 0 else 0
 
             predizione = {
@@ -102,7 +94,6 @@ class AnalistaRischio:
                 "alert_critico": float(ultimo) > self.soglia_critica
             }
 
-            # --- LOGICA DI INTELLIGENCE PREDITTIVA ALLINEATA AD H(prod) ---
             if pendenza > 0.3 or (ultimo > self.soglia_critica and delta > 0):
                 predizione["valutazione_strategica"] = "INSTABILITÀ ACCELERATA"
                 predizione["azione"] = "CRITICO: Accumulo esponenziale di ore perse. Rischio blocco supply chain o scadenze."

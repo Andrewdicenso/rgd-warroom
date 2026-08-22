@@ -1,9 +1,10 @@
 import streamlit as st
 import bcrypt
 import logging
-import smtplib  # <-- Aggiunto qui
-from email.mime.text import MIMEText  # <-- Aggiunto qui
-from email.mime.multipart import MIMEMultipart  # <-- Aggiunto qui
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from core.config import settings
 
 logger = logging.getLogger("RGD-Alpha.Auth")
 
@@ -23,24 +24,20 @@ def inizializza_sessione():
 def login_utente(db, email, password):
     """Verifica le credenziali e assegna il ruolo Admin esclusivamente a te."""
     try:
-        # 1️⃣ Recupero utente dal DB (usando la funzione get_utente_by_email corretta)
         utente = db.get_utente_by_email(email)
         if not utente:
             logger.warning(f"Tentativo di login fallito: email non trovata ({email}).")
             return False
         
-        # 2️⃣ Verifica password bcrypt
         if not bcrypt.checkpw(password.encode("utf-8"), bytes(utente["password_hash"], "utf-8")):
             logger.warning(f"Tentativo di login fallito per {email}: password errata.")
             return False
 
-        # 3️⃣ Login OK → Blindatura Ruolo Admin
         st.session_state.autenticato = True
         st.session_state.user_id = utente["id"]
         st.session_state.email = utente["email"]
         st.session_state.azienda = utente["azienda"]
 
-        # FORZA ADMIN SOLO PER LA TUA EMAIL
         if utente["email"].lower() == "andrewdicenso@libero.it":
             st.session_state.ruolo = "admin"
         else:
@@ -76,10 +73,12 @@ def invia_email_recupero(email_destinatario, link_reset):
     """
     Spedisce il link di reset tramite server SMTP.
     """
-    SMTP_SERVER = "smtp.libero.it" 
+    SMTP_SERVER = "smtp.libero.it"
     SMTP_PORT = 465
-    SMTP_USER = "andrewdicenso@libero.it" 
-    SMTP_PASSWORD = "tua_password_app_qui" # <-- Inserisci qui la password app generata
+    SMTP_USER = "andrewdicenso@libero.it"
+
+    # 🔐 Password sicura presa dal file .env tramite config.py
+    SMTP_PASSWORD = settings.SMTP_PASSWORD
 
     msg = MIMEMultipart()
     msg['From'] = SMTP_USER

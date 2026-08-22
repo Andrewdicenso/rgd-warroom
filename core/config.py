@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     # Paths
     SRC_DIR: str = "src"
     UPLOAD_DIR: str = "data/uploads"
-    
+
+    # Security
+    vault_key_path: str = "core/security/vault.key"
+    db_password: str
+
     # SMTP
     SMTP_SERVER: str
     SMTP_PORT: int

@@ -3,19 +3,41 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# 2. LIBRERIE DI TERZE PARTI (Installate con pip)
+# Librerie di terze parti
 from dotenv import load_dotenv
 from groq import Groq
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# 3. MODULI CORE & AUTH (I tuoi file locali)
+# Moduli core & auth
 from auth.auth import *
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
 from core.ingestor import IngestoreDati
-from data_refinery import DataRefinery
+from core.simulator import SimulatoreRischio
+
+# Router pagine
+from page import warroom
+
+# Configurazione Streamlit
+st.set_page_config(page_title="RGD War Room", layout="wide")
+
+# --- HEADER RGandja ---
+st.markdown(
+    """
+    <div style='display:flex; align-items:center; justify-content:center; margin-top:20px; margin-bottom:20px;'>
+        <img src='assets/logo.webp' style='width:120px; margin-right:15px;'>
+        <span style='font-size:2.6rem; font-weight:700; font-family:Playfair Display, serif; color:#E3B341;'>
+            RGandja | Global Economic Intelligence
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Avvio pagina War Room
+warroom.main()
 
 # --- RISOLUZIONE DINAMICA PATH INTERNI ---
 PROJECT_ROOT = Path(__file__).resolve().parent

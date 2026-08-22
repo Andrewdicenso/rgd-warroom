@@ -22,7 +22,6 @@ class DatabaseAziendale:
             os.makedirs(db_folder, exist_ok=True)
             self.db_path = os.path.join(db_folder, db_name)
 
-            # Inizializzazione Vault (Auto-configurato con vault.key)
             self.vault = SecureVault()
 
             self.crea_tabelle()
@@ -31,7 +30,6 @@ class DatabaseAziendale:
             logger.critical(f"❌ Fallimento critico database: {e}")
             raise
 
-    # Connessione centralizzata
     def _get_conn(self):
         return sqlite3.connect(self.db_path, check_same_thread=False)
 
@@ -39,12 +37,10 @@ class DatabaseAziendale:
     #   CREAZIONE TABELLE
     # =========================
     def crea_tabelle(self):
-        """Inizializza lo schema garantendo l'integrità dei dati criptati e l'isolamento per utente."""
         try:
             with self._get_conn() as conn:
                 cursor = conn.cursor()
 
-                # 1. Tabella Utenti (MASTER)
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS utenti (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +52,6 @@ class DatabaseAziendale:
                     )
                 """)
 
-                # 2. Tabella Asset Logs
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS asset_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +68,6 @@ class DatabaseAziendale:
                     )
                 """)
 
-                # 3. Tabella Storico KPI
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS storico_kpi (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +80,6 @@ class DatabaseAziendale:
                     )
                 """)
 
-                # 4. Log Caricamenti
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS log_caricamenti (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +91,7 @@ class DatabaseAziendale:
                         FOREIGN KEY (user_id) REFERENCES utenti(id)
                     )
                 """)
-                # 5. Tabella Token Reset Password (NUOVA)
+
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS password_tokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,35 +110,25 @@ class DatabaseAziendale:
     # =========================
     #   UTENTI / AUTENTICAZIONE
     # =========================
-
     def crea_utente(self, email, password, ruolo="user", azienda=None):
-        """
-        Crea un nuovo utente.
-        La password viene hashata internamente con bcrypt.
-        """
         try:
             with self._get_conn() as conn:
                 cursor = conn.cursor()
 
                 email_enc = self.vault.encrypt_data(email)
-
-                # HASH SICURO DELLA PASSWORD
                 password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-                # Inserisco utente senza azienda per ottenere l'id
                 cursor.execute("""
                     INSERT INTO utenti (email, password_hash, ruolo, azienda)
                     VALUES (?, ?, ?, ?)
                 """, (email_enc, password_hash, ruolo, None))
                 user_id = cursor.lastrowid
 
-                # Se non è stata passata un'azienda, ne genero una
                 if azienda is None:
                     azienda = f"AZ-{user_id}"
 
                 azienda_enc = self.vault.encrypt_data(azienda)
 
-                # Aggiorno l'azienda dell'utente
                 cursor.execute("""
                     UPDATE utenti SET azienda = ?
                     WHERE id = ?
@@ -158,26 +141,22 @@ class DatabaseAziendale:
             raise
 
     def get_utente_by_email(self, email):
-        """Recupera l'utente decriptando i dati per il confronto (Fix Accesso)."""
         try:
             with self._get_conn() as conn:
-                # Recuperiamo tutti gli utenti per confrontarli in memoria decriptandoli
                 cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti")
                 rows = cursor.fetchall()
 
             for row in rows:
                 try:
-                    # Decriptiamo l'email salvata nel database
                     email_dec = self.vault.decrypt_data(row[1])
-                    if isinstance(email_dec, bytes): 
+                    if isinstance(email_dec, bytes):
                         email_dec = email_dec.decode()
-                    
-                    # Confronto reale tra l'email inserita e quella nel DB
+
                     if email_dec.lower() == email.lower():
                         azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
-                        if isinstance(azienda_dec, bytes): 
+                        if isinstance(azienda_dec, bytes):
                             azienda_dec = azienda_dec.decode()
-                        
+
                         return {
                             "id": row[0],
                             "email": email_dec,
@@ -193,7 +172,6 @@ class DatabaseAziendale:
             return None
 
     def get_utente_by_id(self, user_id: int):
-        """Recupera un utente a partire dall'id."""
         try:
             with self._get_conn() as conn:
                 cursor = conn.execute("""
@@ -217,7 +195,6 @@ class DatabaseAziendale:
             return None
 
     def get_tutti_gli_utenti(self):
-        """Ritorna tutti gli utenti (per Admin Panel)."""
         try:
             with self._get_conn() as conn:
                 df = pd.read_sql_query("SELECT * FROM utenti", conn)
@@ -235,7 +212,6 @@ class DatabaseAziendale:
     # =========================
     #   ASSET / LOGICHE AZIENDALI
     # =========================
-
     def get_azienda_per_utente(self, user_id: int):
         utente = self.get_utente_by_id(user_id)
         if not utente:
@@ -298,10 +274,6 @@ class DatabaseAziendale:
         return self.recupera_asset_per_utente(user_id)
 
     def recupera_attivita_globale(self, solo_admin=False, user_id=None):
-        """
-        Recupera l'attività. Se solo_admin=True, estrae tutti i record
-        del sistema permettendo la supervisione incrociata di tutte le aziende.
-        """
         try:
             with self._get_conn() as conn:
                 if solo_admin:
@@ -330,12 +302,7 @@ class DatabaseAziendale:
     # ==========================================
     #   CALCOLO MATEMATICO CENTRALIZZATO KPI
     # ==========================================
-
     def calcola_e_salva_kpi_correnti(self, user_id: int):
-        """
-        Calcola istantaneamente i KPI strategici reali basandosi sugli ultimi log degli asset nel DB.
-        Sfrutta SQL per la massima efficienza e memorizza il risultato nello storico_kpi.
-        """
         try:
             azienda = self.get_azienda_per_utente(user_id)
             if not azienda:
@@ -343,7 +310,6 @@ class DatabaseAziendale:
 
             with self._get_conn() as conn:
                 cursor = conn.cursor()
-                # Seleziona l'ultimo record inserito per ciascun asset unico dell'utente
                 cursor.execute("""
                     SELECT rischio, volatilita FROM asset_logs 
                     WHERE id IN (
@@ -356,19 +322,13 @@ class DatabaseAziendale:
                 return {"rischio_medio": 0.0, "solidita": 100.0, "impatto_30gg": 0.0}
 
             tot_rischio = sum(r[0] for r in rows)
-            tot_volatilità = sum(r[1] if r[1] else 0.0 for r in rows)
+            tot_volatilita = sum(r[1] if r[1] else 0.0 for r in rows)
             conteggio = len(rows)
 
-            # 1. Rischio Medio (Scala 1-10)
             rischio_medio = round(tot_rischio / conteggio, 2)
-            
-            # 2. Solidità Operativa (Inversa del rischio, espressa in percentuale)
             solidita = round(max(0.0, min(100.0, 100.0 - (rischio_medio * 9.5))), 1)
-            
-            # 3. Impatto Proiettato a 30gg (Derivato da volatilità complessiva e rischio attuale)
-            impatto_30gg = round((tot_volatilità / conteggio) * rischio_medio * 1.5, 2)
+            impatto_30gg = round((tot_volatilita / conteggio) * rischio_medio * 1.5, 2)
 
-            # Salvataggio persistente nella tabella storico_kpi per trend futuri
             self.salva_kpi(user_id, "Rischio Medio", rischio_medio)
             self.salva_kpi(user_id, "Solidità Operativa", solidita)
             self.salva_kpi(user_id, "Impatto 30gg", impatto_30gg)
@@ -385,7 +345,6 @@ class DatabaseAziendale:
     # =========================
     #   KPI HISTORIC ACTIONS
     # =========================
-
     def salva_kpi(self, user_id: int, kpi_nome: str, valore: float):
         try:
             azienda = self.get_azienda_per_utente(user_id)
@@ -421,39 +380,41 @@ class DatabaseAziendale:
             return pd.DataFrame()
 
     # ==========================================
-    #   SUPERVISIONE ADMIN (PANNELLO DI CONTROLLO)
+    #   SUPERVISIONE ADMIN
     # ==========================================
-
     def supervisione_admin_metriche_globali(self):
-        """
-        Funzione esclusiva ADMIN: estrae un riepilogo aggregato ad alte prestazioni
-        di tutte le aziende clienti registrate nel sistema per la dashboard di monitoraggio.
-        """
         try:
             with self._get_conn() as conn:
-                # Estraiamo l'elenco utenti escludendo l'admin stesso per monitorare i clienti
-                df_clienti = pd.read_sql_query("SELECT id, email, azienda, ruolo FROM utenti WHERE ruolo != 'admin'", conn)
-                df_logs = pd.read_sql_query("SELECT user_id, rischio, volatilita FROM asset_logs", conn)
-                df_uploads = pd.read_sql_query("SELECT user_id, COUNT(id) as totale_caricamenti FROM log_caricamenti GROUP BY user_id", conn)
+                df_clienti = pd.read_sql_query(
+                    "SELECT id, email, azienda, ruolo FROM utenti WHERE ruolo != 'admin'", conn
+                )
+                df_logs = pd.read_sql_query(
+                    "SELECT user_id, rischio, volatilita FROM asset_logs", conn
+                )
+                df_uploads = pd.read_sql_query(
+                    "SELECT user_id, COUNT(id) as totale_caricamenti FROM log_caricamenti GROUP BY user_id", conn
+                )
 
             if df_clienti.empty:
-                return pd.DataFrame(columns=["User ID", "Email Cliente", "Azienda", "Asset Attivi", "Rischio Medio", "File Caricati"])
+                return pd.DataFrame(columns=[
+                    "User ID", "Email Cliente", "Azienda",
+                    "Asset Attivi", "Rischio Medio", "File Caricati"
+                ])
 
-            # Decifratura dei dati sensibili degli utenti per la visualizzazione dell'Admin autorizzato
             df_clienti["email"] = df_clienti["email"].apply(self.vault.decrypt_data)
             df_clienti["azienda"] = df_clienti["azienda"].apply(self.vault.decrypt_data)
 
-            Riepilogo = []
+            riepilogo = []
             for _, row in df_clienti.iterrows():
                 u_id = row["id"]
                 logs_utente = df_logs[df_logs["user_id"] == u_id]
                 uploads_utente = df_uploads[df_uploads["user_id"] == u_id]
-                
+
                 asset_attivi = len(logs_utente)
                 rischio_medio = round(logs_utente["rischio"].mean(), 2) if asset_attivi > 0 else 0.0
                 file_caricati = int(uploads_utente["totale_caricamenti"].iloc[0]) if not uploads_utente.empty else 0
 
-                Riepilogo.append({
+                riepilogo.append({
                     "User ID": u_id,
                     "Email Cliente": row["email"],
                     "Azienda": row["azienda"],
@@ -462,7 +423,7 @@ class DatabaseAziendale:
                     "File Caricati": file_caricati
                 })
 
-            return pd.DataFrame(Riepilogo)
+            return pd.DataFrame(riepilogo)
         except Exception as e:
             logger.error(f"❌ Errore durante la supervisione globale dell'Admin: {e}")
             return pd.DataFrame()
@@ -470,7 +431,6 @@ class DatabaseAziendale:
     # =========================
     #   LOG CARICAMENTI
     # =========================
-
     def registra_caricamento(self, user_id: int, contesto: str, nome_file: str):
         try:
             azienda = self.get_azienda_per_utente(user_id)

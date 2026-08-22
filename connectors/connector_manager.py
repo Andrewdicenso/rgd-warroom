@@ -2,7 +2,6 @@ import shutil
 import os
 import logging
 
-# Inizializziamo il logger dedicato per il modulo di connessione
 logger = logging.getLogger("RGD-Alpha.Connector")
 
 class LocalSyncConnector:
@@ -25,10 +24,8 @@ class LocalSyncConnector:
                     logger.warning("Elemento di sincronizzazione incompleto saltato.")
                     continue
 
-                # Sicurezza: Creazione directory con permessi controllati
                 os.makedirs(os.path.dirname(destination), exist_ok=True)
                 
-                # Copia sicura con tracciamento
                 if os.path.exists(source):
                     shutil.copy2(source, destination)
                     logger.info(f"Sincronizzazione completata: {os.path.basename(source)} -> {destination}")

@@ -21,9 +21,8 @@ st.sidebar.header("Impostazioni Analisi")
 
 # --- INIZIALIZZAZIONE COMPONENTI ---
 COMPANY_ID = "AZ-TEST-01"
-# Inizializziamo i moduli core usando il percorso assoluto definito sopra
 db = DatabaseAziendale(db_folder=os.path.dirname(DB_PATH), db_name=os.path.basename(DB_PATH))
-analista = AnalistaRischio(db_path=DB_PATH)
+analista = AnalistaRischio(db)
 simulatore = SimulatoreRischio()
 
 # --- LOGICA DI ACCESSO AI DATI ---
