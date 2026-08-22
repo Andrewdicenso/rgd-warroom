@@ -20,26 +20,9 @@ from core.simulator import SimulatoreRischio
 # Router pagine
 from page import warroom
 
-# Configurazione Streamlit
-st.set_page_config(page_title="RGD War Room", layout="wide")
-
-# Avvio pagina War Room
-warroom.main()
-
-# --- RISOLUZIONE DINAMICA PATH INTERNI ---
-PROJECT_ROOT = Path(__file__).resolve().parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 # ==========================================
-#   CONFIGURAZIONE BASE & UI
+# 1. CONFIGURAZIONE UI (Unica e Iniziale)
 # ==========================================
-load_dotenv()
-DATA_ROOT = PROJECT_ROOT / "data"
-UPLOAD_DIR = DATA_ROOT / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-# Impostazione Layout Enterprise
 st.set_page_config(
     page_title="RGD-Alpha | War Room Strategica",
     layout="wide",
@@ -47,6 +30,29 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ==========================================
+# 2. CARICAMENTO STILE CSS PERSONALIZZATO
+# ==========================================
+if os.path.exists("style.css"):
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# ==========================================
+# 3. AVVIO LOGICA DI PAGINA
+# ==========================================
+warroom.main()
+
+# ==========================================
+# 4. CONFIGURAZIONI PATH & AMBIENTE
+# ==========================================
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+load_dotenv()
+DATA_ROOT = PROJECT_ROOT / "data"
+UPLOAD_DIR = DATA_ROOT / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # Inizializzazione Sessione (Fondamentale per Auth)
 inizializza_sessione()
 # --- LOGICA DI RECUPERO TOKEN ---
