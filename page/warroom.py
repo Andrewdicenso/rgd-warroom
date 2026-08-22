@@ -19,26 +19,6 @@ def main():
     st.title("📊 War Room Strategica")
     st.markdown("---")
 
-    # Sezione Login / Registrazione / Recupero
-    tab_log, tab_reg, tab_res = st.tabs(["🔒 Login", "🆕 Registrazione", "🔑 Recupero Password"])
-
-    with tab_log:
-        # Aggiunta key univoca per il login
-        st.text_input("Email Aziendale", key="login_email")
-        st.text_input("Password", type="password", key="login_password")
-        st.button("Accedi al Sistema", key="btn_login")
-
-    with tab_reg:
-        # Aggiunta key univoca per la registrazione
-        st.text_input("Email Aziendale", key="reg_email")
-        st.text_input("Password", type="password", key="reg_password")
-        st.button("Registrati", key="btn_reg")
-
-    with tab_res:
-        # Aggiunta key univoca per il recupero
-        st.text_input("Email Aziendale", key="reset_email")
-        st.button("Invia Link di Recupero", key="btn_reset")
-
     # 🔹 Mostra upload e analisi SOLO se l'utente è autenticato
     # Nota: dovrai implementare la logica di login per impostare questa variabile a True
     if st.session_state.get("autenticato"):

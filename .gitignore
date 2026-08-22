@@ -37,3 +37,10 @@ test_*.py
 debug.log
 
 node_modules/
+
+# --- CACHE DI PYTHON (AGGIUNGI QUESTO) ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/

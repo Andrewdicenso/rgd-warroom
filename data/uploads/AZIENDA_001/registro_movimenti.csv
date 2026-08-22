@@ -1,5 +1,0 @@
-ID_Movimento,Data_Registrazione,Codice_SKU,Descrizione_Asset,Quantita,Ubicazione,Fornitore_Origine,Costo_Unitario,Stato_Qualita,Rischio_Logistico
-MOV-9982,2026-05-01,ELEC-BATT-01,Batterie Litio Industrial,450,Settore A1,EnergyCorp Ltd,85.50,Disponibile,2
-MOV-9983,2026-05-02,MECH-VALV-05,Valvole Pressione Inox,12,Settore C4,SteelFlow Srl,120.00,In Revisione,8
-MOV-9984,2026-05-03,SOFT-LIC-X,Licenze Server Cloud,1,Virtual Hub,DataCloud SA,1500.00,Attivo,4
-MOV-9985,2026-05-04,RAW-ALUM-22,Alluminio Grezzo (Ton),5,Area Esterna,Minerals Group,2100.00,Esaurito,9
