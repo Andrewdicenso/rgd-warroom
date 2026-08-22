@@ -536,3 +536,4 @@ elif scelta == "📜 Archivio Storico":
             )
     except Exception as e:
         st.error(f"❌ Errore critico di sincronizzazione archivio: {e}")
+        
