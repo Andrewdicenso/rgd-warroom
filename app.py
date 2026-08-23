@@ -18,6 +18,9 @@ from core.engine import DataGateway
 from core.ingestor import IngestoreDati
 from core.simulator import SimulatoreRischio
 
+from data_refinery import DataRefinery  # O il nome esatto del file python in cui si trova
+from ingestor import IngestoreDati       # Sostituisci con il nome corretto del file se diverso
+from data_gateway import DataGateway     # Sostituisci con il nome corretto del file se diverso
 # Router pagine
 from page import warroom
 
@@ -37,11 +40,6 @@ st.set_page_config(
 if os.path.exists("style.css"):
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# ==========================================
-# 3. AVVIO LOGICA DI PAGINA
-# ==========================================
-warroom.main()
 
 # ==========================================
 # 4. CONFIGURAZIONI PATH & AMBIENTE
@@ -198,30 +196,30 @@ if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
 
 # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
-st.sidebar.markdown("---")
-with st.sidebar.expander("⚖️ Note Legali & Copyright"):
-    st.markdown(
-        """
-        <div style="font-size: 0.85em; color: #555; line-height: 1.4;">
-            <strong>Proprietario Intellettuale:</strong><br>
-            [Andrew Di Censo]<br><br>
-            <strong>Marchio Registrato:</strong><br>
-            Rgandja® (Classi 9, 42)<br><br>
-            <strong>Tutela Algoritmica:</strong><br>
-            La metodologia <em>H(prod)</em> e i calcoli di 
-            <em>Momentum Strategico</em> sono protetti come 
-            <strong>Segreto Industriale</strong> (D.Lgs. 30/2005).
-        </div>
-        <hr style="margin: 10px 0;">
-        <div style="font-size: 0.75em; color: gray; text-align: justify;">
-            È vietata la riproduzione, decompilazione o reverse engineering 
-            del software. Ogni accesso è tracciato nel log di sicurezza Enterprise.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("⚖️ Note Legali & Copyright"):
+        st.markdown(
+            """
+            <div style="font-size: 0.85em; color: #555; line-height: 1.4;">
+                <strong>Proprietario Intellettuale:</strong><br>
+                [Andrew Di Censo]<br><br>
+                <strong>Marchio Registrato:</strong><br>
+                Rgandja® (Classi 9, 42)<br><br>
+                <strong>Tutela Algoritmica:</strong><br>
+                La metodologia <em>H(prod)</em> e i calcoli di
+                <em>Momentum Strategico</em> sono protetti come
+                <strong>Segreto Industriale</strong> (D.Lgs. 30/2005).
+            </div>
+            <hr style="margin: 10px 0;">
+            <div style="font-size: 0.75em; color: gray; text-align: justify;">
+                È vietata la riproduzione, decompilazione o reverse engineering
+                del software. Ogni accesso è tracciato nel log di sicurezza Enterprise.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-st.sidebar.caption("© 2024 Rgandja. Tutti i diritti riservati.")
+    st.sidebar.caption("© 2024 Rgandja. Tutti i diritti riservati.")
 # --- FINE BLOCCO TUTELA LEGALE ---
 
 # ==========================================
@@ -247,7 +245,7 @@ if scelta == "🏠 Home":
             """
             <div class="ai-reasoning" style="height: 280px;">
                 <h3 style="color: #3498db;">📊 Intelligence Hub</h3>
-                <p>Monitora la <b>Resilience Aziendale</b> con algoritmi EMA di nuova generazione. 
+                <p>Monitora la <b>Resilience Aziendale</b> con algoritmi EMA di nuova generazione.
                 Isoliamo i trend critici dalle fluttuazioni operative per garantirti una visione cristallina della solidità.</p>
                 <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
                     <small style="color: #d4af37;">➔ FOCUS: PREVENZIONE DEL DECLINO OPERATIVO</small>
@@ -261,7 +259,7 @@ if scelta == "🏠 Home":
             """
             <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
                 <h3 style="color: #e74c3c;">🚨 Scenario Simulation</h3>
-                <p>Anticipa il mercato con lo <b>Stress-Test Multivariabile</b>. 
+                <p>Anticipa il mercato con lo <b>Stress-Test Multivariabile</b>.
                 Simula scenari di crisi e inefficienze per testare la tenuta dei tuoi margini in un ambiente Sandbox sicuro.</p>
                 <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
                     <small style="color: #d4af37;">➔ FOCUS: MITIGAZIONE PROATTIVA DEL RISCHIO</small>
@@ -276,7 +274,7 @@ if scelta == "🏠 Home":
             """
             <div class="ai-reasoning" style="height: 280px;">
                 <h3 style="color: #2ecc71;">🧠 AI Advisory Board</h3>
-                <p>Supera la 'Dashboard Fatigue'. Il nostro motore basato su <b>LLM Llama-3.3</b> trasforma i dati complessi 
+                <p>Supera la 'Dashboard Fatigue'. Il nostro motore basato su <b>LLM Llama-3.3</b> trasforma i dati complessi
                 in <b>Protocolli Esecutivi</b> chiari e pronti all'azione.</p>
                 <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
                     <small style="color: #d4af37;">➔ FOCUS: DECISION-MAKING ASSISTITO DA IA</small>
@@ -290,7 +288,7 @@ if scelta == "🏠 Home":
             """
             <div class="ai-reasoning" style="height: 280px; margin-top:20px;">
                 <h3 style="color: #9b59b6;">📜 Governance Audit</h3>
-                <p>Mantieni un <b>Audit Trail</b> completo di ogni analisi. 
+                <p>Mantieni un <b>Audit Trail</b> completo di ogni analisi.
                 Monitora l'evoluzione della tua strategia nel tempo grazie al database criptato ad alta sicurezza.</p>
                 <div style="margin-top:15px; border-top: 1px solid rgba(212,175,55,0.2); padding-top:10px;">
                     <small style="color: #d4af37;">➔ FOCUS: COMPLIANCE E TRACCIABILITÀ STORICA</small>
@@ -345,6 +343,9 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 #   PAGINA 3: WAR ROOM STRATEGICA (ALLINEATA)
 # ==========================================
 elif scelta == "📊 War Room Strategica":
+    # Recuperiamo il nome dell'azienda dalla sessione di Streamlit per evitare il NameError
+    azienda = st.session_state.get("azienda", "Azienda N/D")
+
     report_analisi = []
 
     st.markdown(
@@ -352,7 +353,7 @@ elif scelta == "📊 War Room Strategica":
         <div class='warroom-header'>
             <h1>🚀 War Room Strategica</h1>
             <p>
-                Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per: 
+                Analisi quantitativa oraria $H_{{(prod)}}$ e solidità in tempo reale per:
                 <strong>{azienda}</strong>
             </p>
         </div>
@@ -552,4 +553,4 @@ elif scelta == "📜 Archivio Storico":
             )
     except Exception as e:
         st.error(f"❌ Errore critico di sincronizzazione archivio: {e}")
-        
+
