@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 import numpy as np
+import matplotlib.pyplot as plt
 
 from core.database import DatabaseAziendale
 
@@ -17,10 +18,43 @@ class AnalistaRischio:
         self.soglia_critica = 7.0 
         self.soglia_warning = 5.0
 
+    # --- NUOVO METODO AGGIUNTO PER LA WAR ROOM ---
+    def calcola_kpi(self, df: pd.DataFrame) -> dict:
+        """
+        Calcola i KPI sintetici partendo dal DataFrame caricato nella War Room.
+        """
+        try:
+            return {
+                "status": "Successo",
+                "righe_elaborate": len(df),
+                "colonne_rilevate": list(df.columns),
+                "valutazione_strategica": "DATI CARICATI",
+                "azione": "Il file è stato processato correttamente dalla War Room."
+            }
+        except Exception as e:
+            logger.error(f"❌ Errore calcolo KPI War Room: {e}")
+            return {"status": "Errore", "azione": str(e)}
+
+    # --- NUOVO METODO AGGIUNTO PER I GRAFICI ---
+    def genera_grafico_solidita(self, df: pd.DataFrame):
+        """
+        Genera un grafico di base per la War Room.
+        """
+        fig, ax = plt.subplots(figsize=(10, 4))
+        # Crea un grafico semplice basato sulle prime colonne numeriche trovate
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 0:
+            df[numeric_cols[0]].plot(kind='line', ax=ax, color='#d4af37', marker='o')
+            ax.set_title(f"Andamento: {numeric_cols[0]}")
+        else:
+            ax.text(0.5, 0.5, "Nessun dato numerico per il grafico", ha='center')
+        
+        plt.tight_layout()
+        return fig
+
     def _calcola_proiezione_lineare(self, serie_rischio):
         """
         Utilizza i minimi quadrati per calcolare la pendenza (slope) del trend.
-        Permette di prevedere se il rischio di inefficienza oraria salirà o scenderà.
         """
         n = len(serie_rischio)
         if n < 2:
@@ -33,8 +67,6 @@ class AnalistaRischio:
     def calcola_trend_predittivo(self, nome_asset, company_id) -> dict:
         """
         Analisi Ingegneristica: Sincronizzata con lo storico 'asset_logs' e i KPI orari.
-        Calcola Momentum, Volatilità e Proiezione Futura dell'efficienza della risorsa.
-        Usa DatabaseAziendale per lavorare su dati già decifrati.
         """
         try:
             df_all = self.db.recupera_asset_per_azienda(company_id)
@@ -96,16 +128,16 @@ class AnalistaRischio:
 
             if pendenza > 0.3 or (ultimo > self.soglia_critica and delta > 0):
                 predizione["valutazione_strategica"] = "INSTABILITÀ ACCELERATA"
-                predizione["azione"] = "CRITICO: Accumulo esponenziale di ore perse. Rischio blocco supply chain o scadenze."
+                predizione["azione"] = "CRITICO: Accumulo esponenziale di ore perse. Rischio blocco supply chain."
             elif pendenza < -0.1 and ultimo < self.soglia_warning:
                 predizione["valutazione_strategica"] = "RECUPERO STRUTTURALE"
-                predizione["azione"] = "EFFICIENTE: Ottimizzazione dei tempi e stabilizzazione delle ore reali H(prod)."
+                predizione["azione"] = "EFFICIENTE: Ottimizzazione dei tempi e stabilizzazione delle ore reali."
             elif volatilita > 1.2:
                 predizione["valutazione_strategica"] = "VOLATILITÀ ELEVATA"
-                predizione["azione"] = "ATTENZIONE: Alternanza critica tra picchi produttivi e micropause anomale. Monitorare carichi."
+                predizione["azione"] = "ATTENZIONE: Alternanza critica tra picchi produttivi e micropause."
             else:
                 predizione["valutazione_strategica"] = "STABILITÀ OPERATIVA"
-                predizione["azione"] = "MANTENIMENTO: Andamento orario stabile e in linea con la pianificazione."
+                predizione["azione"] = "MANTENIMENTO: Andamento orario stabile."
 
             return predizione
 
@@ -115,5 +147,5 @@ class AnalistaRischio:
                 "status": "Errore", 
                 "valore_attuale": 0.0, 
                 "valutazione_strategica": "FALLIMENTO CALCOLO",
-                "azione": "Verificare consistenza dei dati e integrità del database."
+                "azione": "Verificare consistenza dei dati."
             }

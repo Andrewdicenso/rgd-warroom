@@ -1,5 +1,6 @@
 import os
 import sys
+from page import warroom
 from datetime import datetime
 from pathlib import Path
 
@@ -171,15 +172,39 @@ if not st.session_state.get("autenticato", False):
     st.stop()  # Blocca il resto dell'app finché non sei loggato
 
 # ==========================================
-#   MENU DINAMICO
+#   GESTIONE NAVIGAZIONE E MENU
 # ==========================================
 menu = ["🏠 Home", "📊 War Room Strategica", "📜 Archivio Storico"]
 
 if st.session_state.get("is_admin", False):
     menu.insert(1, "🕵️ Centrale Admin")
 
+# 1. L'utente sceglie la pagina dalla sidebar
 scelta = st.sidebar.radio("Navigazione", menu)
 
+# 2. Logica che decide COSA mostrare al centro della pagina
+if scelta == "🏠 Home":
+    st.title("🏠 Dashboard Principale")
+    st.markdown(f"### Stato attuale del sistema (Stress Test: {f_stress}x)")
+    # NOTA: Qui sotto apparirà in automatico tutto il resto del codice 
+    # che hai già scritto per la home page.
+
+elif scelta == "📊 War Room Strategica":
+    # Questo richiama il file esterno page/warroom.py
+    from page import warroom
+    warroom.show_warroom()
+
+elif scelta == "📜 Archivio Storico":
+    st.title("📜 Archivio Storico")
+    st.info("Sezione in fase di aggiornamento dati.")
+
+elif scelta == "🕵️ Centrale Admin":
+    st.title("🕵️ Centrale Admin")
+    st.warning("Accesso riservato agli amministratori.")
+
+# ==========================================
+#   SIDEBAR: ELEMENTI FISSI (Sempre visibili)
+# ==========================================
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚨 Simulazione Stress Test")
 f_stress = st.sidebar.slider(
@@ -195,7 +220,7 @@ st.sidebar.caption("Leva attiva per simulazione scenari di crisi.")
 st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
-
+    
 # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
 st.sidebar.markdown("---")
 with st.sidebar.expander("⚖️ Note Legali & Copyright"):
