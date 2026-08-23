@@ -482,50 +482,50 @@ elif scelta == "📊 War Room Strategica":
                     unsafe_allow_html=True,
                 )
 
-    with st.expander("📊 Analisi Tecnica: Dettaglio Asset"):
-        st.dataframe(df_p, width="stretch", hide_index=True)
+        with st.expander("📊 Analisi Tecnica: Dettaglio Asset"):
+            st.dataframe(df_p, width="stretch", hide_index=True)
 
-        st.subheader("🧠 Diagnostica Strategica RGD + IA")
+            st.subheader("🧠 Diagnostica Strategica RGD + IA")
 
-        # Calcoliamo le metriche di supporto per l'IA
-        media_m = round(
-            df_p["momentum_score"].mean() if "momentum_score" in df_p.columns else 0, 2
-        )
-        settore_ia = (
-            lista_asset[0].__class__.__name__.replace("AssetDi", "")
-            if lista_asset
-            else "GENERAL"
-        )
+            # Calcoliamo le metriche di supporto per l'IA
+            media_m = round(
+                df_p["momentum_score"].mean() if "momentum_score" in df_p.columns else 0, 2
+            )
+            settore_ia = (
+                lista_asset[0].__class__.__name__.replace("AssetDi", "")
+                if lista_asset
+                else "GENERAL"
+            )
 
-        # Importiamo la funzione pulita dal modulo explainer di Gemini
-        from ai_modules.explainer import spiega_war_room_strategica
+            # Importiamo la funzione pulita dal modulo explainer di Gemini
+            from ai_modules.explainer import spiega_war_room_strategica
 
-        if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
-            with st.spinner(
-                "Google Gemini Enterprise al lavoro per il report predittivo..."
-            ):
-                try:
-                    # Chiamata alla funzione che genera il report discorsivo e la formula 30/60/90 giorni
-                    report_enterprise = spiega_war_room_strategica(
-                        azienda=azienda,
-                        settore=settore_ia,
-                        solidita=solidita_val,
-                        rischio=rischio_val,
-                        momentum=media_m,
-                        ore=int(ore_totale),
-                        df_str=df_p.to_string(index=False),
-                    )
+            if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
+                with st.spinner(
+                    "Google Gemini Enterprise al lavoro per il report predittivo..."
+                ):
+                    try:
+                        # Chiamata alla funzione che genera il report discorsivo e la formula 30/60/90 giorni
+                        report_enterprise = spiega_war_room_strategica(
+                            azienda=azienda,
+                            settore=settore_ia,
+                            solidita=solidita_val,
+                            rischio=rischio_val,
+                            momentum=media_m,
+                            ore=int(ore_totale),
+                            df_str=df_p.to_string(index=False),
+                        )
 
-                    st.markdown(
-                        "### 📋 Report Strategico & Predittivo Semplificato (30/60/90 Giorni)"
-                    )
-                    st.markdown(
-                        f"<div class='ai-reasoning'>{report_enterprise}</div>",
-                        unsafe_allow_html=True,
-                    )
+                        st.markdown(
+                            "### 📋 Report Strategico & Predittivo Semplificato (30/60/90 Giorni)"
+                        )
+                        st.markdown(
+                            f"<div class='ai-reasoning'>{report_enterprise}</div>",
+                            unsafe_allow_html=True,
+                        )
 
-                except Exception as e:
-                    st.error(f"Errore durante l'analisi con Gemini: {e}")
+                    except Exception as e:
+                        st.error(f"Errore durante l'analisi con Gemini: {e}")
 
 # ==========================================
 #   PAGINA 4: ARCHIVIO STORICO (VERSIONE EXECUTIVE)
