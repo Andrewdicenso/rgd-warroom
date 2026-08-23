@@ -1,46 +1,45 @@
+gitignore
 # --- PRIVACY E SICUREZZA BLINDATA (FONDAMENTALE) ---
-# Blocca qualsiasi database in qualunque cartella del progetto (Evita fughe di dati dei clienti)
+# Blocca database e chiavi di cifratura
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
-
-# Blocca le cartelle di dati specifiche e la chiave di cifratura
-data/db/
 core/security/vault.key
+.env
+.streamlit/secrets.toml
 
-# --- UPLOAD E LOGS ---
-data/uploads/
-data/logs/
+# Forza l'inclusione della grafica Streamlit
+!.streamlit/config.toml
+
+# --- DATI E LOGS (Evita fughe dati clienti) ---
+data/
+archive/
 uploads/
 tmp/
+*.log
+debug.log
 
 # --- AMBIENTI VIRTUALI PYTHON ---
 venv/
 env/
 ENV/
-.env
 
-# --- CONFIGURAZIONI IDE ---
+# --- CONFIGURAZIONI IDE E SISTEMA ---
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# --- FILE DI SISTEMA WINDOWS ---
+.devcontainer/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# --- FILE DI TEST E DEBUG ---
-test_*.py
-debug.log
-
-node_modules/
-
-# --- CACHE DI PYTHON (AGGIUNGI QUESTO) ---
+# --- CACHE E TEST ---
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
+test_*.py
+node_modules/
