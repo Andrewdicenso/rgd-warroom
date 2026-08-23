@@ -41,7 +41,7 @@ if os.path.exists("style.css"):
 # ==========================================
 # 3. AVVIO LOGICA DI PAGINA
 # ==========================================
-warroom.main()
+warroom.show_warroom()
 
 # ==========================================
 # 4. CONFIGURAZIONI PATH & AMBIENTE
@@ -220,7 +220,7 @@ st.sidebar.caption("Leva attiva per simulazione scenari di crisi.")
 st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
-    
+
 # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
 st.sidebar.markdown("---")
 with st.sidebar.expander("⚖️ Note Legali & Copyright"):
