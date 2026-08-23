@@ -4,11 +4,13 @@ import logging
 
 logger = logging.getLogger("RGD-Alpha.Vault")
 
+
 class SecureVault:
     """
     Vault aziendale: Cifratura simmetrica AES per la protezione dei dati sensibili.
     Gestisce automaticamente la persistenza della Master Key.
     """
+
     def __init__(self, key_path="core/security/vault.key"):
         self.key_path = os.path.abspath(key_path)
         self.key = self._load_or_create_key()

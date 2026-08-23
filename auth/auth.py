@@ -8,6 +8,7 @@ from core.config import settings
 
 logger = logging.getLogger("RGD-Alpha.Auth")
 
+
 def inizializza_sessione():
     """Inizializza le variabili dello stato della sessione di Streamlit se non esistono."""
     if "autenticato" not in st.session_state:
@@ -21,6 +22,7 @@ def inizializza_sessione():
     if "azienda" not in st.session_state:
         st.session_state.azienda = "Sconosciuta"
 
+
 def login_utente(db, email, password):
     """Verifica le credenziali e assegna il ruolo Admin esclusivamente a te."""
     try:
@@ -28,8 +30,10 @@ def login_utente(db, email, password):
         if not utente:
             logger.warning(f"Tentativo di login fallito: email non trovata ({email}).")
             return False
-        
-        if not bcrypt.checkpw(password.encode("utf-8"), bytes(utente["password_hash"], "utf-8")):
+
+        if not bcrypt.checkpw(
+            password.encode("utf-8"), bytes(utente["password_hash"], "utf-8")
+        ):
             logger.warning(f"Tentativo di login fallito per {email}: password errata.")
             return False
 
@@ -43,12 +47,15 @@ def login_utente(db, email, password):
         else:
             st.session_state.ruolo = "user"
 
-        logger.info(f"Utente {email} autenticato. Admin: {st.session_state.ruolo == 'admin'}")
+        logger.info(
+            f"Utente {email} autenticato. Admin: {st.session_state.ruolo == 'admin'}"
+        )
         return True
 
     except Exception as e:
         logger.error(f"Errore durante la fase di login: {e}")
         return False
+
 
 def logout_utente():
     """Svuota la sessione ed effettua il logout."""
@@ -59,15 +66,17 @@ def logout_utente():
     st.session_state.azienda = "Sconosciuta"
     st.rerun()
 
+
 def richiede_ruolo(ruolo_richiesto):
     """Verifica autorizzazioni."""
     if not st.session_state.autenticato:
         st.error("Accesso negato. Effettua prima il login.")
         st.stop()
-    
+
     if ruolo_richiesto == "admin" and st.session_state.ruolo != "admin":
         st.error("Area riservata all'amministratore del sistema.")
         st.stop()
+
 
 def invia_email_recupero(email_destinatario, link_reset):
     """
@@ -81,9 +90,9 @@ def invia_email_recupero(email_destinatario, link_reset):
     SMTP_PASSWORD = settings.SMTP_PASSWORD
 
     msg = MIMEMultipart()
-    msg['From'] = SMTP_USER
-    msg['To'] = email_destinatario
-    msg['Subject'] = "🛡️ Reset Password | RGD-Alpha War Room"
+    msg["From"] = SMTP_USER
+    msg["To"] = email_destinatario
+    msg["Subject"] = "🛡️ Reset Password | RGD-Alpha War Room"
 
     corpo_mail = f"""
     Hai richiesto il reset della password per il tuo account RGD-Alpha.
@@ -93,7 +102,7 @@ def invia_email_recupero(email_destinatario, link_reset):
     
     Il link scadrà tra 30 minuti. Se non hai richiesto tu il reset, ignora questa mail.
     """
-    msg.attach(MIMEText(corpo_mail, 'plain'))
+    msg.attach(MIMEText(corpo_mail, "plain"))
 
     try:
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:

@@ -1,6 +1,7 @@
 """
 Conftest.py - Configurazione pytest e fixtures comuni.
 """
+
 import sys
 from pathlib import Path
 
@@ -28,7 +29,7 @@ def sample_asset() -> Asset:
         nome="Test Asset",
         company_id="test-company-001",
         rischio=RiscoScore(5.0),
-        categoria=AssetCategory.GENERAL
+        categoria=AssetCategory.GENERAL,
     )
 
 
@@ -39,7 +40,7 @@ def sample_azienda() -> Azienda:
         nome="Test Company Ltd",
         partita_iva="12345678901",
         settore="Tecnologia",
-        owner_email="test@example.com"
+        owner_email="test@example.com",
     )
 
 
@@ -49,7 +50,7 @@ def sample_utente() -> Utente:
     return Utente(
         email="test@example.com",
         password_hash="$2b$12$hashed_password_example",
-        ruolo="user"
+        ruolo="user",
     )
 
 

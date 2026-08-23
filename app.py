@@ -1,8 +1,7 @@
-import os
-import sys
-from page import warroom
 from datetime import datetime
+import os
 from pathlib import Path
+import sys
 
 # Librerie di terze parti
 from dotenv import load_dotenv
@@ -11,16 +10,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# Moduli core & auth
+# Moduli interni del progetto
 from auth.auth import *
 from core.database import DatabaseAziendale
 from core.engine import DataGateway
-from core.ingestor import IngestoreDati
 from core.simulator import SimulatoreRischio
+from data_refinery import DataRefinery  # Si trova nella root principale
+from ingestor import IngestoreDati  # Si trova nella root principale
 
-from data_refinery import DataRefinery  # O il nome esatto del file python in cui si trova
-from ingestor import IngestoreDati       # Sostituisci con il nome corretto del file se diverso
-from data_gateway import DataGateway     # Sostituisci con il nome corretto del file se diverso
 # Router pagine
 from page import warroom
 
@@ -31,7 +28,7 @@ st.set_page_config(
     page_title="RGD-Alpha | War Room Strategica",
     layout="wide",
     page_icon="🛡️",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # ==========================================
@@ -58,6 +55,7 @@ inizializza_sessione()
 query_params = st.query_params
 reset_token = query_params.get("reset_token")
 
+
 # ==========================================
 #   GESTIONE ESTETICA (CSS ESTERNO)
 # ==========================================
@@ -67,13 +65,17 @@ def load_css(file_name="style.css"):
         with open(file_name, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning("⚠️ Sistema visivo RGD non caricato. Verifica la presenza di style.css")
+        st.warning(
+            "⚠️ Sistema visivo RGD non caricato. Verifica la presenza di style.css"
+        )
+
 
 # Attivazione Veste Grafica
 load_css()
 
 # Inizializzazione Database (Unica istanza globale)
 db = DatabaseAziendale()
+
 
 # ==========================================
 #   GESTIONE REGISTRAZIONE & AUTH
@@ -95,10 +97,13 @@ def registra_nuovo_utente(email: str, password: str, conferma: str):
         ruolo = "admin" if email.lower() == admin_email_env else "user"
 
         if db.crea_utente(email=email, password=password, ruolo=ruolo):
-            st.success("✅ Registrazione completata. Effettua il login nel Tab 'Login'.")
+            st.success(
+                "✅ Registrazione completata. Effettua il login nel Tab 'Login'."
+            )
             st.balloons()
     except Exception as e:
         st.error(f"Errore critico durante la registrazione: {e}")
+
 
 # --- BLOCCO DI ACCESSO UNIFICATO ---
 # Deve essere fuori dalla funzione sopra e allineato correttamente
@@ -143,9 +148,12 @@ if not st.session_state.get("autenticato", False):
         st.subheader("🔄 Recupero Credenziali Sicuro")
         if not reset_token:
             st.info("Inserisci la tua email per ricevere il link di recupero.")
-            email_richiesta = st.text_input("Email per recupero", key="email_forget").strip()
+            email_richiesta = st.text_input(
+                "Email per recupero", key="email_forget"
+            ).strip()
             if st.button("Invia Link di Recupero"):
                 import uuid
+
                 nuovo_token = str(uuid.uuid4())
                 if db.salva_token_reset(email_richiesta, nuovo_token):
                     link = f"https://rgd-warroom-app.onrender.com/?reset_token={nuovo_token}"
@@ -156,7 +164,9 @@ if not st.session_state.get("autenticato", False):
         else:
             st.warning("Modalità Reset Attiva")
             nuova_p = st.text_input("Nuova Password", type="password", key="new_p")
-            conferma_p = st.text_input("Conferma Nuova Password", type="password", key="conf_p")
+            conferma_p = st.text_input(
+                "Conferma Nuova Password", type="password", key="conf_p"
+            )
             if st.button("Conferma Cambio Password"):
                 if nuova_p == conferma_p and len(nuova_p) >= 8:
                     if db.valida_e_resetta_password(reset_token, nuova_p):
@@ -165,7 +175,9 @@ if not st.session_state.get("autenticato", False):
                     else:
                         st.error("Link scaduto o non valido.")
                 else:
-                    st.error("Le password non coincidono o sono troppo brevi (min 8 car.).")
+                    st.error(
+                        "Le password non coincidono o sono troppo brevi (min 8 car.)."
+                    )
 
     st.stop()  # Blocca il resto dell'app finché non sei loggato
 
@@ -187,7 +199,7 @@ f_stress = st.sidebar.slider(
     max_value=2.5,
     value=1.0,
     step=0.1,
-    help="Simula un aumento del rischio operativo globale."
+    help="Simula un aumento del rischio operativo globale.",
 )
 st.sidebar.caption("Leva attiva per simulazione scenari di crisi.")
 
@@ -195,7 +207,7 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Logout", key="logout_sidebar"):
     logout_utente()
 
-# --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
+    # --- INIZIO BLOCCO TUTELA LEGALE RGANDJA ---
     st.sidebar.markdown("---")
     with st.sidebar.expander("⚖️ Note Legali & Copyright"):
         st.markdown(
@@ -345,6 +357,9 @@ elif scelta == "🕵️ Centrale Admin" and is_admin:
 elif scelta == "📊 War Room Strategica":
     # Recuperiamo il nome dell'azienda dalla sessione di Streamlit per evitare il NameError
     azienda = st.session_state.get("azienda", "Azienda N/D")
+    user_id = st.session_state.get(
+        "user_id", 1
+    )  # O il modo in cui salvi l'id utente nel login
 
     report_analisi = []
 
@@ -375,7 +390,9 @@ elif scelta == "📊 War Room Strategica":
             f.write(uploaded_file.getbuffer())
             settore_ia = "GENERAL"
 
-        with st.status("🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True) as status:
+        with st.status(
+            "🔄 Protocollo Analitico RGD-Alpha in corso...", expanded=True
+        ) as status:
             status.write("🔍 Fase 1: Identificazione impronta digitale e pulizia...")
             paese_calendar = st.session_state.get("paese_azienda", "IT")
             refinery = DataRefinery(country=paese_calendar)
@@ -398,7 +415,11 @@ elif scelta == "📊 War Room Strategica":
                 )
 
                 db.calcola_e_salva_kpi_correnti(user_id)
-                kpi_reali = db.get_kpi_recenti(user_id) if hasattr(db, "get_kpi_recenti") else {}
+                kpi_reali = (
+                    db.get_kpi_recenti(user_id)
+                    if hasattr(db, "get_kpi_recenti")
+                    else {}
+                )
 
                 df_p = pd.DataFrame(report_analisi)
                 df_p.columns = [str(c).lower().strip() for c in df_p.columns]
@@ -407,23 +428,39 @@ elif scelta == "📊 War Room Strategica":
                     kpi_reali = {
                         "solidita": 85,
                         "rischio_medio": round(
-                            df_p["risk_factor"].mean() if "risk_factor" in df_p.columns else 4, 1
+                            (
+                                df_p["risk_factor"].mean()
+                                if "risk_factor" in df_p.columns
+                                else 4
+                            ),
+                            1,
                         ),
                         "trend": "In Monitoraggio",
                     }
 
-                status.update(label="✅ Protocollo RGD-Alpha Completato con Successo!", state="complete")
+                status.update(
+                    label="✅ Protocollo RGD-Alpha Completato con Successo!",
+                    state="complete",
+                )
 
                 rischio_val = kpi_reali.get("rischio_medio", 0)
                 trend_testo = kpi_reali.get("trend", "Stabile")
                 solidita_val = kpi_reali.get("solidita", 0)
 
                 col_ore = [c for c in df_p.columns if "ore" in c or "effettive" in c]
-                ore_totale = pd.to_numeric(df_p[col_ore[0]], errors="coerce").sum() if col_ore else 0
+                ore_totale = (
+                    pd.to_numeric(df_p[col_ore[0]], errors="coerce").sum()
+                    if col_ore
+                    else 0
+                )
 
                 st.markdown("### 📊 Intelligence Report: Analisi Strategica")
                 c1, c2, c3, c4 = st.columns(4)
-                col_r = "#e74c3c" if rischio_val > 7 else "#f39c12" if rischio_val > 4 else "#27ae60"
+                col_r = (
+                    "#e74c3c"
+                    if rischio_val > 7
+                    else "#f39c12" if rischio_val > 4 else "#27ae60"
+                )
 
                 c1.markdown(
                     f"<div class='metric-card'><h3>Solidità</h3><div class='value'>{solidita_val}%</div></div>",
@@ -445,86 +482,50 @@ elif scelta == "📊 War Room Strategica":
                     unsafe_allow_html=True,
                 )
 
-                with st.expander("📊 Analisi Tecnica: Dettaglio Asset"):
-                    st.dataframe(df_p, use_container_width=True, hide_index=True)
+    with st.expander("📊 Analisi Tecnica: Dettaglio Asset"):
+        st.dataframe(df_p, width="stretch", hide_index=True)
 
-                st.subheader("🧠 Diagnostica Strategica RGD + IA")
-                api_key = os.getenv("GROQ_API_KEY")
+        st.subheader("🧠 Diagnostica Strategica RGD + IA")
 
-                if api_key:
-                    from groq import Groq
+        # Calcoliamo le metriche di supporto per l'IA
+        media_m = round(
+            df_p["momentum_score"].mean() if "momentum_score" in df_p.columns else 0, 2
+        )
+        settore_ia = (
+            lista_asset[0].__class__.__name__.replace("AssetDi", "")
+            if lista_asset
+            else "GENERAL"
+        )
 
-                    client = Groq(api_key=api_key)
-                    media_m = round(
-                        df_p["momentum_score"].mean() if "momentum_score" in df_p.columns else 0, 2
-                    )
-                    settore_ia = (
-                        lista_asset[0].__class__.__name__.replace("AssetDi", "")
-                        if lista_asset
-                        else "GENERAL"
-                    )
+        # Importiamo la funzione pulita dal modulo explainer di Gemini
+        from ai_modules.explainer import spiega_war_room_strategica
 
-                    if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
-                        with st.spinner("AI al lavoro..."):
-                            try:
-                                prompt = (
-                                    f"Analisi per {azienda} ({settore_ia}). "
-                                    f"Solidità {solidita_val}% | Rischio {rischio_val}/10 | Momentum {media_m}."
-                                )
-                                chat = client.chat.completions.create(
-                                    messages=[
-                                        {"role": "system", "content": "Sei un CSO."},
-                                        {"role": "user", "content": prompt},
-                                    ],
-                                    model="llama-3.3-70b-versatile",
-                                )
-                                st.markdown(
-                                    f"<div class='ai-reasoning'>{chat.choices[0].message.content}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                            except Exception as e:
-                                st.error(f"Errore IA: {e}")
-            else:
-                status.update(label="❌ Errore: Dati non compatibili", state="error")
-                st.error(f"L'ingestione di '{uploaded_file.name}' è fallita.")
-                st.warning("Assicurati che il file contenga riferimenti a 'data' e 'asset'.")
-                st.stop()
-
-        if report_analisi:
-            st.subheader("📝 Piano d'Azione Operativo (Priorità)")
-            report_ordinato = sorted(
-                report_analisi, key=lambda x: x.get("rischio", 0), reverse=True
-            )
-
-            for asset in report_ordinato:
-                r = asset.get("rischio", 0)
-                m = asset.get("momentum_score", 0)
-                nome = asset.get("asset", "N/D")
-
-                if r > 7 and m > 2:
-                    box_style, label, consiglio = (
-                        "kpi-box-critical",
-                        "🚨 EMERGENZA",
-                        "Bloccare attività e mitigare immediatamente il rischio operativo.",
-                    )
-                elif r > 5 or m > 1.5:
-                    box_style, label, consiglio = (
-                        "kpi-box",
-                        "⚠️ ATTENZIONE",
-                        "Incrementare il monitoraggio e isolare le varianze orarie.",
-                    )
-                else:
-                    box_style, label, consiglio = (
-                        "kpi-box",
-                        "✅ NOMINALE",
-                        "Standard mantenuti. Continuare la normale governance.",
+        if st.button("🚀 ESEGUI ANALISI STRATEGICA PRESCRITTIVA"):
+            with st.spinner(
+                "Google Gemini Enterprise al lavoro per il report predittivo..."
+            ):
+                try:
+                    # Chiamata alla funzione che genera il report discorsivo e la formula 30/60/90 giorni
+                    report_enterprise = spiega_war_room_strategica(
+                        azienda=azienda,
+                        settore=settore_ia,
+                        solidita=solidita_val,
+                        rischio=rischio_val,
+                        momentum=media_m,
+                        ore=int(ore_totale),
+                        df_str=df_p.to_string(index=False),
                     )
 
-                st.markdown(
-                    f"<div class='{box_style}'><b>{nome}</b> | Rischio: {r} | Momentum: {m}"
-                    f"<br><small>🎯 {consiglio}</small></div>",
-                    unsafe_allow_html=True,
-                )
+                    st.markdown(
+                        "### 📋 Report Strategico & Predittivo Semplificato (30/60/90 Giorni)"
+                    )
+                    st.markdown(
+                        f"<div class='ai-reasoning'>{report_enterprise}</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                except Exception as e:
+                    st.error(f"Errore durante l'analisi con Gemini: {e}")
 
 # ==========================================
 #   PAGINA 4: ARCHIVIO STORICO (VERSIONE EXECUTIVE)
@@ -546,11 +547,12 @@ elif scelta == "📜 Archivio Storico":
                 if not df_filtrato.empty:
                     st.dataframe(df_filtrato, use_container_width=True, hide_index=True)
                 else:
-                    st.warning(f"Nessuna operazione registrata per l'azienda {azienda}.")
+                    st.warning(
+                        f"Nessuna operazione registrata per l'azienda {azienda}."
+                    )
         else:
             st.warning(
                 "L'archivio centrale è attualmente vuoto. Carica un file nella War Room per iniziare."
             )
     except Exception as e:
         st.error(f"❌ Errore critico di sincronizzazione archivio: {e}")
-

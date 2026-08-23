@@ -116,12 +116,17 @@ class DatabaseAziendale:
                 cursor = conn.cursor()
 
                 email_enc = self.vault.encrypt_data(email)
-                password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                password_hash = bcrypt.hashpw(
+                    password.encode(), bcrypt.gensalt()
+                ).decode()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO utenti (email, password_hash, ruolo, azienda)
                     VALUES (?, ?, ?, ?)
-                """, (email_enc, password_hash, ruolo, None))
+                """,
+                    (email_enc, password_hash, ruolo, None),
+                )
                 user_id = cursor.lastrowid
 
                 if azienda is None:
@@ -129,10 +134,13 @@ class DatabaseAziendale:
 
                 azienda_enc = self.vault.encrypt_data(azienda)
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE utenti SET azienda = ?
                     WHERE id = ?
-                """, (azienda_enc, user_id))
+                """,
+                    (azienda_enc, user_id),
+                )
 
                 conn.commit()
                 return user_id
@@ -143,7 +151,9 @@ class DatabaseAziendale:
     def get_utente_by_email(self, email):
         try:
             with self._get_conn() as conn:
-                cursor = conn.execute("SELECT id, email, password_hash, ruolo, azienda FROM utenti")
+                cursor = conn.execute(
+                    "SELECT id, email, password_hash, ruolo, azienda FROM utenti"
+                )
                 rows = cursor.fetchall()
 
             for row in rows:
@@ -153,7 +163,9 @@ class DatabaseAziendale:
                         email_dec = email_dec.decode()
 
                     if email_dec.lower() == email.lower():
-                        azienda_dec = self.vault.decrypt_data(row[4]) if row[4] else None
+                        azienda_dec = (
+                            self.vault.decrypt_data(row[4]) if row[4] else None
+                        )
                         if isinstance(azienda_dec, bytes):
                             azienda_dec = azienda_dec.decode()
 
@@ -162,7 +174,7 @@ class DatabaseAziendale:
                             "email": email_dec,
                             "password_hash": row[2],
                             "ruolo": row[3],
-                            "azienda": azienda_dec
+                            "azienda": azienda_dec,
                         }
                 except:
                     continue
@@ -174,10 +186,13 @@ class DatabaseAziendale:
     def get_utente_by_id(self, user_id: int):
         try:
             with self._get_conn() as conn:
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT id, email, password_hash, ruolo, azienda
                     FROM utenti WHERE id = ?
-                """, (user_id,))
+                """,
+                    (user_id,),
+                )
                 row = cursor.fetchone()
 
             if not row:
@@ -188,7 +203,7 @@ class DatabaseAziendale:
                 "email": self.vault.decrypt_data(row[1]),
                 "password_hash": row[2],
                 "ruolo": row[3],
-                "azienda": self.vault.decrypt_data(row[4]) if row[4] else None
+                "azienda": self.vault.decrypt_data(row[4]) if row[4] else None,
             }
         except Exception as e:
             logger.error(f"Errore recupero utente by id: {e}")
@@ -227,27 +242,30 @@ class DatabaseAziendale:
             company_id_secure = self.vault.encrypt_data(str(azienda))
             nome_secure = self.vault.encrypt_data(str(nome_asset))
 
-            tipo_asset = kwargs.get('tipo', 'GenericAsset')
-            momentum = kwargs.get('momentum', 'Stabile')
-            volatilita = kwargs.get('volatilita', 0.0)
-            valore_extra = kwargs.get('valore_extra', 0.0)
+            tipo_asset = kwargs.get("tipo", "GenericAsset")
+            momentum = kwargs.get("momentum", "Stabile")
+            volatilita = kwargs.get("volatilita", 0.0)
+            valore_extra = kwargs.get("valore_extra", 0.0)
 
             with self._get_conn() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO asset_logs (
                         user_id, company_id, nome, tipo, rischio, momentum, volatilita, valore_extra
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    user_id,
-                    company_id_secure,
-                    nome_secure,
-                    tipo_asset,
-                    rischio,
-                    momentum,
-                    volatilita,
-                    valore_extra
-                ))
+                """,
+                    (
+                        user_id,
+                        company_id_secure,
+                        nome_secure,
+                        tipo_asset,
+                        rischio,
+                        momentum,
+                        volatilita,
+                        valore_extra,
+                    ),
+                )
         except Exception as e:
             logger.error(f"❌ Errore salvataggio asset {nome_asset}: {e}")
 
@@ -257,14 +275,14 @@ class DatabaseAziendale:
                 df = pd.read_sql_query(
                     "SELECT * FROM asset_logs WHERE user_id = ? ORDER BY id DESC",
                     conn,
-                    params=(user_id,)
+                    params=(user_id,),
                 )
 
             if df.empty:
                 return df
 
-            df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
-            df['nome'] = df['nome'].apply(self.vault.decrypt_data)
+            df["company_id"] = df["company_id"].apply(self.vault.decrypt_data)
+            df["nome"] = df["nome"].apply(self.vault.decrypt_data)
             return df
         except Exception as e:
             logger.error(f"Errore recupero asset per utente: {e}")
@@ -279,7 +297,7 @@ class DatabaseAziendale:
                 if solo_admin:
                     df = pd.read_sql_query(
                         "SELECT id, user_id, company_id, nome, rischio, timestamp FROM asset_logs ORDER BY id DESC",
-                        conn
+                        conn,
                     )
                 else:
                     if user_id is None:
@@ -287,12 +305,12 @@ class DatabaseAziendale:
                     df = pd.read_sql_query(
                         "SELECT id, user_id, company_id, nome, rischio, timestamp FROM asset_logs WHERE user_id = ? ORDER BY id DESC",
                         conn,
-                        params=(user_id,)
+                        params=(user_id,),
                     )
 
             if not df.empty:
-                df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
-                df['nome'] = df['nome'].apply(self.vault.decrypt_data)
+                df["company_id"] = df["company_id"].apply(self.vault.decrypt_data)
+                df["nome"] = df["nome"].apply(self.vault.decrypt_data)
 
             return df
         except Exception as e:
@@ -310,12 +328,15 @@ class DatabaseAziendale:
 
             with self._get_conn() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT rischio, volatilita FROM asset_logs 
                     WHERE id IN (
                         SELECT MAX(id) FROM asset_logs WHERE user_id = ? GROUP BY nome
                     )
-                """, (user_id,))
+                """,
+                    (user_id,),
+                )
                 rows = cursor.fetchall()
 
             if not rows:
@@ -336,7 +357,7 @@ class DatabaseAziendale:
             return {
                 "rischio_medio": rischio_medio,
                 "solidita": solidita,
-                "impatto_30gg": impatto_30gg
+                "impatto_30gg": impatto_30gg,
             }
         except Exception as e:
             logger.error(f"❌ Errore nel calcolo centralizzato dei KPI: {e}")
@@ -354,10 +375,13 @@ class DatabaseAziendale:
             company_id_secure = self.vault.encrypt_data(str(azienda))
 
             with self._get_conn() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO storico_kpi (user_id, company_id, kpi_nome, valore)
                     VALUES (?, ?, ?, ?)
-                """, (user_id, company_id_secure, kpi_nome, valore))
+                """,
+                    (user_id, company_id_secure, kpi_nome, valore),
+                )
         except Exception as e:
             logger.error(f"Errore salvataggio KPI {kpi_nome}: {e}")
 
@@ -367,13 +391,13 @@ class DatabaseAziendale:
                 df = pd.read_sql_query(
                     "SELECT * FROM storico_kpi WHERE user_id = ? ORDER BY data_rilevazione DESC",
                     conn,
-                    params=(user_id,)
+                    params=(user_id,),
                 )
 
             if df.empty:
                 return df
 
-            df['company_id'] = df['company_id'].apply(self.vault.decrypt_data)
+            df["company_id"] = df["company_id"].apply(self.vault.decrypt_data)
             return df
         except Exception as e:
             logger.error(f"Errore recupero KPI per utente: {e}")
@@ -386,20 +410,28 @@ class DatabaseAziendale:
         try:
             with self._get_conn() as conn:
                 df_clienti = pd.read_sql_query(
-                    "SELECT id, email, azienda, ruolo FROM utenti WHERE ruolo != 'admin'", conn
+                    "SELECT id, email, azienda, ruolo FROM utenti WHERE ruolo != 'admin'",
+                    conn,
                 )
                 df_logs = pd.read_sql_query(
                     "SELECT user_id, rischio, volatilita FROM asset_logs", conn
                 )
                 df_uploads = pd.read_sql_query(
-                    "SELECT user_id, COUNT(id) as totale_caricamenti FROM log_caricamenti GROUP BY user_id", conn
+                    "SELECT user_id, COUNT(id) as totale_caricamenti FROM log_caricamenti GROUP BY user_id",
+                    conn,
                 )
 
             if df_clienti.empty:
-                return pd.DataFrame(columns=[
-                    "User ID", "Email Cliente", "Azienda",
-                    "Asset Attivi", "Rischio Medio", "File Caricati"
-                ])
+                return pd.DataFrame(
+                    columns=[
+                        "User ID",
+                        "Email Cliente",
+                        "Azienda",
+                        "Asset Attivi",
+                        "Rischio Medio",
+                        "File Caricati",
+                    ]
+                )
 
             df_clienti["email"] = df_clienti["email"].apply(self.vault.decrypt_data)
             df_clienti["azienda"] = df_clienti["azienda"].apply(self.vault.decrypt_data)
@@ -411,17 +443,25 @@ class DatabaseAziendale:
                 uploads_utente = df_uploads[df_uploads["user_id"] == u_id]
 
                 asset_attivi = len(logs_utente)
-                rischio_medio = round(logs_utente["rischio"].mean(), 2) if asset_attivi > 0 else 0.0
-                file_caricati = int(uploads_utente["totale_caricamenti"].iloc[0]) if not uploads_utente.empty else 0
+                rischio_medio = (
+                    round(logs_utente["rischio"].mean(), 2) if asset_attivi > 0 else 0.0
+                )
+                file_caricati = (
+                    int(uploads_utente["totale_caricamenti"].iloc[0])
+                    if not uploads_utente.empty
+                    else 0
+                )
 
-                riepilogo.append({
-                    "User ID": u_id,
-                    "Email Cliente": row["email"],
-                    "Azienda": row["azienda"],
-                    "Asset Attivi": asset_attivi,
-                    "Rischio Medio": rischio_medio,
-                    "File Caricati": file_caricati
-                })
+                riepilogo.append(
+                    {
+                        "User ID": u_id,
+                        "Email Cliente": row["email"],
+                        "Azienda": row["azienda"],
+                        "Asset Attivi": asset_attivi,
+                        "Rischio Medio": rischio_medio,
+                        "File Caricati": file_caricati,
+                    }
+                )
 
             return pd.DataFrame(riepilogo)
         except Exception as e:
@@ -441,10 +481,13 @@ class DatabaseAziendale:
             file_sec = self.vault.encrypt_data(str(nome_file))
 
             with self._get_conn() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO log_caricamenti (user_id, azienda, contesto, nome_file)
                     VALUES (?, ?, ?, ?)
-                """, (user_id, azienda_sec, contesto, file_sec))
+                """,
+                    (user_id, azienda_sec, contesto, file_sec),
+                )
         except Exception as e:
             logger.error(f"Errore log admin: {e}")
 
@@ -454,7 +497,7 @@ class DatabaseAziendale:
                 df = pd.read_sql_query(
                     "SELECT * FROM log_caricamenti WHERE user_id = ? ORDER BY timestamp DESC",
                     conn,
-                    params=(user_id,)
+                    params=(user_id,),
                 )
 
             if df.empty:
@@ -471,8 +514,7 @@ class DatabaseAziendale:
         try:
             with self._get_conn() as conn:
                 df = pd.read_sql_query(
-                    "SELECT * FROM log_caricamenti ORDER BY timestamp DESC",
-                    conn
+                    "SELECT * FROM log_caricamenti ORDER BY timestamp DESC", conn
                 )
 
             if df.empty:

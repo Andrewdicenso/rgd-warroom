@@ -1,9 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="RGD-Alpha | War Room Strategica",
-    page_icon="🛡️",
-    layout="wide"
+    page_title="RGD-Alpha | War Room Strategica", page_icon="🛡️", layout="wide"
 )
 
 # Header con logo/branding
@@ -51,12 +49,15 @@ che analizza il tuo inventario e calcola la **Solidità Operativa** della tua az
 """)
 
 # Call to action
-col1, col2, col3 = st.columns([1,2,1])
+col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.markdown("""
+    st.markdown(
+        """
     <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 border-radius: 1rem; color: white; margin: 2rem 0;'>
         <h3>🔐 Sicurezza Garantita</h3>
         <p>Dati cifrati AES-256 • Hosting Europeo • GDPR Compliant</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )

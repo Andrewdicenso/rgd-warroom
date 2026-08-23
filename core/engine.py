@@ -106,11 +106,16 @@ class DataGateway:
 
         for target, sinonimi in colonne_target.items():
             for col in colonne_file:
-                if col.lower() in [s.lower() for s in sinonimi] or col.lower() == target:
+                if (
+                    col.lower() in [s.lower() for s in sinonimi]
+                    or col.lower() == target
+                ):
                     mappa_finale[col] = target
                     break
             if target not in mappa_finale.values():
-                matches = difflib.get_close_matches(target, colonne_file, n=1, cutoff=0.5)
+                matches = difflib.get_close_matches(
+                    target, colonne_file, n=1, cutoff=0.5
+                )
                 if matches:
                     mappa_finale[matches[0]] = target
 
@@ -124,9 +129,7 @@ class DataGateway:
         return round(output / ore_effettive, 2) if ore_effettive > 0 else 0.0
 
     # --- MATRICE MATEMATICA CORE (EMA PROTOCOL) ---
-    def _calcola_trend_momentum_alpha(
-        self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1
-    ):
+    def _calcola_trend_momentum_alpha(self, r_oggi, r_storico, w1=0.7, w2=0.3, dt=1):
         if dt <= 0:
             dt = 1
         return round(((r_oggi * w1) - (r_storico * w2)) / dt, 2)
@@ -149,9 +152,12 @@ class DataGateway:
                 "TERZIARIO_LOGISTICA": "🚨 LIQUIDAZIONE: Saturazione spazi. Liberare magazzino ora.",
                 "FASHION_RETAIL": "🚨 OUTLET IMMEDIATO: Merce fuori stagione. Recuperare capitale.",
             }
-            return consigli.get(
-                settore, "🚨 EMERGENZA: Azione correttiva richiesta entro 24h."
-            ) + alert
+            return (
+                consigli.get(
+                    settore, "🚨 EMERGENZA: Azione correttiva richiesta entro 24h."
+                )
+                + alert
+            )
         elif rischio > 5:
             return (
                 f"⚠️ MONITORAGGIO: Settore {settore} in allerta. "
@@ -163,7 +169,11 @@ class DataGateway:
     def _analizza_e_configura_motore(self, contesto, colonne):
         contesto_upper = str(contesto).upper()
         if "EDILE" in contesto_upper:
-            return {"settore": "EDILE_COSTRUZIONI", "soglia": 7.5, "moltiplicatore": 1.2}
+            return {
+                "settore": "EDILE_COSTRUZIONI",
+                "soglia": 7.5,
+                "moltiplicatore": 1.2,
+            }
         if "FASHION" in contesto_upper:
             return {"settore": "FASHION_RETAIL", "soglia": 7.0, "moltiplicatore": 1.1}
         if "LOGIST" in contesto_upper or "MAGAZZINO" in contesto_upper:
@@ -220,9 +230,7 @@ class DataGateway:
 
             if ore_p > 0:
                 rapporto_perdita = ore_p / self.ORE_TEORICHE_ANNUE
-                r_base = round(
-                    10 / (1 + np.exp(-15 * (rapporto_perdita - 0.15))), 2
-                )
+                r_base = round(10 / (1 + np.exp(-15 * (rapporto_perdita - 0.15))), 2)
             else:
                 r_base = d.get("rischio", 1.0)
 
@@ -248,9 +256,9 @@ class DataGateway:
                         r_pesato, settore_rilevato, m_score
                     ),
                     "settore": settore_rilevato,
-                    "alert": "🚨 STRESS TEST ATTIVO"
-                    if fattore_stress > 1.0
-                    else "Nominale",
+                    "alert": (
+                        "🚨 STRESS TEST ATTIVO" if fattore_stress > 1.0 else "Nominale"
+                    ),
                 }
             )
 

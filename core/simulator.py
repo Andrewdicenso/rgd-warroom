@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger("RGD-Alpha.Simulator")
 
+
 class SimulatoreRischio:
     def __init__(self, iterazioni=1000):
         self.iterazioni = iterazioni
