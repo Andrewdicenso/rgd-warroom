@@ -200,8 +200,17 @@ class IngestoreDati:
                     if hasattr(nuovo_asset, "genera_kpi_strategici"):
                         nuovo_asset.genera_kpi_strategici()
 
-                    # Salvataggio storico (opzionale)
-                    # self.db.salva_asset(nuovo_asset, company_id)
+ # Salvataggio storico su Supabase attivo
+                    try:
+                        self.db.salva_asset(
+                            user_id=company_id, # o l'id utente disponibile nel contesto
+                            nome_asset=nuovo_asset.get("nome", "Asset Sconosciuto"),
+                            rischio=nuovo_asset.get("rischio", 0.0),
+                            tipo=nuovo_asset.get("tipo", "Enterprise"),
+                            momentum=nuovo_asset.get("momentum", "Stabile")
+                        )
+                    except Exception as db_err:
+                        logger.error(f"Errore di salvataggio su Supabase: {db_err}")
 
                     asset_list.append(nuovo_asset)
 
