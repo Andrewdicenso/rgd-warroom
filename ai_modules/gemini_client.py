@@ -6,12 +6,15 @@ import streamlit as st
 # Modello aggiornato e compatibile
 DEFAULT_MODEL = "gemini-3.6-flash"
 
+
 @st.cache_resource
 def get_gemini_client() -> genai.Client:
     """Inizializza e mappa in cache il client Gemini usando le Streamlit Secrets."""
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("La chiave GEMINI_API_KEY non è configurata nelle Streamlit Secrets.")
+        raise ValueError(
+            "La chiave GEMINI_API_KEY non è configurata nelle Streamlit Secrets."
+        )
     return genai.Client(api_key=api_key)
 
 
@@ -19,7 +22,7 @@ def chiedi_a_gemini(
     prompt: str,
     system_instruction: str = None,
     temperature: float = 0.2,
-    model: str = DEFAULT_MODEL
+    model: str = DEFAULT_MODEL,
 ) -> str:
     """
     Invia un prompt a Gemini con gestione degli errori enterprise,
@@ -35,9 +38,7 @@ def chiedi_a_gemini(
         )
 
         response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=config
+            model=model, contents=prompt, config=config
         )
 
         if not response.text:
