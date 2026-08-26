@@ -1,45 +1,31 @@
-gitignore
-# --- PRIVACY E SICUREZZA BLINDATA (FONDAMENTALE) ---
-# Blocca database e chiavi di cifratura
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-core/security/vault.key
-.env
-.streamlit/secrets.toml
-
-# Forza l'inclusione della grafica Streamlit
-!.streamlit/config.toml
-
-# --- DATI E LOGS (Evita fughe dati clienti) ---
-data/
-archive/
-uploads/
-tmp/
-*.log
-debug.log
-
 # --- AMBIENTI VIRTUALI PYTHON ---
 venv/
 env/
 ENV/
 
-# --- CONFIGURAZIONI IDE E SISTEMA ---
-.vscode/
-.idea/
-*.swp
-*.swo
-.devcontainer/
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# --- CACHE E TEST ---
+# --- CACHE DI PYTHON ---
 __pycache__/
+*/__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
-test_*.py
-node_modules/
+
+# --- CREDENZIALI E SICUREZZA (CRITICO) ---
+.env
+.streamlit/secrets.toml
+core/security/vault.key
+
+# --- DATABASE E LOGS LOCALI ---
+data/db/*.db
+data/logs/*
+
+# --- UPLOAD DINAMICI (mantiene la cartella con .gitkeep) ---
+data/uploads/*
+!data/uploads/.gitkeep
+
+# --- CONFIGURAZIONI IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
