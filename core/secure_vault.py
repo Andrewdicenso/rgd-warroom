@@ -21,7 +21,7 @@ class SecureVault:
         """Carica la chiave da Environment Variable (Render) o da File (Locale)."""
         try:
             # 1. Variabile d'ambiente (Render)
-            env_key = os.getenv("VAULT_KEY_CONTENT")
+            env_key = os.getenv("SECRET_KEY")
             if env_key:
                 key = env_key.strip().encode("utf-8")
                 logger.info("🛡️ Chiave caricata da variabile d'ambiente.")
