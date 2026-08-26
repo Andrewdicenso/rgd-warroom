@@ -1,7 +1,7 @@
+import streamlit as st
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
-import streamlit as st
 
 # Modello aggiornato e compatibile
 DEFAULT_MODEL = "gemini-3.6-flash"

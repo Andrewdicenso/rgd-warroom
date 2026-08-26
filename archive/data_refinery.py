@@ -1,8 +1,10 @@
-import pandas as pd
 import re
-import holidays
 from datetime import datetime
 from io import BytesIO
+
+import holidays
+import pandas as pd
+
 
 class DataRefinery:
     def __init__(self, country='IT'):

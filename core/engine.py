@@ -1,10 +1,11 @@
-import sys
-import logging
-import pandas as pd
-from pathlib import Path
-from datetime import datetime
-import numpy as np
 import difflib  # INDISPENSABILE per la mappatura intelligente
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # ==============================================================================
 # RISOLUZIONE DINAMICA DEL PATH
@@ -13,8 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from core.secure_vault import SecureVault
 from core.database import DatabaseAziendale
+from core.secure_vault import SecureVault
 
 logger = logging.getLogger("RGD-Alpha.Gateway.Enterprise")
 

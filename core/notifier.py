@@ -1,6 +1,6 @@
 import datetime
-import os
 import logging
+import os
 
 logger = logging.getLogger("RGD-Alpha.Sentinella")
 

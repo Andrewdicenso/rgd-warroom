@@ -1,14 +1,15 @@
-from datetime import datetime
 import os
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
+import streamlit as st
 
 # Librerie di terze parti
 from dotenv import load_dotenv
 from groq import Groq
-import pandas as pd
-import plotly.express as px
-import streamlit as st
 
 # Moduli interni del progetto
 from auth.auth import *

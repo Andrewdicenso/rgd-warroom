@@ -1,8 +1,9 @@
-import streamlit as st
 import pandas as pd
-from core.database import DatabaseAziendale
+import streamlit as st
+
+from ai_modules.explainer import spiega_grafico, spiega_kpi
 from core.analyst import AnalistaRischio
-from ai_modules.explainer import spiega_kpi, spiega_grafico
+from core.database import DatabaseAziendale
 
 
 def show_warroom():  # Cambiato da main() a show_warroom()

@@ -1,6 +1,6 @@
-import shutil
-import os
 import logging
+import os
+import shutil
 
 logger = logging.getLogger("RGD-Alpha.Connector")
 

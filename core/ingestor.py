@@ -1,16 +1,18 @@
-import pandas as pd
-import os
 import logging
+import os
+
+import pandas as pd
 import torch
 import torch.nn.functional as F
-from core.secure_vault import SecureVault
+
+from core.database import DatabaseAziendale
 from core.entities import (
     AssetDiMercato,
-    AssetDiValore,
     AssetDiRelazione,
+    AssetDiValore,
     AssetStrategico,
 )
-from core.database import DatabaseAziendale
+from core.secure_vault import SecureVault
 
 logger = logging.getLogger("RGD-Alpha.Ingestor")
 

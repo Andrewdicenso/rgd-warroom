@@ -1,19 +1,20 @@
+import json
 import os
 import shutil
-import json
 from pathlib import Path
 from uuid import uuid4
+
 import pandas as pd
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
 from backend.kpi_engine import compute_financial_kpis
 from backend.pdf_generator import generate_pdf_report
-from core.notifier import Sentinella
 from core.ingestor import IngestoreDati
+from core.notifier import Sentinella
 
 load_dotenv()
 

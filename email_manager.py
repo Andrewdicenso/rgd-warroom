@@ -1,18 +1,18 @@
-import os
 import base64
-import time
 import json
+import os
+import time
 from email.message import EmailMessage
 
 import streamlit as st
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-# Importiamo il database
-from core.database import DatabaseAziendale
-
 # Importiamo il nuovo connettore proattivo
 from connectors.connector_manager import SFTPConnector
+
+# Importiamo il database
+from core.database import DatabaseAziendale
 
 # Inizializziamo il database
 db = DatabaseAziendale()

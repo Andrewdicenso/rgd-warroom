@@ -1,5 +1,6 @@
 import streamlit as st
-from auth.auth import login_utente, inizializza_sessione
+
+from auth.auth import inizializza_sessione, login_utente
 from core.database import DatabaseAziendale
 
 # Inizializza la sessione Streamlit

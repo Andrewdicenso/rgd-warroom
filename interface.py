@@ -1,11 +1,13 @@
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
-import sqlite3
 import os
-from core.database import DatabaseAziendale
+import sqlite3
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
+
 from core.analyst import AnalistaRischio
+from core.database import DatabaseAziendale
 from core.simulator import SimulatoreRischio
 
 # --- CONFIGURAZIONE PERCORSI (ENGINEERING STANDARD) ---

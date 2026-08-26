@@ -1,6 +1,7 @@
 # core/crewEngine.py
 import json
 import os
+
 import pandas as pd
 
 # INDIRIZZAMENTO SICURO: Recupero dinamico del percorso per evitare errori di avvio da main.py o dalle pagine interne

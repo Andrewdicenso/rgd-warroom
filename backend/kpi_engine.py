@@ -1,5 +1,7 @@
+from typing import Any, Dict, Optional
+
 import pandas as pd
-from typing import Optional, Dict, Any
+
 from core.analyst import AnalistaRischio
 from core.database import DatabaseAziendale
 

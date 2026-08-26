@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import Settings, get_settings
-from src.domain import Asset, Azienda, Utente, AssetCategory, RiscoScore
+from src.domain import Asset, AssetCategory, Azienda, RiscoScore, Utente
 
 
 @pytest.fixture
