@@ -417,6 +417,27 @@ elif scelta == "📊 War Room Strategica":
                     weights=(0.7, 0.3),
                 )
 
+                df_p = pd.DataFrame(report_analisi)
+                df_p.columns = [str(c).lower().strip() for c in df_p.columns]
+
+                # Salvataggio automatico dei log nel database per popolare la tabella asset_logs
+                try:
+                    with db._get_conn() as conn:
+                        for item in report_analisi:
+                            nome_asset = item.get("nome", item.get("asset", "Asset N/D"))
+                            rischio_item = item.get("risk_factor", item.get("rischio", 4.0))
+                            volatilita_item = item.get("volatilita", 0.0)
+
+                            conn.execute(
+                                """
+                                INSERT INTO asset_logs (user_id, nome, rischio, volatilita)
+                                VALUES (?, ?, ?, ?)
+                                """,
+                                (user_id, str(nome_asset), float(rischio_item), float(volatilita_item))
+                            )
+                except Exception as db_err:
+                    logger.error(f"Errore durante il salvataggio dei log nel DB: {db_err}")
+
                 db.calcola_e_salva_kpi_correnti(user_id)
                 kpi_reali = (
                     db.get_kpi_recenti(user_id)
@@ -424,21 +445,21 @@ elif scelta == "📊 War Room Strategica":
                     else {}
                 )
 
-                df_p = pd.DataFrame(report_analisi)
-                df_p.columns = [str(c).lower().strip() for c in df_p.columns]
-
                 if not isinstance(kpi_reali, dict) or not kpi_reali:
-                    kpi_reali = {
-                        "solidita": 85,
-                        "rischio_medio": round(
-                            (
-                                df_p["risk_factor"].mean()
-                                if "risk_factor" in df_p.columns
-                                else 4
-                            ),
-                            1,
+                    rischio_medio_calc = round(
+                        (
+                            df_p["risk_factor"].mean()
+                            if "risk_factor" in df_p.columns
+                            else 4.0
                         ),
-                        "trend": "In Monitoraggio",
+                        1,
+                    )
+                    solidita_calc = round(max(0.0, min(100.0, 100.0 - (rischio_medio_calc * 9.5))), 1)
+
+                    kpi_reali = {
+                        "solidita": solidita_calc,
+                        "rischio_medio": rischio_medio_calc,
+                        "trend": "Dinamico (Live)",
                     }
 
                 status.update(
@@ -446,9 +467,9 @@ elif scelta == "📊 War Room Strategica":
                     state="complete",
                 )
 
-                rischio_val = kpi_reali.get("rischio_medio", 0)
+                rischio_val = kpi_reali.get("rischio_medio", 4.0)
                 trend_testo = kpi_reali.get("trend", "Stabile")
-                solidita_val = kpi_reali.get("solidita", 0)
+                solidita_val = kpi_reali.get("solidita", 0.0)
 
                 col_ore = [c for c in df_p.columns if "ore" in c or "effettive" in c]
                 ore_totale = (
