@@ -52,6 +52,8 @@ UPLOAD_DIR = DATA_ROOT / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # Inizializzazione Sessione (Fondamentale per Auth)
 inizializza_sessione()
+# Inizializzazione sicura del Database
+db = DatabaseAziendale()
 # --- LOGICA DI RECUPERO TOKEN ---
 query_params = st.query_params
 reset_token = query_params.get("reset_token")
