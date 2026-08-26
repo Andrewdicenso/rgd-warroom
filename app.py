@@ -424,8 +424,12 @@ elif scelta == "📊 War Room Strategica":
                 try:
                     with db._get_conn() as conn:
                         for item in report_analisi:
-                            nome_asset = item.get("nome", item.get("asset", "Asset N/D"))
-                            rischio_item = item.get("risk_factor", item.get("rischio", 4.0))
+                            nome_asset = item.get(
+                                "nome", item.get("asset", "Asset N/D")
+                            )
+                            rischio_item = item.get(
+                                "risk_factor", item.get("rischio", 4.0)
+                            )
                             volatilita_item = item.get("volatilita", 0.0)
 
                             conn.execute(
@@ -433,10 +437,17 @@ elif scelta == "📊 War Room Strategica":
                                 INSERT INTO asset_logs (user_id, nome, rischio, volatilita)
                                 VALUES (?, ?, ?, ?)
                                 """,
-                                (user_id, str(nome_asset), float(rischio_item), float(volatilita_item))
+                                (
+                                    user_id,
+                                    str(nome_asset),
+                                    float(rischio_item),
+                                    float(volatilita_item),
+                                ),
                             )
                 except Exception as db_err:
-                    logger.error(f"Errore durante il salvataggio dei log nel DB: {db_err}")
+                    logger.error(
+                        f"Errore durante il salvataggio dei log nel DB: {db_err}"
+                    )
 
                 db.calcola_e_salva_kpi_correnti(user_id)
                 kpi_reali = (
@@ -454,7 +465,9 @@ elif scelta == "📊 War Room Strategica":
                         ),
                         1,
                     )
-                    solidita_calc = round(max(0.0, min(100.0, 100.0 - (rischio_medio_calc * 9.5))), 1)
+                    solidita_calc = round(
+                        max(0.0, min(100.0, 100.0 - (rischio_medio_calc * 9.5))), 1
+                    )
 
                     kpi_reali = {
                         "solidita": solidita_calc,
