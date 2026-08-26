@@ -420,35 +420,7 @@ elif scelta == "📊 War Room Strategica":
                 df_p = pd.DataFrame(report_analisi)
                 df_p.columns = [str(c).lower().strip() for c in df_p.columns]
 
-                # Salvataggio automatico dei log nel database per popolare la tabella asset_logs
-                try:
-                    with db._get_conn() as conn:
-                        for item in report_analisi:
-                            nome_asset = item.get(
-                                "nome", item.get("asset", "Asset N/D")
-                            )
-                            rischio_item = item.get(
-                                "risk_factor", item.get("rischio", 4.0)
-                            )
-                            volatilita_item = item.get("volatilita", 0.0)
-
-                            conn.execute(
-                                """
-                                INSERT INTO asset_logs (user_id, nome, rischio, volatilita)
-                                VALUES (?, ?, ?, ?)
-                                """,
-                                (
-                                    user_id,
-                                    str(nome_asset),
-                                    float(rischio_item),
-                                    float(volatilita_item),
-                                ),
-                            )
-                except Exception as db_err:
-                    logger.error(
-                        f"Errore durante il salvataggio dei log nel DB: {db_err}"
-                    )
-
+                # I dati KPI vengono calcolati e recuperati in sicurezza
                 db.calcola_e_salva_kpi_correnti(user_id)
                 kpi_reali = (
                     db.get_kpi_recenti(user_id)
